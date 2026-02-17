@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Analyzer Data Entry - Agent Optimized</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #f4f4f5;
+            color: #18181b;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #e4e4e7;
+            padding-bottom: 1rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d4d4d8;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        .actions {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-clear {
+            background: #71717a;
+        }
+
+        .btn-clear:hover {
+            background: #52525b;
+        }
+
+        #output {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #27272a;
+            color: #4ade80;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .hint {
+            font-size: 0.875rem;
+            color: #71717a;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Agent Data Entry Portal</h1>
+        <p>Use this form to aggregate vehicle data found on marketplaces. Click "Generate Output" to get JSON/CSV ready
+            for the Vehicle Analyzer.</p>
+
+        <form id="vehicleForm">
+            <div class="form-grid">
+                <!-- Core Required Fields -->
+                <div class="form-group">
+                    <label for="year">Year *</label>
+                    <input type="number" id="year" name="year" required placeholder="e.g. 2018">
+                </div>
+                <div class="form-group">
+                    <label for="make">Make *</label>
+                    <input type="text" id="make" name="make" required placeholder="e.g. Toyota">
+                </div>
+                <div class="form-group">
+                    <label for="model">Model *</label>
+                    <input type="text" id="model" name="model" required placeholder="e.g. Camry">
+                </div>
+                <div class="form-group">
+                    <label for="price">Price ($) *</label>
+                    <input type="number" id="price" name="price" required placeholder="15000">
+                </div>
+
+                <!-- Secondary Fields -->
+                <div class="form-group">
+                    <label for="mileage">Mileage</label>
+                    <input type="number" id="mileage" name="mileage" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label for="trim">Trim</label>
+                    <input type="text" id="trim" name="trim" placeholder="e.g. SE">
+                </div>
+                <div class="form-group">
+                    <label for="vin">VIN</label>
+                    <input type="text" id="vin" name="vin" maxlength="17">
+                </div>
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" name="location" placeholder="City, State">
+                </div>
+
+                <!-- Details -->
+                <div class="form-group">
+                    <label for="titleStatus">Title Status</label>
+                    <select id="titleStatus" name="titleStatus">
+                        <option value="Clean">Clean</option>
+                        <option value="Salvage">Salvage</option>
+                        <option value="Rebuilt">Rebuilt</option>
+                        <option value="Lien">Lien</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="transmission">Transmission</label>
+                    <input type="text" id="transmission" name="transmission" value="Automatic">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="listingUrl">Listing URL</label>
+                <input type="url" id="listingUrl" name="listingUrl" placeholder="https://...">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description / Notes</label>
+                <textarea id="description" name="description" rows="4"></textarea>
+            </div>
+
+            <div class="actions">
+                <button type="button" onclick="generateFormat('json')">Generate JSON</button>
+                <button type="button" onclick="generateFormat('csv')">Generate CSV</button>
+                <button type="button" onclick="generateFormat('md')">Generate Markdown</button>
+                <button type="reset" class="btn-clear">Clear</button>
+            </div>
+        </form>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        function generateFormat(format) {
+            const form = document.getElementById('vehicleForm');
+            const data = new FormData(form);
+            const vehicle = Object.fromEntries(data.entries());
+
+            // Convert numbers
+            if (vehicle.year) vehicle.year = parseInt(vehicle.year);
+            if (vehicle.price) vehicle.price = parseFloat(vehicle.price);
+            if (vehicle.mileage) vehicle.mileage = parseInt(vehicle.mileage);
+
+            let output = '';
+
+            if (format === 'json') {
+                output = JSON.stringify([vehicle], null, 2);
+            } else if (format === 'csv') {
+                const headers = Object.keys(vehicle).join(',');
+                const values = Object.values(vehicle).map(v =>
+                    typeof v === 'string' && (v.includes(',') || v.includes('\n')) ? `"${v}"` : v
+                ).join(',');
+                output = headers + '\n' + values;
+            } else if (format === 'md') {
+                output = `# Vehicle: ${vehicle.year} ${vehicle.make} ${vehicle.model}\n\n`;
+                for (const [key, value] of Object.entries(vehicle)) {
+                    if (value) output += `- ${key}: ${value}\n`;
+                }
+            }
+
+            const outDiv = document.getElementById('output');
+            outDiv.style.display = 'block';
+            outDiv.textContent = output;
+
+            // Auto copy
+            navigator.clipboard.writeText(output).then(() => {
+                alert(format.toUpperCase() + ' generated! (Copied to clipboard)');
+            });
+        }
+    </script>
+</body>
+
+</html>

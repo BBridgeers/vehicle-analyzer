@@ -1,0 +1,41 @@
+Vercel CLI 50.17.1
+Retrieving projectΓÇª
+Deploying bbridgeers-projects/vehicle-analyzer
+Uploading [--------------------] (0.0B/9.8KB)
+Uploading [===============-----] (7.6KB/9.8KB)
+Uploading [====================] (9.8KB/9.8KB)
+Inspect: https://vercel.com/bbridgeers-projects/vehicle-analyzer/FG1WfQwjhrwg3SgPJxT7cU4zpsaJ [2s]
+Production: https://vehicle-analyzer-3jfh05mxt-bbridgeers-projects.vercel.app [2s]
+Building...
+Building...
+Building: Running build in Washington, D.C., USA (East) ΓÇô iad1
+Building: Build machine configuration: 2 cores, 8 GB
+Building: Retrieving list of deployment files...
+Building: Downloading 82 deployment files...
+Building: Restored build cache from previous deployment (9vxfMJcPGRfHbHfEocyWM323ZR34)
+Building: Running "vercel build"
+Building: Vercel CLI 50.15.1
+Building: Installing dependencies...
+Building: up to date in 3s
+Building: 138 packages are looking for funding
+Building: run `npm fund` for details
+Building: Detected Next.js version: 15.5.12
+Building: Running "next build"
+Building: Γû▓ Next.js 15.5.12
+Building: Creating an optimized production build ...
+Building: Γ£ô Compiled successfully in 4.4s
+Building: Linting and checking validity of types ...
+Building: Failed to compile.
+Building: ./src/lib/export-docx.ts:144:45
+Building: Type error: Property 'name' does not exist on type 'FinancialScenario'.
+Building: 142 |         const s = a.scenarios;
+Building: 143 |         for (const scenario of s.scenarios) {
+Building: > 144 |             sections.push(heading3(scenario.name));
+Building: |                                             ^
+Building: 145 |             sections.push(para(scenario.description));
+Building: 146 |             sections.push(para(`Total Cost: $${scenario.totalCost.toLocaleString()}`));
+Building: 147 |             sections.push(para(`Probability: ${scenario.probability}`));
+Building: Next.js build worker exited with code: 1 and signal: null
+Building: Error: Command "next build" exited with 1
+Error: Command "next build" exited with 1
+https://vehicle-analyzer-3jfh05mxt-bbridgeers-projects.vercel.app

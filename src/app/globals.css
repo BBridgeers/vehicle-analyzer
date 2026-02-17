@@ -1,0 +1,400 @@
+@import "tailwindcss";
+
+/* =====================================================
+   VEHICLE ANALYZER — DESIGN SYSTEM
+   Premium dark theme with glassmorphism
+   ===================================================== */
+
+@theme {
+    --color-bg-primary: #0a0a0f;
+    --color-bg-secondary: #12121a;
+    --color-bg-card: #1a1a26;
+    --color-bg-card-hover: #22222e;
+    --color-bg-glass: rgba(255, 255, 255, 0.04);
+    --color-bg-glass-hover: rgba(255, 255, 255, 0.08);
+
+    --color-border-subtle: rgba(255, 255, 255, 0.06);
+    --color-border-default: rgba(255, 255, 255, 0.1);
+    --color-border-accent: rgba(99, 102, 241, 0.3);
+
+    --color-text-primary: #f0f0f5;
+    --color-text-secondary: #9ca3af;
+    --color-text-muted: #6b7280;
+
+    --color-accent-indigo: #6366f1;
+    --color-accent-violet: #8b5cf6;
+    --color-accent-emerald: #10b981;
+    --color-accent-amber: #f59e0b;
+    --color-accent-rose: #f43f5e;
+    --color-accent-cyan: #06b6d4;
+
+    --color-verdict-strong: #10b981;
+    --color-verdict-recommended: #22c55e;
+    --color-verdict-caution: #f59e0b;
+    --color-verdict-avoid: #ef4444;
+
+    --color-severity-critical: #ef4444;
+    --color-severity-high: #f97316;
+    --color-severity-medium: #f59e0b;
+    --color-severity-low: #6b7280;
+
+    --font-sans: "Inter", "Outfit", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+
+    --animate-fade-in: fade-in 0.5s ease-out;
+    --animate-slide-up: slide-up 0.5s ease-out;
+    --animate-slide-down: slide-down 0.3s ease-out;
+    --animate-scale-in: scale-in 0.3s ease-out;
+    --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
+    --animate-shimmer: shimmer 2s linear infinite;
+}
+
+/* Animations */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(99, 102, 241, 0.3);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* =====================================================
+   BASE STYLES
+   ===================================================== */
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* =====================================================
+   GLASSMORPHISM CARD UTILITY
+   ===================================================== */
+
+.glass-card {
+    background: var(--color-bg-glass);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+    background: var(--color-bg-glass-hover);
+    border-color: var(--color-border-default);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* =====================================================
+   GRADIENT UTILITIES
+   ===================================================== */
+
+.gradient-text {
+    background: linear-gradient(135deg, var(--color-accent-indigo), var(--color-accent-violet));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.gradient-border {
+    position: relative;
+}
+
+.gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--color-accent-indigo), var(--color-accent-violet));
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* =====================================================
+   BUTTON STYLES
+   ===================================================== */
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--color-accent-indigo), var(--color-accent-violet));
+    color: white;
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.35);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-secondary {
+    background: var(--color-bg-glass);
+    color: var(--color-text-primary);
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    border: 1px solid var(--color-border-default);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: var(--color-bg-glass-hover);
+    border-color: var(--color-border-accent);
+}
+
+/* =====================================================
+   FORM STYLES
+   ===================================================== */
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 10px;
+    color: var(--color-text-primary);
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: var(--color-accent-indigo);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.form-input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 10px;
+    color: var(--color-text-primary);
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+.form-select:focus {
+    border-color: var(--color-accent-indigo);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* =====================================================
+   METRIC CARD
+   ===================================================== */
+
+.metric-card {
+    padding: 20px 24px;
+    background: var(--color-bg-glass);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    border-color: var(--color-border-accent);
+    transform: translateY(-2px);
+}
+
+/* =====================================================
+   SEVERITY BADGES
+   ===================================================== */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-critical {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--color-severity-critical);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.badge-high {
+    background: rgba(249, 115, 22, 0.15);
+    color: var(--color-severity-high);
+    border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+.badge-medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--color-severity-medium);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.badge-low {
+    background: rgba(107, 114, 128, 0.15);
+    color: var(--color-severity-low);
+    border: 1px solid rgba(107, 114, 128, 0.2);
+}
+
+/* =====================================================
+   TOAST NOTIFICATION
+   ===================================================== */
+
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 14px 24px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-default);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    animation: slide-up 0.3s ease-out;
+    font-size: 0.875rem;
+}
+
+/* =====================================================
+   LOADING SHIMMER
+   ===================================================== */
+
+.shimmer {
+    background: linear-gradient(90deg,
+            var(--color-bg-secondary) 25%,
+            var(--color-bg-card) 50%,
+            var(--color-bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s linear infinite;
+    border-radius: 8px;
+}

@@ -1,0 +1,44 @@
+
+> vehicle-analyzer@1.0.0 build
+> next build
+
+ ΓÜá Attempted to load @next/swc-win32-x64-msvc, but an error occurred: \\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node is not a valid Win32 application.
+\\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node
+ ΓÜá Invalid next.config.ts options detected: 
+ ΓÜá     Unrecognized key(s) in object: 'serverComponentsExternalPackages' at "experimental"
+ ΓÜá See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ ΓÜá `experimental.serverComponentsExternalPackages` has been moved to `serverExternalPackages`. Please update your next.config.ts file accordingly.
+ ΓÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\package-lock.json
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local
+   - Experiments (use with caution):
+     ┬╖ serverComponentsExternalPackages
+
+   Creating an optimized production build ...
+ ΓÜá Attempted to load @next/swc-win32-x64-msvc, but an error occurred: \\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node is not a valid Win32 application.
+\\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node
+ ΓÜá Attempted to load @next/swc-win32-x64-msvc, but an error occurred: \\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node is not a valid Win32 application.
+\\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node
+ ΓÜá Attempted to load @next/swc-win32-x64-msvc, but an error occurred: \\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node is not a valid Win32 application.
+\\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node
+ Γ£ô Compiled successfully in 5.9s
+   Linting and checking validity of types ...
+Failed to compile.
+
+./src/app/page.tsx:93:36
+Type error: Object is possibly 'undefined'.
+
+  91 |
+  92 |             let vinData = undefined;
+> 93 |             if (vehicles[i].vin && vehicles[i].vin.length === 17) {
+     |                                    ^
+  94 |                 try {
+  95 |                     const res = await fetch('/api/vin', {
+  96 |                         method: 'POST',
+Next.js build worker exited with code: 1 and signal: null

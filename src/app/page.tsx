@@ -12,7 +12,7 @@ import type { Vehicle, AnalysisResult } from "@/lib/types";
 import { analyzeVehicle } from "@/lib/analyze";
 import { saveToHistory } from "@/lib/history";
 import { downloadDocxReport } from "@/lib/export-docx";
-import { BarChart3, FileText } from "lucide-react";
+import { BarChart3, FileText, Search } from "lucide-react";
 
 export type AnalysisMode = "rideshare" | "personal";
 
@@ -22,24 +22,43 @@ export default function Home() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [showComparison, setShowComparison] = useState(false);
+    const [comparisonSelection, setComparisonSelection] = useState<string[]>([]);
     const [analysisMode, setAnalysisMode] = useState<AnalysisMode>("rideshare");
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
     // Batch results
     const [batchResults, setBatchResults] = useState<Array<{ vehicle: Vehicle; analysis: AnalysisResult }>>([]);
     const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
 
+    const [showForm, setShowForm] = useState(true);
+
     const handleAnalyze = async (v: Vehicle) => {
         setIsAnalyzing(true);
         setAnalysis(null);
         setBatchResults([]);
 
-        await new Promise((r) => setTimeout(r, 400));
-
         try {
-            const result = analyzeVehicle(v);
+            let vinData = undefined;
+            // specific check for 17 chars to avoid bad requests
+            if (v.vin && v.vin.length === 17) {
+                try {
+                    const res = await fetch('/api/vin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ vin: v.vin })
+                    });
+                    if (res.ok) {
+                        vinData = await res.json();
+                    }
+                } catch (e) {
+                    console.error("VIN fetch failed", e);
+                }
+            }
+
+            const result = analyzeVehicle(v, vinData);
             setVehicle(v);
             setAnalysis(result);
             saveToHistory(v, result);
+            setShowForm(false); // Collapse form
             showToast("Analysis complete!", "success");
         } catch (err) {
             console.error(err);
@@ -69,12 +88,26 @@ export default function Home() {
 
         for (let i = 0; i < vehicles.length; i++) {
             setBatchProgress({ current: i + 1, total: vehicles.length });
-            await new Promise((r) => setTimeout(r, 200)); // Animation pacing
+
+            const vehicle = vehicles[i];
+            let vinData = undefined;
+            if (vehicle.vin && vehicle.vin.length === 17) {
+                try {
+                    const res = await fetch('/api/vin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ vin: vehicle.vin })
+                    });
+                    if (res.ok) vinData = await res.json();
+                } catch (e) {
+                    console.error("Batch VIN fetch failed", e);
+                }
+            }
 
             try {
-                const result = analyzeVehicle(vehicles[i]);
-                saveToHistory(vehicles[i], result);
-                results.push({ vehicle: vehicles[i], analysis: result });
+                const result = analyzeVehicle(vehicle, vinData);
+                saveToHistory(vehicle, result);
+                results.push({ vehicle: vehicle, analysis: result });
             } catch (err) {
                 console.error(`Failed to analyze vehicle ${i + 1}:`, err);
             }
@@ -88,6 +121,7 @@ export default function Home() {
             // Show the first result as the active one
             setVehicle(results[0].vehicle);
             setAnalysis(results[0].analysis);
+            setShowForm(false); // Collapse form
             showToast(`${results.length} vehicle${results.length > 1 ? "s" : ""} analyzed!`, "success");
         }
     };
@@ -97,6 +131,7 @@ export default function Home() {
         setAnalysis(a);
         setShowHistory(false);
         setBatchResults([]);
+        setShowForm(false); // Collapse form
         showToast("Loaded from history", "success");
     };
 
@@ -124,6 +159,12 @@ export default function Home() {
         }
     };
 
+    const handleCompare = (ids: string[]) => {
+        setComparisonSelection(ids);
+        setShowHistory(false);
+        setShowComparison(true);
+    };
+
     return (
         <main className="min-h-screen">
             <Header
@@ -133,58 +174,63 @@ export default function Home() {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
                 {/* Hero Section */}
-                <section className="pt-12 pb-16 text-center animate-[fade-in_0.6s_ease-out]">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--color-bg-glass)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-secondary)] mb-6">
-                        <span className="w-2 h-2 rounded-full bg-[var(--color-accent-emerald)] animate-pulse" />
-                        Powered by NHTSA VIN Database
+                <section className="pt-16 pb-20 text-center animate-[fade-in_0.8s_ease-out]">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-[var(--color-bg-glass)] border border-[var(--color-border-subtle)] font-mono text-xs text-[var(--color-text-muted)] mb-8 uppercase tracking-widest shadow-[0_0_10px_rgba(204,255,0,0.05)]">
+                        <span className="w-1.5 h-1.5 rounded-sm bg-[var(--color-accent-lime)] animate-pulse" />
+                        Sys.Online // Powered by NHTSA DB
                     </div>
-                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4" style={{ fontFamily: "Outfit, sans-serif" }}>
-                        <span className="gradient-text">Vehicle Analyzer</span>{" "}
-                        <span className="text-[var(--color-text-primary)]">Pro</span>
+                    <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 uppercase">
+                        Vehicle Analyzer{" "}
+                        <span className="text-[var(--color-accent-lime)] drop-shadow-[0_0_15px_rgba(204,255,0,0.4)]">Pro</span>
                     </h1>
-                    <p className="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed mb-6">
-                        Data-driven used vehicle analysis with market valuations, rideshare
-                        projections, insurance estimates, and professional report generation.
+                    <p className="text-base sm:text-lg text-[var(--color-text-secondary)] font-mono max-w-3xl mx-auto leading-relaxed mb-10">
+                        &gt; INITIALIZING DATA-DRIVEN USED VEHICLE VALUATION SEQUENCE...<br />
+                        &gt; RIDESHARE PROJECTIONS, INSURANCE ESTIMATES, AND PROFESSIONAL HEDGE-FUND GRADE REPORT GENERATION ACTIVE._
                     </p>
 
                     {/* Mode Toggle + Compare Button */}
-                    <div className="flex items-center justify-center gap-4 flex-wrap">
+                    <div className="flex items-center justify-center gap-6 flex-wrap">
                         {/* Toggle */}
-                        <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--color-bg-glass)] border border-[var(--color-border-subtle)]">
+                        <div className="inline-flex items-center gap-1 px-1.5 py-1.5 rounded-md bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
                             <button
                                 onClick={() => setAnalysisMode("rideshare")}
-                                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${analysisMode === "rideshare"
-                                    ? "bg-[var(--color-accent-indigo)] text-white shadow-lg shadow-indigo-500/25"
-                                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                                className={`px-4 py-2 rounded-sm font-mono text-xs tracking-wider uppercase transition-all duration-200 ${analysisMode === "rideshare"
+                                    ? "bg-[var(--color-accent-cyan)] text-black font-bold shadow-[0_0_15px_rgba(0,240,255,0.4)]"
+                                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-glass)]"
                                     }`}
                             >
-                                🚗 Rideshare
+                                Rideshare Model
                             </button>
                             <button
                                 onClick={() => setAnalysisMode("personal")}
-                                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${analysisMode === "personal"
-                                    ? "bg-[var(--color-accent-indigo)] text-white shadow-lg shadow-indigo-500/25"
-                                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                                className={`px-4 py-2 rounded-sm font-mono text-xs tracking-wider uppercase transition-all duration-200 ${analysisMode === "personal"
+                                    ? "bg-[var(--color-accent-lime)] text-black font-bold shadow-[0_0_15px_rgba(204,255,0,0.4)]"
+                                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-glass)]"
                                     }`}
                             >
-                                🏠 Personal Use
+                                Personal Use
                             </button>
                         </div>
 
-                        {/* Compare */}
+                        {/* Compare Mode */}
                         <button
-                            onClick={() => setShowComparison(!showComparison)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--color-bg-glass)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-accent-indigo)] transition-all"
+                            onClick={() => {
+                                setShowForm(!showForm);
+                                setShowComparison(false);
+                            }}
+                            className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-[var(--color-bg-glass)] border border-[var(--color-border-default)] hover:bg-[var(--color-bg-glass-hover)] hover:border-[var(--color-text-primary)] transition-all font-mono text-xs uppercase tracking-wider text-[var(--color-text-primary)] shadow-[0_4px_6px_rgba(0,0,0,0.4)]"
                         >
-                            <BarChart3 className="w-4 h-4" />
-                            Compare Vehicles
+                            {showForm ? "Scan New Vehicle" : "+ New Scan"}
                         </button>
                     </div>
                 </section>
 
                 {/* Comparison View */}
                 {showComparison && (
-                    <ComparisonView onClose={() => setShowComparison(false)} />
+                    <ComparisonView
+                        onClose={() => setShowComparison(false)}
+                        initialSelection={comparisonSelection}
+                    />
                 )}
 
                 {/* History Panel (slide overlay) */}
@@ -192,6 +238,7 @@ export default function Home() {
                     <HistoryPanel
                         onClose={() => setShowHistory(false)}
                         onLoad={handleLoadHistory}
+                        onCompare={handleCompare}
                     />
                 )}
 
@@ -201,9 +248,21 @@ export default function Home() {
                 </section>
 
                 {/* Form Section */}
-                <section className="mb-12">
-                    <VehicleForm onSubmit={handleAnalyze} isLoading={isAnalyzing} />
-                </section>
+                {showForm ? (
+                    <section className="mb-12 animate-[slide-down_0.3s_ease-out]">
+                        <VehicleForm onSubmit={handleAnalyze} isLoading={isAnalyzing} initialData={vehicle} />
+                    </section>
+                ) : (
+                    <div className="flex justify-center mb-8 animate-[fade-in_0.3s_ease-out]">
+                        <button
+                            onClick={() => setShowForm(true)}
+                            className="btn-secondary flex items-center gap-2 text-sm"
+                        >
+                            <Search className="w-4 h-4" />
+                            Edit Vehicle Details / New Analysis
+                        </button>
+                    </div>
+                )}
 
                 {/* Loading State */}
                 {isAnalyzing && (

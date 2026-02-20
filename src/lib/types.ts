@@ -47,6 +47,7 @@ export interface RideshareEligibility {
 
 export interface RideshareEligibilityResult {
     uberX: RideshareEligibility;
+    uberComfort: RideshareEligibility;
     uberXL: RideshareEligibility;
     lyft: RideshareEligibility;
     lyftXL: RideshareEligibility;
@@ -66,6 +67,8 @@ export interface RideshareEarnings {
 }
 
 export interface InsuranceEstimates {
+    coverageType: "Liability Only" | "Full Coverage"; // New field
+    endorsementCost?: number; // New field
     personalMonthly: number;
     personalAnnual: number;
     rideshareMonthly: number;
@@ -122,6 +125,9 @@ export interface AnalysisResult {
     // Phase A: Condition & Seller
     conditionAssessment: ConditionAssessment;
     sellerVerification: SellerVerification;
+    // Real-world VIN Data (Antigravity Engine)
+    vinAnalysis?: VinAnalysis;
+    scoringBreakdown?: ScoringBreakdown;
 }
 
 // ── Condition Assessment ──
@@ -168,4 +174,60 @@ export interface HistoryEntry {
     timestamp: string;
     vehicle: Vehicle;
     analysis: AnalysisResult;
+}
+
+// ── Antigravity Engine Types ──
+
+export interface VinMeta {
+    vin: string;
+    timestamp: number;
+}
+
+export interface VinSpecs {
+    year: string;
+    make: string;
+    model: string;
+    trim: string;
+}
+
+export interface VinSafety {
+    recalls: Array<{
+        ReportReceivedDate: string;
+        Component: string;
+        Summary: string;
+        Remedy: string;
+    }>;
+}
+
+export interface VinHistory {
+    maintenance: string[];
+}
+
+export interface VinVerdict {
+    score: number;
+    alerts: string[];
+    recommendation: string;
+}
+
+export interface VinAnalysis {
+    meta: VinMeta;
+    specs: VinSpecs;
+    safety: VinSafety;
+    history: VinHistory;
+    verdict: VinVerdict;
+}
+
+// ── Scoring Breakdown ──
+export interface ScoringFactor {
+    label: string;
+    points: number;
+    description?: string;
+    category: "market" | "risk" | "reliability" | "financial";
+}
+
+export interface ScoringBreakdown {
+    baseScore: number;
+    factors: ScoringFactor[];
+    totalScore: number;
+    verdict: Verdict;
 }

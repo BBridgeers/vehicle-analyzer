@@ -17,9 +17,8 @@ export default function RidesharePanel({
 }: RidesharePanelProps) {
     const platforms = [
         { name: "Uber X", data: eligibility.uberX },
+        { name: "Uber Comfort", data: eligibility.uberComfort },
         { name: "Uber XL", data: eligibility.uberXL },
-        { name: "Lyft", data: eligibility.lyft },
-        { name: "Lyft XL", data: eligibility.lyftXL },
     ];
 
     const scenarios = [
@@ -35,13 +34,13 @@ export default function RidesharePanel({
                 <h4 className="text-sm font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-3">
                     Platform Eligibility
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {platforms.map((platform) => (
                         <div
                             key={platform.name}
                             className={`p-3 rounded-lg border text-center transition-all ${platform.data.eligible
-                                    ? "border-[var(--color-accent-emerald)]/30 bg-[var(--color-accent-emerald)]/5"
-                                    : "border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]"
+                                ? "border-[var(--color-accent-emerald)]/30 bg-[var(--color-accent-emerald)]/5"
+                                : "border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]"
                                 }`}
                         >
                             <div className="flex items-center justify-center mb-1">

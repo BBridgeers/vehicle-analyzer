@@ -1,0 +1,15 @@
+=== URL IMPORT FEASIBILITY TEST (Anti-Bot Check) ===
+
+Checking: Craigslist (Dallas)...
+Status: 200
+Duration: 1377ms
+Length: 732410 bytes
+Γ£à SUCCESS: Appears accessible (Preliminary)
+----------------------------------------
+Checking: AutoTrader...
+Status: 200
+Duration: 176ms
+Length: 3762 bytes
+Γ£à SUCCESS: Appears accessible (Preliminary)
+----------------------------------------
+Checking: Cars.com...

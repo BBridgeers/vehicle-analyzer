@@ -46,8 +46,11 @@ interface AnalysisResultsProps {
     mode?: AnalysisMode;
 }
 
+import AnalysisInspector from "./AnalysisInspector";
+
 export default function AnalysisResults({ vehicle, analysis, mode = "rideshare" }: AnalysisResultsProps) {
     const [expandedSection, setExpandedSection] = useState<string | null>("verdict-final");
+    const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
     const equity = analysis.instantEquity;
     const isPositiveEquity = equity > 0;
@@ -67,8 +70,10 @@ export default function AnalysisResults({ vehicle, analysis, mode = "rideshare" 
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${vehicle.year}_${vehicle.make}_${vehicle.model}_Analysis.txt`;
+        a.download = `${vehicle.year}_${vehicle.make}_${vehicle.model}_Analysis.txt`.replace(/\s+/g, "_");
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
 
@@ -78,6 +83,13 @@ export default function AnalysisResults({ vehicle, analysis, mode = "rideshare" 
 
     return (
         <div className="space-y-6" id="analysis-results">
+            <AnalysisInspector
+                isOpen={isInspectorOpen}
+                onClose={() => setIsInspectorOpen(false)}
+                analysis={analysis}
+                vehicle={vehicle}
+            />
+
             {/* ====== VERDICT BANNER ====== */}
             <div
                 className="glass-card p-6 sm:p-8 animate-[pulse-glow_2s_ease-in-out_infinite]"
@@ -85,12 +97,19 @@ export default function AnalysisResults({ vehicle, analysis, mode = "rideshare" 
             >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                        <p className="text-sm text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
+                        <p className="text-sm text-[var(--color-text-muted)] uppercase tracking-wider mb-1 flex items-center gap-2">
                             Verdict
+                            <button
+                                onClick={() => setIsInspectorOpen(true)}
+                                className="text-[var(--color-accent-purple)] hover:text-[var(--color-text-primary)] transition-colors"
+                                title="View Scoring Logic & Raw Data"
+                            >
+                                <Scale className="w-4 h-4" />
+                            </button>
                         </p>
                         <h2
-                            className="text-2xl sm:text-3xl font-extrabold"
-                            style={{ color: verdictColor, fontFamily: "Outfit, sans-serif" }}
+                            className="text-2xl sm:text-4xl font-extrabold tracking-tight uppercase"
+                            style={{ color: verdictColor }}
                         >
                             {analysis.verdict}
                         </h2>
@@ -100,59 +119,68 @@ export default function AnalysisResults({ vehicle, analysis, mode = "rideshare" 
                             {vehicle.location ? ` • ${vehicle.location}` : ""}
                         </p>
                     </div>
-                    <button
-                        onClick={handleDownloadReport}
-                        className="btn-secondary flex items-center gap-2"
-                        id="download-report-btn"
-                    >
-                        <Download className="w-4 h-4" />
-                        Download Report
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setIsInspectorOpen(true)}
+                            className="btn-secondary flex items-center gap-2 text-xs"
+                        >
+                            <Scale className="w-4 h-4" />
+                            Why?
+                        </button>
+                        <button
+                            onClick={handleDownloadReport}
+                            className="btn-secondary flex items-center gap-2"
+                            id="download-report-btn"
+                        >
+                            <Download className="w-4 h-4" />
+                            Download Report
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* ====== METRIC CARDS ====== */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="metric-card">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 [&>div]:animate-[fade-in_0.6s_ease-out_both]">
+                <div className="metric-card shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]" style={{ animationDelay: "100ms" }}>
                     <div className="flex items-center gap-2 mb-2">
                         <DollarSign className="w-4 h-4 text-[var(--color-text-muted)]" />
-                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider">
+                        <span className="text-xs font-mono tracking-widest text-[var(--color-text-muted)] uppercase">
                             Asking Price
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-[var(--color-text-primary)]">
+                    <p className="text-2xl font-bold font-mono text-[var(--color-text-primary)]">
                         ${vehicle.price.toLocaleString()}
                     </p>
                 </div>
 
-                <div className="metric-card">
+                <div className="metric-card shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]" style={{ animationDelay: "200ms" }}>
                     <div className="flex items-center gap-2 mb-2">
                         <CarFront className="w-4 h-4 text-[var(--color-text-muted)]" />
-                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider">
+                        <span className="text-xs font-mono tracking-widest text-[var(--color-text-muted)] uppercase">
                             Market Value
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-[var(--color-text-primary)]">
+                    <p className="text-2xl font-bold font-mono text-[var(--color-text-primary)]">
                         ${analysis.marketValues.privatePartyAvg.toLocaleString()}
                     </p>
                 </div>
 
-                <div className="metric-card">
+                <div className="metric-card shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]" style={{ animationDelay: "300ms" }}>
                     <div className="flex items-center gap-2 mb-2">
                         {isPositiveEquity ? (
-                            <TrendingUp className="w-4 h-4 text-[var(--color-accent-emerald)]" />
+                            <TrendingUp className="w-4 h-4 text-[var(--color-accent-lime)]" />
                         ) : (
                             <TrendingDown className="w-4 h-4 text-[var(--color-accent-rose)]" />
                         )}
-                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider">
+                        <span className="text-xs font-mono tracking-widest text-[var(--color-text-muted)] uppercase">
                             Instant Equity
                         </span>
                     </div>
                     <p
-                        className="text-2xl font-bold"
+                        className="text-2xl font-bold font-mono drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]"
                         style={{
                             color: isPositiveEquity
-                                ? "var(--color-accent-emerald)"
+                                ? "var(--color-accent-lime)"
                                 : "var(--color-accent-rose)",
                         }}
                     >
@@ -160,14 +188,14 @@ export default function AnalysisResults({ vehicle, analysis, mode = "rideshare" 
                     </p>
                 </div>
 
-                <div className="metric-card">
+                <div className="metric-card shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]" style={{ animationDelay: "400ms" }}>
                     <div className="flex items-center gap-2 mb-2">
                         <AlertTriangle className="w-4 h-4 text-[var(--color-text-muted)]" />
-                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider">
+                        <span className="text-xs font-mono tracking-widest text-[var(--color-text-muted)] uppercase">
                             Issues Found
                         </span>
                     </div>
-                    <p className="text-2xl font-bold text-[var(--color-text-primary)]">
+                    <p className="text-2xl font-bold font-mono text-[var(--color-text-primary)]">
                         {analysis.criticalIssues.length}
                     </p>
                 </div>
@@ -206,6 +234,68 @@ export default function AnalysisResults({ vehicle, analysis, mode = "rideshare" 
                     ))}
                 </div>
             </CollapsibleSection>
+
+            {/* ====== 3b. VIN HISTORY & RECALLS (If extracted) ====== */}
+            {analysis.vinAnalysis && (
+                <CollapsibleSection
+                    title={`Vehicle History & Records (${analysis.vinAnalysis.history.maintenance.length} Events)`}
+                    icon={<ClipboardList className="w-5 h-5" />}
+                    isExpanded={expandedSection === "history"}
+                    onToggle={() => toggleSection("history")}
+                >
+                    <div className="space-y-6">
+                        {/* Recalls */}
+                        {analysis.vinAnalysis.safety.recalls.length > 0 ? (
+                            <div className="p-4 rounded-xl border border-[var(--color-accent-rose)] bg-rose-500/10">
+                                <h4 className="text-sm font-bold text-[var(--color-accent-rose)] mb-3 flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    {analysis.vinAnalysis.safety.recalls.length} Open NHTSA Recalls
+                                </h4>
+                                <ul className="space-y-3">
+                                    {analysis.vinAnalysis.safety.recalls.map((r: any, idx: number) => (
+                                        <li key={idx} className="text-sm">
+                                            <p className="font-semibold text-[var(--color-text-primary)]">{r.affected_component}</p>
+                                            <p className="text-[var(--color-text-secondary)] mt-1">{r.description}</p>
+                                            {r.remedy_action && (
+                                                <p className="text-[var(--color-text-muted)] mt-1 text-xs"><span className="font-medium">Remedy:</span> {r.remedy_action}</p>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : (
+                            <div className="p-4 rounded-xl border border-[var(--color-accent-emerald)] bg-emerald-500/10 flex items-center gap-3">
+                                <Shield className="w-5 h-5 text-[var(--color-accent-emerald)]" />
+                                <span className="text-sm font-medium text-[var(--color-accent-emerald)]">No open recalls detected.</span>
+                            </div>
+                        )}
+
+                        {/* Maintenance History */}
+                        <div>
+                            <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">Service History Timeline</h4>
+                            {analysis.vinAnalysis.history.maintenance.length > 0 ? (
+                                <div className="space-y-3 border-l-2 border-[var(--color-border-subtle)] ml-3 pl-4">
+                                    {analysis.vinAnalysis.history.maintenance.map((m: any, idx: number) => (
+                                        <div key={idx} className="relative">
+                                            <div className="absolute -left-[23px] top-1.5 w-2 h-2 rounded-full bg-[var(--color-accent-indigo)]" />
+                                            {m.error ? (
+                                                <p className="text-sm text-[var(--color-accent-rose)] font-medium">{m.error}</p>
+                                            ) : (
+                                                <>
+                                                    <p className="text-xs font-semibold text-[var(--color-accent-indigo)]">{m.date} {m.mileage ? `— ${m.mileage.toLocaleString()} mi` : ""}</p>
+                                                    <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{m.description}</p>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-[var(--color-text-muted)] italic">No service history records found for this VIN.</p>
+                            )}
+                        </div>
+                    </div>
+                </CollapsibleSection>
+            )}
 
             {/* ====== 4. SCENARIO ANALYSIS ====== */}
             <CollapsibleSection
@@ -360,8 +450,8 @@ function CollapsibleSection({
                 className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-[var(--color-bg-glass-hover)] transition-colors"
             >
                 <div className="flex items-center gap-3">
-                    <div className="text-[var(--color-accent-indigo)]">{icon}</div>
-                    <h3 className="text-lg font-semibold text-[var(--color-text-primary)]" style={{ fontFamily: "Outfit, sans-serif" }}>
+                    <div className="text-[var(--color-accent-cyan)] drop-shadow-[0_0_5px_rgba(0,240,255,0.4)]">{icon}</div>
+                    <h3 className="text-sm font-mono tracking-widest uppercase font-bold text-[var(--color-text-primary)]">
                         {title}
                     </h3>
                 </div>

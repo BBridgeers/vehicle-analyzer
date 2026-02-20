@@ -7,7 +7,7 @@ import type { Vehicle } from "./types";
 export interface ParseResult {
     vehicles: Vehicle[];
     errors: string[];
-    format: "csv" | "json" | "markdown" | "unknown";
+    format: "csv" | "json" | "markdown" | "url" | "unknown";
 }
 
 // ── Auto-detect and parse ──
@@ -75,9 +75,21 @@ function parseCSV(content: string): ParseResult {
         "listingurl": "listingUrl",
         "url": "listingUrl",
         "description": "description",
+        "listing description copy": "description", // Renamed field
+        "listing description": "description",
         "posted date": "postedDate",
         "posteddate": "postedDate",
         "date": "postedDate",
+        // Condition Fields
+        "condition exterior": "conditionExterior",
+        "visual analysis exterior": "conditionExterior",
+        "exterior condition": "conditionExterior",
+        "condition interior": "conditionInterior",
+        "visual analysis interior": "conditionInterior",
+        "interior condition": "conditionInterior",
+        "condition mechanical": "conditionMechanical",
+        "visual analysis mechanical": "conditionMechanical",
+        "mechanical condition": "conditionMechanical",
     };
 
     const columnMapping: (keyof Vehicle | null)[] = headers.map((h) => fieldMap[h] ?? null);
@@ -207,8 +219,12 @@ function mapJsonToVehicle(raw: Record<string, unknown>): Vehicle {
         fuelType: str("fuelType") ?? str("fuel_type") ?? str("fuel"),
         source: str("source"),
         listingUrl: str("listingUrl") ?? str("listing_url") ?? str("url"),
-        description: str("description"),
+        description: str("description") ?? str("listingDescriptionCopy") ?? str("listing_description_copy"),
         postedDate: str("postedDate") ?? str("posted_date") ?? str("date"),
+        // Request Condition Mappings
+        conditionExterior: str("conditionExterior") ?? str("condition_exterior") ?? str("visual_analysis_exterior"),
+        conditionInterior: str("conditionInterior") ?? str("condition_interior") ?? str("visual_analysis_interior"),
+        conditionMechanical: str("conditionMechanical") ?? str("condition_mechanical") ?? str("visual_analysis_mechanical"),
     };
 }
 
@@ -267,6 +283,12 @@ function parseMdBlock(block: string): Vehicle {
         "url": "listingUrl",
         "vin": "vin",
         "seats": "seats",
+        "condition exterior": "conditionExterior",
+        "exterior condition": "conditionExterior",
+        "condition interior": "conditionInterior",
+        "interior condition": "conditionInterior",
+        "condition mechanical": "conditionMechanical",
+        "mechanical condition": "conditionMechanical",
     };
 
     const result: Record<string, unknown> = {};
@@ -280,7 +302,7 @@ function parseMdBlock(block: string): Vehicle {
         const trimmed = line.trim();
 
         // Section headers
-        if (trimmed.startsWith("## Listing Description") || trimmed.startsWith("## Description")) {
+        if (trimmed.startsWith("## Listing Description") || trimmed.startsWith("## Description") || trimmed.startsWith("## Listing Description Copy")) {
             inDescription = true;
             inSellerNotes = false;
             continue;
@@ -349,6 +371,9 @@ function parseMdBlock(block: string): Vehicle {
         description: result.description as string,
         postedDate: result.postedDate as string,
         sellerQuotes: result.sellerQuotes as string,
+        conditionExterior: result.conditionExterior as string,
+        conditionInterior: result.conditionInterior as string,
+        conditionMechanical: result.conditionMechanical as string,
     };
 }
 
@@ -359,7 +384,9 @@ export function generateCSVTemplate(): string {
         "Year", "Make", "Model", "Trim", "Price", "Mileage",
         "VIN", "Location", "Title Status", "Seats",
         "Exterior Color", "Interior Color", "Transmission", "Fuel Type",
-        "Source", "Listing URL", "Posted Date", "Description"
+        "Source", "Listing URL", "Posted Date",
+        "Condition Exterior", "Condition Interior", "Condition Mechanical",
+        "Listing Description Copy"
     ];
 
     const example = [
@@ -367,6 +394,7 @@ export function generateCSVTemplate(): string {
         "5XYZUDLB3HG396382", "Dallas TX", "Clean", "5",
         "White", "Black", "Automatic", "Gasoline",
         "Facebook Marketplace", "https://facebook.com/marketplace/item/123456", "2026-02-10",
+        "\"Minor scratch on bumper\"", "\"Driver seat visible wear\"", "\"Runs smooth, recent oil\"",
         "\"Great condition, highway miles, single owner. Recent oil change.\""
     ];
 
@@ -396,7 +424,12 @@ export function generateMarkdownTemplate(): string {
 ## Vehicle Identification
 - VIN: 5XYZUDLB3HG396382
 
-## Listing Description
+## Condition Notes
+- Condition Exterior: Minor scratch on rear bumper
+- Condition Interior: Driver seat wear, otherwise clean
+- Condition Mechanical: Runs well, no warning lights
+
+## Listing Description Copy
 Great condition Santa Fe with highway miles. Single owner,
 garage kept, all maintenance records available. Recent oil
 change and new tires. No accidents, clean Carfax.
@@ -428,7 +461,10 @@ export function generateJSONTemplate(): string {
                 source: "Facebook Marketplace",
                 listingUrl: "https://facebook.com/marketplace/item/123456",
                 postedDate: "2026-02-10",
-                description: "Great condition, highway miles, single owner."
+                conditionExterior: "Minor scratch on bumper",
+                conditionInterior: "Driver seat visible wear",
+                conditionMechanical: "Runs smooth, recent oil",
+                listingDescriptionCopy: "Great condition, highway miles, single owner."
             }
         ]
     }, null, 2);

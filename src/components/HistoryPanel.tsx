@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Trash2, Clock, ArrowRight, Download } from "lucide-react";
+import { X, Trash2, Clock, ArrowRight, Download, CheckSquare, Square, BarChart3 } from "lucide-react";
 import type { Vehicle, AnalysisResult, HistoryEntry } from "@/lib/types";
 import { getHistory, deleteFromHistory, clearHistory } from "@/lib/history";
 
 interface HistoryPanelProps {
     onClose: () => void;
     onLoad: (vehicle: Vehicle, analysis: AnalysisResult) => void;
+    onCompare: (ids: string[]) => void;
 }
 
-export default function HistoryPanel({ onClose, onLoad }: HistoryPanelProps) {
+export default function HistoryPanel({ onClose, onLoad, onCompare }: HistoryPanelProps) {
     const [entries, setEntries] = useState<HistoryEntry[]>([]);
+    const [selected, setSelected] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         setEntries(getHistory());
@@ -20,6 +22,23 @@ export default function HistoryPanel({ onClose, onLoad }: HistoryPanelProps) {
     const handleDelete = (id: string) => {
         deleteFromHistory(id);
         setEntries(getHistory());
+        if (selected.has(id)) {
+            const next = new Set(selected);
+            next.delete(id);
+            setSelected(next);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelected((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else if (next.size < 5) {
+                next.add(id);
+            }
+            return next;
+        });
     };
 
     const handleClear = () => {
@@ -91,6 +110,15 @@ export default function HistoryPanel({ onClose, onLoad }: HistoryPanelProps) {
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
+                        {selected.size >= 2 && (
+                            <button
+                                onClick={() => onCompare(Array.from(selected))}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-accent-indigo)] text-white text-xs font-medium hover:bg-indigo-600 transition-colors animate-[fade-in_0.2s_ease-out]"
+                            >
+                                <BarChart3 className="w-3.5 h-3.5" />
+                                Compare ({selected.size})
+                            </button>
+                        )}
                         {entries.length > 0 && (
                             <>
                                 <button
@@ -136,43 +164,61 @@ export default function HistoryPanel({ onClose, onLoad }: HistoryPanelProps) {
                             return (
                                 <div
                                     key={entry.id}
-                                    className="p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)] transition-all group"
+                                    className={`p-4 rounded-xl border transition-all group relative ${selected.has(entry.id)
+                                        ? "bg-[var(--color-accent-indigo)]10 border-[var(--color-accent-indigo)]"
+                                        : "bg-[var(--color-bg-secondary)] border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)]"
+                                        }`}
                                 >
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div>
-                                            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-                                                {v.year} {v.make} {v.model}
-                                            </p>
-                                            <p className="text-xs text-[var(--color-text-muted)]">
-                                                {new Date(entry.timestamp).toLocaleDateString()} at{" "}
-                                                {new Date(entry.timestamp).toLocaleTimeString()}
-                                            </p>
-                                        </div>
+                                    <div className="flex items-start gap-3">
                                         <button
-                                            onClick={() => handleDelete(entry.id)}
-                                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--color-accent-rose)]/10 transition-all"
-                                            title="Delete this entry"
+                                            onClick={() => toggleSelect(entry.id)}
+                                            className="mt-1 focus:outline-none"
                                         >
-                                            <Trash2 className="w-3.5 h-3.5 text-[var(--color-accent-rose)]" />
+                                            {selected.has(entry.id) ? (
+                                                <CheckSquare className="w-5 h-5 text-[var(--color-accent-indigo)]" />
+                                            ) : (
+                                                <Square className="w-5 h-5 text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]" />
+                                            )}
                                         </button>
-                                    </div>
 
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3 text-xs">
-                                            <span className="text-[var(--color-text-secondary)]">
-                                                ${v.price.toLocaleString()}
-                                            </span>
-                                            <span style={{ color }}>
-                                                {a.verdict.replace(/[🔥✅⚠️🚫]\s?/, "")}
-                                            </span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-start justify-between mb-2">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">
+                                                        {v.year} {v.make} {v.model}
+                                                    </p>
+                                                    <p className="text-xs text-[var(--color-text-muted)]">
+                                                        {new Date(entry.timestamp).toLocaleDateString()} at{" "}
+                                                        {new Date(entry.timestamp).toLocaleTimeString()}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDelete(entry.id)}
+                                                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--color-accent-rose)]/10 transition-all"
+                                                    title="Delete this entry"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5 text-[var(--color-accent-rose)]" />
+                                                </button>
+                                            </div>
+
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3 text-xs">
+                                                    <span className="text-[var(--color-text-secondary)]">
+                                                        ${v.price.toLocaleString()}
+                                                    </span>
+                                                    <span style={{ color }}>
+                                                        {a.verdict.replace(/[🔥✅⚠️🚫]\s?/, "")}
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    onClick={() => onLoad(v, a)}
+                                                    className="flex items-center gap-1 text-xs text-[var(--color-accent-indigo)] hover:underline"
+                                                >
+                                                    Load
+                                                    <ArrowRight className="w-3 h-3" />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <button
-                                            onClick={() => onLoad(v, a)}
-                                            className="flex items-center gap-1 text-xs text-[var(--color-accent-indigo)] hover:underline"
-                                        >
-                                            Load
-                                            <ArrowRight className="w-3 h-3" />
-                                        </button>
                                     </div>
                                 </div>
                             );

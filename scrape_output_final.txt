@@ -1,0 +1,29 @@
+=== URL IMPORT FEASIBILITY TEST (Expanded) ===
+
+Checking: Craigslist (Dallas)... [200] (1543ms) - 732410 bytes
+Γ£à SUCCESS
+--------------------
+Checking: AutoTrader... [200] (195ms) - 3761 bytes
+Γ¥î BLOCKED/ISSUE (<!DOCTYPE html><html xmlns="http://www.w3.org/199...)
+--------------------
+Checking: AutoTempest... [200] (306ms) - 232919 bytes
+Γ£à SUCCESS
+--------------------
+Checking: CarGurus... [406] (131ms) - 0 bytes
+Γ¥î BLOCKED/ISSUE (...)
+--------------------
+Checking: Edmunds... [403] (105ms) - 393 bytes
+Γ¥î BLOCKED/ISSUE (<HTML><HEAD><TITLE>Access Denied</TITLE></HEAD><...)
+--------------------
+Checking: Hemmings... [403] (105ms) - 7443 bytes
+Γ¥î BLOCKED/ISSUE (<!DOCTYPE html><html lang="en-US"><head><title>Jus...)
+--------------------
+Checking: Bring a Trailer... [200] (258ms) - 1482628 bytes
+Γ£à SUCCESS
+--------------------
+Checking: Cars & Bids... [403] (84ms) - 7781 bytes
+Γ¥î BLOCKED/ISSUE (<!DOCTYPE html><html lang="en-US"><head><title>Jus...)
+--------------------
+Checking: Cars.com... [403] (98ms) - 5466 bytes
+Γ¥î BLOCKED/ISSUE (<!DOCTYPE html><!--[if lt IE 7]> <html class="no-...)
+--------------------

@@ -6,29 +6,31 @@
    ===================================================== */
 
 @theme {
-    --color-bg-primary: #0a0a0f;
-    --color-bg-secondary: #12121a;
-    --color-bg-card: #1a1a26;
-    --color-bg-card-hover: #22222e;
-    --color-bg-glass: rgba(255, 255, 255, 0.04);
-    --color-bg-glass-hover: rgba(255, 255, 255, 0.08);
+    --color-bg-primary: #0A0A0E;
+    --color-bg-secondary: #121218;
+    --color-bg-card: #121218;
+    --color-bg-card-hover: #1A1A22;
+    --color-bg-glass: rgba(255, 255, 255, 0.03);
+    --color-bg-glass-hover: rgba(255, 255, 255, 0.06);
 
-    --color-border-subtle: rgba(255, 255, 255, 0.06);
-    --color-border-default: rgba(255, 255, 255, 0.1);
-    --color-border-accent: rgba(99, 102, 241, 0.3);
+    --color-border-subtle: rgba(255, 255, 255, 0.08);
+    --color-border-default: rgba(255, 255, 255, 0.15);
+    --color-border-accent: rgba(204, 255, 0, 0.3);
 
-    --color-text-primary: #f0f0f5;
-    --color-text-secondary: #9ca3af;
-    --color-text-muted: #6b7280;
+    --color-text-primary: #EDEDF0;
+    --color-text-secondary: #A0A0AA;
+    --color-text-muted: #888893;
 
-    --color-accent-indigo: #6366f1;
-    --color-accent-violet: #8b5cf6;
-    --color-accent-emerald: #10b981;
+    --color-accent-lime: #CCFF00;
+    --color-accent-cyan: #00F0FF;
+    --color-accent-indigo: #00F0FF;
+    --color-accent-violet: #CCFF00;
+    --color-accent-emerald: #CCFF00;
     --color-accent-amber: #f59e0b;
-    --color-accent-rose: #f43f5e;
+    --color-accent-rose: #ef4444;
     --color-accent-cyan: #06b6d4;
 
-    --color-verdict-strong: #10b981;
+    --color-verdict-strong: #CCFF00;
     --color-verdict-recommended: #22c55e;
     --color-verdict-caution: #f59e0b;
     --color-verdict-avoid: #ef4444;
@@ -38,7 +40,7 @@
     --color-severity-medium: #f59e0b;
     --color-severity-low: #6b7280;
 
-    --font-sans: "Inter", "Outfit", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-sans: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, sans-serif;
     --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
     --animate-fade-in: fade-in 0.5s ease-out;

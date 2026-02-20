@@ -1,0 +1,23 @@
+{
+  "attributes": {
+    "condition": "good",
+    "cylinders": "5 cylinders",
+    "drive": "fwd",
+    "fuel": "gas",
+    "odometer": "111,899",
+    "paint color": "black",
+    "title status": "clean",
+    "transmission": "automatic",
+    "type": "sedan"
+  },
+  "final": {
+    "title": "2016 volvo s60 (clean)",
+    "price": 6900,
+    "mileage": 111899,
+    "vin": null,
+    "make": "Volvo",
+    "model": "s60",
+    "location": "Dallas"
+  },
+  "scrapedAt": "2026-02-17T20:44:22.529Z"
+}

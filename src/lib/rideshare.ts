@@ -21,6 +21,10 @@ export function checkRideshareEligibility(
             eligible: age <= 15 && seats >= 4,
             reason: `Age: ${age}yr (max 15), Seats: ${seats} (min 4)`,
         },
+        uberComfort: {
+            eligible: age <= 7 && seats >= 4, // 2026 rule: 7 years or newer
+            reason: `Age: ${age}yr (max 7), Seats: ${seats} (min 4)`,
+        },
         uberXL: {
             eligible: age <= 15 && seats >= 7,
             reason: `Age: ${age}yr (max 15), Seats: ${seats} (min 7)`,
@@ -42,10 +46,10 @@ export function checkRideshareEligibility(
  * Audit fix: Made weekly hours configurable instead of hardcoded 40
  */
 export function calculateRideshareEarnings(
-    isXL: boolean = false,
+    rideClass: 'standard' | 'comfort' | 'xl' = 'standard',
     weeklyHours: number = 40
 ): RideshareEarnings {
-    const rates = isXL ? RIDESHARE_RATES.xl : RIDESHARE_RATES.standard;
+    const rates = RIDESHARE_RATES[rideClass];
 
     const scenarios: Record<string, EarningsScenario> = {};
 

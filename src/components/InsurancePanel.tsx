@@ -7,29 +7,43 @@ interface InsurancePanelProps {
 }
 
 export default function InsurancePanel({ insurance }: InsurancePanelProps) {
-    const policies = [
-        {
-            name: "Personal Auto",
-            monthly: insurance.personalMonthly,
-            annual: insurance.personalAnnual,
-            description: "Standard coverage, no rideshare",
-            color: "var(--color-accent-cyan)",
-        },
-        {
-            name: "Rideshare Endorsement",
-            monthly: insurance.rideshareMonthly,
-            annual: insurance.rideshareAnnual,
-            description: "Part-time rideshare add-on",
-            color: "var(--color-accent-indigo)",
-        },
-        {
-            name: "Commercial Policy",
-            monthly: insurance.commercialMonthly,
-            annual: insurance.commercialAnnual,
-            description: "Full-time rideshare coverage",
-            color: "var(--color-accent-violet)",
-        },
-    ];
+    const isLiability = insurance.coverageType === "Liability Only";
+
+    const policies: {
+        name: string;
+        monthly: number;
+        annual: number;
+        description: string;
+        color: string;
+        info: string;
+    }[] = [
+            {
+                name: isLiability ? "Liability Only" : "Personal Full Coverage",
+                monthly: insurance.personalMonthly,
+                annual: insurance.personalAnnual,
+                description: isLiability ? "State minimum liability (No Comp/Coll)" : "Standard comprehensive & collision",
+                color: "var(--color-accent-cyan)",
+                info: "SCENARIO: You commute to your day job or go for groceries. This covers you 100% when the Uber/Lyft app is OFF. NOTE: It will likely deny any claim if the app was ON, even if you had no passenger.",
+            },
+            {
+                name: "Rideshare Endorsement",
+                monthly: insurance.rideshareMonthly,
+                annual: insurance.rideshareAnnual,
+                description: isLiability
+                    ? `Liability + ~$${insurance.endorsementCost} endorsement`
+                    : "Full coverage + rideshare gap",
+                color: "var(--color-accent-indigo)",
+                info: "SCENARIO: You turn the app ON and wait for a ride. You are now in 'Period 1'. This endorsement bridges the gap where your Personal policy denies you and Uber's insurance is very weak/non-existent.",
+            },
+            {
+                name: "Commercial Policy",
+                monthly: insurance.commercialMonthly,
+                annual: insurance.commercialAnnual,
+                description: "Full-time rideshare coverage",
+                color: "var(--color-accent-violet)",
+                info: "SCENARIO: You are a full-time Black Car / Limousine driver. This provides primary insurance 24/7 regardless of app status. It is overkill for standard UberX unless local laws require it for your specific vehicle class.",
+            },
+        ];
 
     return (
         <div className="space-y-6">
@@ -38,7 +52,7 @@ export default function InsurancePanel({ insurance }: InsurancePanelProps) {
                 {policies.map((policy) => (
                     <div
                         key={policy.name}
-                        className="p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)]"
+                        className="p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] relative group"
                     >
                         <div className="flex items-center gap-2 mb-2">
                             <div
@@ -59,14 +73,32 @@ export default function InsurancePanel({ insurance }: InsurancePanelProps) {
                         <p className="text-xs text-[var(--color-text-secondary)] mt-1">
                             ${policy.annual.toLocaleString()}/year
                         </p>
+
+                        {/* Period 1 Gap Info */}
+                        {/* @ts-ignore */}
+                        {policy.info && (
+                            <div className="mt-3 pt-3 border-t border-[var(--color-border-subtle)]">
+                                <p className="text-[10px] text-[var(--color-text-muted)] leading-tight">
+                                    {/* @ts-ignore */}
+                                    <span className="text-[var(--color-accent-indigo)] font-medium">Why?</span> {policy.info}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
 
+            {/* Coverage Note */}
+            {isLiability && (
+                <div className="p-3 rounded-lg bg-[var(--color-accent-indigo)]/10 border border-[var(--color-accent-indigo)]/20 text-xs text-[var(--color-text-secondary)]">
+                    <strong>Note:</strong> Since this vehicle is valued under $7k, estimates reflect <strong>Liability Only</strong>. Uber/Lyft do <u>not</u> require Comprehensive/Collision coverage unless the vehicle is financed.
+                </div>
+            )}
+
             {/* Carrier Comparison */}
             <div>
                 <h4 className="text-sm font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-3">
-                    Carrier Estimates (Personal Auto)
+                    Carrier Estimates ({isLiability ? "Liability Only" : "Full Coverage"})
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     {Object.entries(insurance.carriers).map(([carrier, monthly]) => (

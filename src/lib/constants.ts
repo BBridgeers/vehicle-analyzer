@@ -59,6 +59,11 @@ export const RIDESHARE_RATES = {
         baseline: 28,
         optimistic: 34,
     },
+    comfort: {
+        conservative: 26,
+        baseline: 33,
+        optimistic: 40,
+    },
     xl: {
         conservative: 30,
         baseline: 38,

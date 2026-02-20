@@ -13,15 +13,32 @@ import type { InsuranceEstimates } from "./types";
  */
 export function estimateInsurance(
     year: number,
-    _make: string
+    _make: string,
+    vehicleValue: number // New param
 ): InsuranceEstimates {
     const age = CURRENT_YEAR - year;
 
-    // Age multiplier — older vehicles cost slightly more to insure
+    // Base Full Coverage Estimate
     const ageMult = age < 10 ? 1.0 : 1.15;
+    let baseMonthly = Math.round(INSURANCE_BASE_MONTHLY * ageMult * 100) / 100;
 
-    const personalMonthly = Math.round(INSURANCE_BASE_MONTHLY * ageMult * 100) / 100;
-    const rideshareMonthly = Math.round(personalMonthly * 1.15 * 100) / 100;
+    let coverageType: "Liability Only" | "Full Coverage" = "Full Coverage";
+    let endorsementCost = 0;
+
+    // Smart Logic: If car is cheap, assume Liability Only
+    if (vehicleValue <= 7000) {
+        coverageType = "Liability Only";
+        // Liability is roughly 60% of Full Coverage
+        baseMonthly = Math.round(baseMonthly * 0.6);
+        // Rideshare Endorsement is typically a flat fee add-on
+        endorsementCost = 25;
+    } else {
+        // Full Coverage Rideshare usually adds ~15-20%
+        endorsementCost = Math.round(baseMonthly * 0.20);
+    }
+
+    const personalMonthly = baseMonthly;
+    const rideshareMonthly = personalMonthly + endorsementCost;
     const commercialMonthly = Math.round(personalMonthly * 1.9 * 100) / 100;
 
     // Per-carrier estimates
@@ -31,6 +48,8 @@ export function estimateInsurance(
     }
 
     return {
+        coverageType,
+        endorsementCost,
         personalMonthly,
         personalAnnual: Math.round(personalMonthly * 12 * 100) / 100,
         rideshareMonthly,

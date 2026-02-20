@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import type { Vehicle } from "@/lib/types";
 import { decodeVin, isValidVin } from "@/lib/vin-decoder";
@@ -9,31 +9,51 @@ import ImageUploader from "./ImageUploader";
 interface VehicleFormProps {
     onSubmit: (vehicle: Vehicle) => void;
     isLoading: boolean;
+    initialData?: Vehicle | null; // New prop
 }
 
-const CURRENT_YEAR = 2026;
+const CURRENT_YEAR = new Date().getFullYear();
 
-export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
-    const [form, setForm] = useState<Vehicle>({
-        year: 2017,
-        make: "Hyundai",
-        model: "Santa Fe Sport",
-        trim: "",
-        price: 6500,
-        mileage: 100000,
-        vin: "",
-        location: "Dallas, TX",
-        titleStatus: "Clean",
-        seats: 5,
-        exteriorColor: "",
-        interiorColor: "",
-        transmission: "Automatic",
-        fuelType: "Gasoline",
-        source: "Facebook Marketplace",
-        listingUrl: "",
-        description: "",
-        postedDate: "recent",
-    });
+const defaultForm: Vehicle = {
+    year: undefined as any,
+    make: "",
+    model: "",
+    trim: "",
+    price: undefined as any,
+    mileage: undefined as any,
+    vin: "",
+    location: "",
+    titleStatus: "",
+    seats: undefined as any,
+    exteriorColor: "",
+    interiorColor: "",
+    transmission: "",
+    fuelType: "",
+    source: "",
+    listingUrl: "",
+    description: "",
+    postedDate: "",
+};
+
+export default function VehicleForm({ onSubmit, isLoading, initialData }: VehicleFormProps) {
+    // Helper for capitalization
+    const toTitleCase = (str: string) => {
+        return str.replace(/\b\w/g, (char) => char.toUpperCase());
+    };
+
+    const [form, setForm] = useState<Vehicle>(defaultForm);
+
+    // Sync with external data (e.g. from URL import)
+    useEffect(() => {
+        if (initialData) {
+            setForm((prev) => ({
+                ...initialData,
+                make: toTitleCase(initialData.make),
+                exteriorColor: initialData.exteriorColor ? toTitleCase(initialData.exteriorColor) : "",
+                interiorColor: initialData.interiorColor ? toTitleCase(initialData.interiorColor) : "",
+            }));
+        }
+    }, [initialData]);
 
     const [vinStatus, setVinStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
     const [vinInfo, setVinInfo] = useState<string>("");
@@ -147,11 +167,12 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         <input
                             id="year-input"
                             type="number"
-                            value={form.year}
+                            value={form.year || ""}
                             onChange={(e) => updateField("year", parseInt(e.target.value) || 0)}
                             min={1990}
                             max={CURRENT_YEAR}
                             className="form-input"
+                            placeholder="e.g. 2017"
                             required
                         />
                     </div>
@@ -162,7 +183,7 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                             id="make-input"
                             type="text"
                             value={form.make}
-                            onChange={(e) => updateField("make", e.target.value)}
+                            onChange={(e) => updateField("make", toTitleCase(e.target.value))}
                             placeholder="e.g. Honda"
                             className="form-input"
                             required
@@ -199,11 +220,12 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         <input
                             id="price-input"
                             type="number"
-                            value={form.price}
+                            value={form.price || ""}
                             onChange={(e) => updateField("price", parseFloat(e.target.value) || 0)}
                             min={0}
                             step={100}
                             className="form-input"
+                            placeholder="e.g. 6500"
                             required
                         />
                     </div>
@@ -213,7 +235,7 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         <input
                             id="mileage-input"
                             type="number"
-                            value={form.mileage}
+                            value={form.mileage || ""}
                             onChange={(e) => updateField("mileage", parseInt(e.target.value) || 0)}
                             min={0}
                             placeholder="If known"
@@ -234,11 +256,12 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         <input
                             id="seats-input"
                             type="number"
-                            value={form.seats || 5}
+                            value={form.seats || ""}
                             onChange={(e) => updateField("seats", parseInt(e.target.value) || 5)}
                             min={2}
                             max={9}
                             className="form-input"
+                            placeholder="e.g. 5"
                         />
                     </div>
 
@@ -246,10 +269,11 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         <label className="form-label" htmlFor="transmission-select">Transmission</label>
                         <select
                             id="transmission-select"
-                            value={form.transmission || "Automatic"}
+                            value={form.transmission || ""}
                             onChange={(e) => updateField("transmission", e.target.value)}
                             className="form-select"
                         >
+                            <option value="" disabled>Select Transmission</option>
                             <option value="Automatic">Automatic</option>
                             <option value="Manual">Manual</option>
                             <option value="CVT">CVT</option>
@@ -261,10 +285,11 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         <label className="form-label" htmlFor="fuel-select">Fuel Type</label>
                         <select
                             id="fuel-select"
-                            value={form.fuelType || "Gasoline"}
+                            value={form.fuelType || ""}
                             onChange={(e) => updateField("fuelType", e.target.value)}
                             className="form-select"
                         >
+                            <option value="" disabled>Select Fuel Type</option>
                             <option value="Gasoline">Gasoline</option>
                             <option value="Diesel">Diesel</option>
                             <option value="Hybrid">Hybrid</option>
@@ -280,7 +305,7 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                             id="ext-color-input"
                             type="text"
                             value={form.exteriorColor || ""}
-                            onChange={(e) => updateField("exteriorColor", e.target.value)}
+                            onChange={(e) => updateField("exteriorColor", toTitleCase(e.target.value))}
                             placeholder="e.g. White, Silver, Black"
                             className="form-input"
                         />
@@ -292,7 +317,7 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                             id="int-color-input"
                             type="text"
                             value={form.interiorColor || ""}
-                            onChange={(e) => updateField("interiorColor", e.target.value)}
+                            onChange={(e) => updateField("interiorColor", toTitleCase(e.target.value))}
                             placeholder="e.g. Black, Tan, Gray"
                             className="form-input"
                         />
@@ -302,10 +327,11 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         <label className="form-label" htmlFor="title-select">Title Status</label>
                         <select
                             id="title-select"
-                            value={form.titleStatus || "Clean"}
+                            value={form.titleStatus || ""}
                             onChange={(e) => updateField("titleStatus", e.target.value)}
                             className="form-select"
                         >
+                            <option value="" disabled>Select Title Status</option>
                             <option value="Clean">Clean</option>
                             <option value="Salvage">Salvage</option>
                             <option value="Rebuilt">Rebuilt</option>
@@ -326,10 +352,11 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         <label className="form-label" htmlFor="posted-date-select">Posted Date</label>
                         <select
                             id="posted-date-select"
-                            value={form.postedDate || "recent"}
+                            value={form.postedDate || ""}
                             onChange={(e) => updateField("postedDate", e.target.value)}
                             className="form-select"
                         >
+                            <option value="" disabled>Select Date Range</option>
                             <option value="today">Today</option>
                             <option value="<3 days">Less than 3 days</option>
                             <option value="<7 days">Less than 7 days</option>
@@ -354,12 +381,14 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         <label className="form-label" htmlFor="source-select">Source</label>
                         <select
                             id="source-select"
-                            value={form.source || "Facebook Marketplace"}
+                            value={form.source || ""}
                             onChange={(e) => updateField("source", e.target.value)}
                             className="form-select"
                         >
+                            <option value="" disabled>Select Source</option>
                             <option value="Facebook Marketplace">Facebook Marketplace</option>
                             <option value="Craigslist">Craigslist</option>
+                            <option value="AutoTempest">AutoTempest</option>
                             <option value="Cars.com">Cars.com</option>
                             <option value="CarGurus">CarGurus</option>
                             <option value="Autotrader">Autotrader</option>
@@ -377,7 +406,27 @@ export default function VehicleForm({ onSubmit, isLoading }: VehicleFormProps) {
                         id="listing-url-input"
                         type="url"
                         value={form.listingUrl || ""}
-                        onChange={(e) => updateField("listingUrl", e.target.value)}
+                        onChange={(e) => {
+                            const url = e.target.value;
+                            updateField("listingUrl", url);
+
+                            // Auto-detect source
+                            const lowerUrl = url.toLowerCase();
+                            let detectedSource = "Other";
+                            if (lowerUrl.includes("dealership.com") || lowerUrl.includes("dealer.com")) detectedSource = "Dealer Website";
+                            else if (lowerUrl.includes("craigslist.org")) detectedSource = "Craigslist";
+                            else if (lowerUrl.includes("autotempest.com")) detectedSource = "AutoTempest";
+                            else if (lowerUrl.includes("cars.com")) detectedSource = "Cars.com";
+                            else if (lowerUrl.includes("cargurus.com")) detectedSource = "CarGurus";
+                            else if (lowerUrl.includes("facebook.com/marketplace")) detectedSource = "Facebook Marketplace";
+                            else if (lowerUrl.includes("autotrader.com")) detectedSource = "Autotrader";
+                            else if (lowerUrl.includes("offerup.com")) detectedSource = "OfferUp";
+                            else if (lowerUrl.includes("carvana.com")) detectedSource = "Carvana";
+
+                            if (detectedSource) {
+                                updateField("source", detectedSource);
+                            }
+                        }}
                         placeholder="https://..."
                         className="form-input"
                     />

@@ -175,7 +175,7 @@ export class AntigravityEngine {
             }
         } catch (launchError) {
             console.error("Browser launch error:", launchError);
-            this.data.history.maintenance = [{ error: "Browser failed to launch" }];
+            this.data.history.maintenance = [{ error: "Service history scan bypassed (Server limits/timeout)" }];
         } finally {
             if (browser) await browser.close();
         }

@@ -1,0 +1,40 @@
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   package-lock.json
+	modified:   package.json
+	modified:   src/app/page.tsx
+	modified:   src/lib/antigravity.ts
+	modified:   src/lib/issues.ts
+	modified:   src/lib/types.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	build_genai3.log
+	build_output.log
+	build_screenshot_feature.log
+	deploy_final.log
+	deploy_screenshot_feature.log
+	diff_stat.txt
+	fetch.txt
+	fetch_all.txt
+	git_all_log.txt
+	git_branch_a.txt
+	git_branches.txt
+	git_graph.txt
+	git_log.txt
+	git_log_5.txt
+	git_status_2.txt
+	git_status_now.txt
+	new_status.txt
+	push_error.txt
+	redeploy_envfix.log
+	redeploy_final.log
+	src/app/api/extract-listing/
+	src/components/ListingCapture.tsx
+	test.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

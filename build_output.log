@@ -1,0 +1,45 @@
+ ΓÜá Attempted to load @next/swc-win32-x64-msvc, but an error occurred: \\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node is not a valid Win32 application.
+\\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node
+ ΓÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\package-lock.json
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ΓÜá Attempted to load @next/swc-win32-x64-msvc, but an error occurred: \\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node is not a valid Win32 application.
+\\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node
+ ΓÜá Attempted to load @next/swc-win32-x64-msvc, but an error occurred: \\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node is not a valid Win32 application.
+\\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node
+ ΓÜá Attempted to load @next/swc-win32-x64-msvc, but an error occurred: \\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node is not a valid Win32 application.
+\\?\C:\Users\yoga\.gemini\antigravity\playground\dark-whirlpool\vehicle-analyzer\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node
+ Γ£ô Compiled successfully in 4.8s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/6) ...
+   Generating static pages (1/6) 
+   Generating static pages (2/6) 
+   Generating static pages (4/6) 
+ Γ£ô Generating static pages (6/6)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+Γöî Γùï /                                    45.1 kB         147 kB
+Γö£ Γùï /_not-found                            995 B         103 kB
+Γö£ Γùï /agent-form                          1.67 kB         104 kB
+Γö£ ╞Æ /api/import-url                        125 B         102 kB
+Γöö ╞Æ /api/vin                               125 B         102 kB
++ First Load JS shared by all             102 kB
+  Γö£ chunks/255-ebd51be49873d76c.js         46 kB
+  Γö£ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+  Γöö other shared chunks (total)          1.97 kB
+
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

@@ -21,7 +21,18 @@ export interface Vehicle {
     listingUrl?: string;
     description?: string;
     postedDate?: string;
-    // Condition notes (optional, user-entered)
+    // FB Marketplace extended fields
+    bodyStyle?: string;
+    condition?: string;
+    drivetrain?: string;
+    engine?: string;
+    cylinders?: number;
+    mpg?: string;
+    safetyRating?: string;
+    numOwners?: number;
+    paidOff?: boolean;
+    sellerName?: string;
+    // Condition notes (optional, user-entered or vision-extracted)
     conditionExterior?: string;
     conditionInterior?: string;
     conditionMechanical?: string;

@@ -1,0 +1,8 @@
+* 2204a97 feat(system): optimize scraper architecture and autotempest support
+| * cb50b9a chore: add test scripts for scraper
+| * 5ffffd8 feat(scrapers): implement AutoTempest extraction and UI integration
+| * ed4fab7 feat: implement Vercel Lean engine and Cyber-Terminal UI aesthetic
+| * 7458bc5 Trigger fresh deployment
+| * 68a5b40 update import parsers with new condition fields
+|/  
+* 3d2ea00 feat: Project initial commit

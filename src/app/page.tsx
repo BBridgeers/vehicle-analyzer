@@ -7,6 +7,7 @@ import AnalysisResults from "@/components/AnalysisResults";
 import HistoryPanel from "@/components/HistoryPanel";
 import ComparisonView from "@/components/ComparisonView";
 import BulkImport from "@/components/BulkImport";
+import ListingCapture from "@/components/ListingCapture";
 import Toast from "@/components/Toast";
 import type { Vehicle, AnalysisResult } from "@/lib/types";
 import { analyzeVehicle } from "@/lib/analyze";
@@ -241,6 +242,11 @@ export default function Home() {
                         onCompare={handleCompare}
                     />
                 )}
+
+                {/* ── SCREENSHOT IMPORT ── */}
+                <section className="mb-6">
+                    <ListingCapture onExtracted={handleAnalyze} isLoading={isAnalyzing} />
+                </section>
 
                 {/* ── BULK IMPORT ── */}
                 <section className="mb-4">

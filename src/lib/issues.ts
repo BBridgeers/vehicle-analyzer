@@ -121,11 +121,11 @@ export function detectIssues(
     if (!vehicle.vin) {
         issues.push({
             title: "No VIN Provided",
-            concern: "Cannot verify vehicle history without VIN",
-            benign: "Seller oversight, will provide upon request",
-            malicious: "Hiding accident history, stolen vehicle, VIN cloning",
-            action: "Request VIN before visiting. Do NOT proceed without it.",
-            severity: "high",
+            concern: "No VIN listed. Cannot verify history yet.",
+            benign: "Seller omitted VIN to reduce spam or due to platform limitations.",
+            malicious: "Hiding accident history or salvage title.",
+            action: "Message seller to request the VIN before finalizing an inspection.",
+            severity: "low",
         });
     }
 

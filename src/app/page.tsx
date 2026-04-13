@@ -9,6 +9,7 @@ import ComparisonView from "@/components/ComparisonView";
 import BulkImport from "@/components/BulkImport";
 import ListingCapture from "@/components/ListingCapture";
 import Toast from "@/components/Toast";
+import ChatWidget from "@/components/ChatWidget";
 import type { Vehicle, AnalysisResult } from "@/lib/types";
 import { analyzeVehicle } from "@/lib/analyze";
 import { saveToHistory } from "@/lib/history";
@@ -376,6 +377,9 @@ export default function Home() {
 
             {/* Toast */}
             {toast && <Toast message={toast.message} type={toast.type} />}
+
+            {/* VERA — Context-Aware AI Chat Assistant */}
+            <ChatWidget vehicle={vehicle} analysis={analysis} />
         </main>
     );
 }

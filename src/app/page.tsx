@@ -263,7 +263,11 @@ export default function Home() {
 
                 {/* ── SCREENSHOT IMPORT ── */}
                 <section className="mb-6">
-                    <ListingCapture onExtracted={handleAnalyze} isLoading={isAnalyzing} />
+                <ListingCapture
+                        onExtracted={handleAnalyze}
+                        onUrlUpdate={(url) => setVehicle(prev => prev ? { ...prev, listingUrl: url } : prev)}
+                        isLoading={isAnalyzing}
+                    />
                 </section>
 
                 {/* ── BULK IMPORT ── */}

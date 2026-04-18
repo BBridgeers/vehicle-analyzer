@@ -6,18 +6,20 @@ import type { Vehicle } from "@/lib/types";
 
 interface Props {
     onExtracted: (vehicle: Vehicle) => void;
+    onUrlUpdate?: (url: string) => void;
     isLoading?: boolean;
 }
 
 type Status = "idle" | "preview" | "extracting" | "success" | "error";
 
-export default function ListingCapture({ onExtracted, isLoading }: Props) {
+export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: Props) {
     const [status, setStatus] = useState<Status>("idle");
     const [preview, setPreview] = useState<string | null>(null);
     const [error, setError] = useState<string>("");
     const [extractedFields, setExtractedFields] = useState<number>(0);
     const [isDragging, setIsDragging] = useState(false);
     const [manualUrl, setManualUrl] = useState<string>("");
+    const [urlSaved, setUrlSaved] = useState(false);
     const dropRef = useRef<HTMLDivElement>(null);
 
     // Global paste handler
@@ -110,7 +112,19 @@ export default function ListingCapture({ onExtracted, isLoading }: Props) {
         setStatus("idle");
         setError("");
         setExtractedFields(0);
+        setUrlSaved(false);
         // Don't clear manualUrl on reset — user may be re-pasting a new screenshot of the same listing
+    };
+
+    // Auto-apply URL to parent vehicle state whenever it changes after a successful extraction
+    const handleUrlChange = (url: string) => {
+        setManualUrl(url);
+        setUrlSaved(false);
+        if (status === "success" && onUrlUpdate && url.trim()) {
+            onUrlUpdate(url.trim());
+            setUrlSaved(true);
+            setTimeout(() => setUrlSaved(false), 2000);
+        }
     };
 
     return (
@@ -226,13 +240,17 @@ export default function ListingCapture({ onExtracted, isLoading }: Props) {
             <div className="mt-3">
                 <label className="block text-xs text-[var(--color-text-muted)] mb-1.5 flex items-center gap-1.5">
                     <Link className="w-3 h-3" />
-                    Listing URL <span className="text-[var(--color-text-muted)]/60">(paste the FB Marketplace / Craigslist URL for quick back-reference)</span>
+                    Listing URL
+                    <span className="text-[var(--color-text-muted)]/60">(optional — paste for quick back-reference; auto-saved instantly)</span>
+                    {urlSaved && (
+                        <span className="ml-auto text-[var(--color-accent-green)] text-[10px] font-mono animate-pulse">✓ URL saved</span>
+                    )}
                 </label>
                 <input
                     id="listing-manual-url"
                     type="url"
                     value={manualUrl}
-                    onChange={(e) => setManualUrl(e.target.value)}
+                    onChange={(e) => handleUrlChange(e.target.value)}
                     placeholder="https://www.facebook.com/marketplace/item/..."
                     className="w-full px-3 py-2 rounded-xl text-sm bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent-indigo)] transition-colors"
                 />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Camera, Clipboard, Loader2, CheckCircle, AlertCircle, X } from "lucide-react";
+import { Camera, Clipboard, Loader2, CheckCircle, AlertCircle, X, Link } from "lucide-react";
 import type { Vehicle } from "@/lib/types";
 
 interface Props {
@@ -17,6 +17,7 @@ export default function ListingCapture({ onExtracted, isLoading }: Props) {
     const [error, setError] = useState<string>("");
     const [extractedFields, setExtractedFields] = useState<number>(0);
     const [isDragging, setIsDragging] = useState(false);
+    const [manualUrl, setManualUrl] = useState<string>("");
     const dropRef = useRef<HTMLDivElement>(null);
 
     // Global paste handler
@@ -65,6 +66,7 @@ export default function ListingCapture({ onExtracted, isLoading }: Props) {
                 body: JSON.stringify({
                     image: base64,
                     mimeType: file.type,
+                    manualUrl: manualUrl.trim() || undefined,
                 }),
             });
 
@@ -108,6 +110,7 @@ export default function ListingCapture({ onExtracted, isLoading }: Props) {
         setStatus("idle");
         setError("");
         setExtractedFields(0);
+        // Don't clear manualUrl on reset — user may be re-pasting a new screenshot of the same listing
     };
 
     return (
@@ -178,7 +181,7 @@ export default function ListingCapture({ onExtracted, isLoading }: Props) {
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
                                 <Loader2 className="w-10 h-10 text-[var(--color-accent-indigo)] animate-spin mb-3" />
                                 <p className="text-white font-semibold text-lg">Extracting listing data...</p>
-                                <p className="text-white/60 text-sm mt-1">Gemini Pro Vision is reading the screenshot</p>
+                                <p className="text-white/60 text-sm mt-1">Groq Vision is reading the screenshot...</p>
                             </div>
                         )}
 
@@ -217,6 +220,22 @@ export default function ListingCapture({ onExtracted, isLoading }: Props) {
                         )}
                     </div>
                 )}
+            </div>
+
+            {/* Manual URL input — always visible below the dropzone */}
+            <div className="mt-3">
+                <label className="block text-xs text-[var(--color-text-muted)] mb-1.5 flex items-center gap-1.5">
+                    <Link className="w-3 h-3" />
+                    Listing URL <span className="text-[var(--color-text-muted)]/60">(paste the FB Marketplace / Craigslist URL for quick back-reference)</span>
+                </label>
+                <input
+                    id="listing-manual-url"
+                    type="url"
+                    value={manualUrl}
+                    onChange={(e) => setManualUrl(e.target.value)}
+                    placeholder="https://www.facebook.com/marketplace/item/..."
+                    className="w-full px-3 py-2 rounded-xl text-sm bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent-indigo)] transition-colors"
+                />
             </div>
         </div>
     );

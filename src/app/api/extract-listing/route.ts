@@ -49,7 +49,7 @@ CRITICAL RULES:
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { image, mimeType } = body;
+        const { image, mimeType, manualUrl } = body;
 
         if (!image) {
             return NextResponse.json(
@@ -72,6 +72,11 @@ export async function POST(request: Request) {
                 { error: 'Vision analysis failed across all providers. Check API keys and hardware.' },
                 { status: 500 }
             );
+        }
+
+        // Inject manual URL — takes priority over vision-extracted URL
+        if (manualUrl && manualUrl.trim()) {
+            vehicle.listingUrl = manualUrl.trim();
         }
 
         // Add source metadata

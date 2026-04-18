@@ -45,6 +45,10 @@ export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: 
     }, [isLoading, status]);
 
     const processImage = useCallback(async (file: File) => {
+        // Clear URL from any previous listing — each screenshot is a fresh vehicle
+        setManualUrl("");
+        setUrlSaved(false);
+
         // Show preview
         const url = URL.createObjectURL(file);
         setPreview(url);

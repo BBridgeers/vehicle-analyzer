@@ -2,11 +2,17 @@ import { NextResponse } from 'next/server';
 
 const EXTRACTION_PROMPT = `You are a vehicle listing data extraction engine. Analyze this screenshot of a vehicle listing (likely from Facebook Marketplace or similar) and extract ALL visible information into structured JSON.
 
-Extract every field you can find. If a field is not visible or not present, omit it entirely (do not include null values).
+STEP 1 — READ THE BROWSER ADDRESS BAR FIRST:
+Before reading any listing content, look at the very top of the screenshot. There will be a browser address bar (Chrome/Edge/Firefox) showing the full URL of the page. This looks like: https://www.facebook.com/marketplace/item/916998977756029/
+Read it character by character and capture the full URL exactly as "listingUrl". This is the single most important field in this extraction. Do not skip it even if the URL is long or contains query parameters.
 
-Return ONLY valid JSON with this exact structure (all fields optional except year, make, model, price):
+STEP 2 — Extract all other visible listing data:
+Extract every field you can find. If a field is not visible, omit it (do not include null values).
+
+Return ONLY valid JSON with this exact structure:
 
 {
+  "listingUrl": "<PRIORITY #1 — full URL copied exactly from the browser address bar at the very top of the screenshot>",
   "year": <number>,
   "make": "<string>",
   "model": "<string>",
@@ -33,8 +39,7 @@ Return ONLY valid JSON with this exact structure (all fields optional except yea
   "description": "<full seller description text>",
   "postedDate": "<string, e.g. Listed 2 days ago>",
   "conditionExterior": "<any visible exterior damage, mods, or notable features from photos>",
-  "conditionInterior": "<any visible interior wear, damage, or notable features from photos>",
-  "listingUrl": "<if URL bar is visible in screenshot>"
+  "conditionInterior": "<any visible interior wear, damage, or notable features from photos>"
 }
 
 CRITICAL RULES:
@@ -43,7 +48,6 @@ CRITICAL RULES:
 - For mileage, extract as a clean integer
 - Look at BOTH the structured data fields AND the seller's description text
 - Look at the vehicle photos visible in the screenshot for condition notes
-- If you see the URL bar in the screenshot, capture the listing URL
 - Return ONLY the JSON object, no markdown, no code fences, no explanation`;
 
 export async function POST(request: Request) {

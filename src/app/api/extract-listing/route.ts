@@ -48,14 +48,6 @@ CRITICAL RULES:
 
 export async function POST(request: Request) {
     try {
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GeminiKey;
-        if (!apiKey) {
-            return NextResponse.json(
-                { error: 'GEMINI_API_KEY not configured' },
-                { status: 500 }
-            );
-        }
-
         const body = await request.json();
         const { image, mimeType } = body;
 
@@ -66,37 +58,21 @@ export async function POST(request: Request) {
             );
         }
 
-        const { GoogleGenAI } = require('@google/genai');
-        const ai = new GoogleGenAI({ apiKey });
-
-        // Strip data URL prefix if present
-        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
-            contents: [
-                {
-                    inlineData: {
-                        mimeType: mimeType || 'image/png',
-                        data: base64Data,
-                    },
-                },
-                { text: EXTRACTION_PROMPT }
-            ],
-            config: {
-                temperature: 0.1,
-            }
+        const { VisionManager } = require('@/lib/vision-engine');
+        const manager = new VisionManager({
+            geminiKey: process.env.GEMINI_API_KEY || process.env.GeminiKey,
+            groqKey: process.env.GROQ_API_KEY,
+            ollamaHost: process.env.OLLAMA_HOST
         });
 
-        const text = response.text;
+        const vehicle = await manager.extract(image, EXTRACTION_PROMPT, mimeType);
 
-        // Parse JSON from the response (handle potential markdown code fences)
-        let jsonStr = text.trim();
-        if (jsonStr.startsWith('```')) {
-            jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+        if (!vehicle) {
+            return NextResponse.json(
+                { error: 'Vision analysis failed across all providers. Check API keys and hardware.' },
+                { status: 500 }
+            );
         }
-
-        const vehicle = JSON.parse(jsonStr);
 
         // Add source metadata
         vehicle.source = 'screenshot-import';

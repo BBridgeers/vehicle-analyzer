@@ -4,10 +4,10 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
     try {
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GeminiKey;
-        if (!apiKey) {
+        const groqKey = process.env.GROQ_API_KEY;
+        if (!groqKey) {
             return new Response(
-                JSON.stringify({ error: "GEMINI_API_KEY not configured" }),
+                JSON.stringify({ error: "GROQ_API_KEY not configured" }),
                 { status: 500, headers: { "Content-Type": "application/json" } }
             );
         }
@@ -25,29 +25,67 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { GoogleGenAI } = require("@google/genai");
-        const ai = new GoogleGenAI({ apiKey });
+        // Map Gemini-style messages to Groq/OpenAI style
+        const groqMessages = messages.map(msg => ({
+            role: msg.role === 'model' ? 'assistant' : 'user',
+            content: msg.parts.map(p => p.text).join('\n')
+        }));
 
-        // Create streaming response
+        // Add system prompt if present
+        if (systemPrompt) {
+            groqMessages.unshift({ role: 'system', content: systemPrompt });
+        }
+
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${groqKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: groqMessages,
+                temperature: 0.7,
+                stream: true,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || 'Groq request failed');
+        }
+
         const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+        const reader = response.body?.getReader();
 
         const stream = new ReadableStream({
             async start(controller) {
-                try {
-                    const streamResponse = await ai.models.generateContentStream({
-                        model: "gemini-3-pro-preview",
-                        config: {
-                            temperature: 0.7,
-                            maxOutputTokens: 2048,
-                            systemInstruction: systemPrompt,
-                        },
-                        contents: messages,
-                    });
+                if (!reader) {
+                    controller.close();
+                    return;
+                }
 
-                    for await (const chunk of streamResponse) {
-                        const text = chunk.text;
-                        if (text) {
-                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    const text = data.choices[0]?.delta?.content;
+                                    if (text) {
+                                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+                                    }
+                                } catch (e) {
+                                    // Ignore parse errors for partial chunks
+                                }
+                            }
                         }
                     }
 

@@ -205,9 +205,9 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
         setShowStarters(false);
         setIsStreaming(true);
 
-        // Build conversation history for Gemini (role must be "user" | "model")
+        // Build conversation history (mapped for backend API)
         const allMessages = [...messages, userMessage];
-        const geminiMessages = allMessages.map((m) => ({
+        const apiMessages = allMessages.map((m) => ({
             role: m.role === "assistant" ? "model" : "user",
             parts: [{ text: m.content }],
         }));
@@ -234,7 +234,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: geminiMessages, systemPrompt: augmentedPrompt }),
+                    body: JSON.stringify({ messages: apiMessages, systemPrompt: augmentedPrompt }),
                     signal: abortRef.current.signal,
                 });
 
@@ -243,7 +243,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: geminiMessages, systemPrompt }),
+                    body: JSON.stringify({ messages: apiMessages, systemPrompt }),
                     signal: abortRef.current.signal,
                 });
 
@@ -649,7 +649,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
                                     </div>
                                 </div>
                                 <p className="text-[10px] text-[var(--color-text-disabled)] mt-1.5 font-mono text-center">
-                                    Enter to send · Shift+Enter for newline · Powered by Gemini 3 Pro Preview
+                                    Enter to send · Shift+Enter for newline · Powered by Groq // Llama 3.3
                                 </p>
                             </div>
                         </>

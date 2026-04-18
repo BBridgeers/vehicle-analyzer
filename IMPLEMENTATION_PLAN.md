@@ -276,6 +276,41 @@
 
 ---
 
+## Phase 6: Automated Subagent Pipeline (Cron & Email Delivery)
+
+**Goal:** Automatically scrape defined target URLs, analyze the results, filter by criteria, and email a comparative CSV twice daily (e.g., 6 AM & 6 PM).
+
+### Task 6.1 — Search List Scrapers (The Finders)
+
+**Global Subagent Search Criteria:**
+- **Region:** DFW Metroplex, TX (Dallas-Fort Worth)
+- **Budget:** Under $7,000 (Preferably closer to $5,000)
+- **Mileage:** Under 100,000
+- **Condition:** Clean Title Only 
+- **Seller Type:** Private Owner (No Dealers)
+- **Rules:** Any make/model allowed. MUST automatically filter out known "lemons" or vehicles with major mechanical reputation issues before presenting.
+
+- [x] **Facebook Marketplace (Priority 1):** Playwright + Stealth script with 50% magnification full-page screenshot Gemini analysis.
+- [ ] **Craigslist (Priority 2):** Create `scripts/cl_subagent.ts`. This script will use Cheerio + Fetch to hit the Dallas Craigslist search page (`/search/cta?max_price=7000&max_auto_miles=100000&auto_title_status=1&purveyor=owner`). It will extract the listing URLs, pass them to the existing `scrapeVehicle` factory for native HTML extraction (which is ultra-fast and cheap). Only the extracted `year, make, model, description` will be sent to the Gemini "Lemon Filter". Passed vehicles will be exported to `golden_vehicles.json`.
+- [ ] **AutoTempest (Priority 3):** Create `scripts/at_subagent.ts`. AutoTempest blocks basic fetches, so this MUST use the Playwright + Stealth engine. It will navigate to `autotempest.com/results...` and extract the outgoing referral links. Because AT aggregates external sites (Cars.com, TrueCar, etc.), we will use the same visual 50% Zoom + Gemini Vision AI technique used in the FB subagent on the final destination page, guaranteeing uniform data extraction regardless of the host site.
+
+### Task 6.2 — The Automation Script (The Pipeline)
+- [ ] Create `scripts/run_automation.ts` designed to run in a scheduled environment.
+- [ ] Execute search list scrapers -> gather unique URLs.
+- [ ] Pass each URL to the specific detail scraper (already partially built).
+- [ ] Pass resulting `ScrapedVehicle` data into the `analyzeVehicle()` engine.
+- [ ] Apply "Exact Criteria" filter (e.g., strict budget, minimum instant equity, no "AVOID" verdicts).
+
+### Task 6.3 — CSV Generation & Email Delivery
+- [ ] Generate structured CSV comparing the surviving candidates.
+- [ ] Integrate Nodemailer or Resend to bundle the CSV and send an email to the user.
+- [ ] Optional: Log results to Upstash Redis so they appear in the UI's History panel automatically.
+
+### Task 6.4 — Scheduling (The Subagent Clock)
+- [ ] Deploy the script as a Vercel Cron Job (if hosted on Vercel) **OR** setup a GitHub Actions workflow with a `cron: '0 6,18 * * *'` schedule (runs 6 AM and 6 PM UTC/Local).
+
+---
+
 ## Execution Order
 
 | Step | Phase | Tasks | Est. Effort |
@@ -289,8 +324,9 @@
 | **7** | Phase 5.1-5.2 | Image upload + rideshare toggle | ~25 min |
 | **8** | Phase 5.3 | Multi-vehicle comparison | ~30 min |
 | **9** | Phase 5.4-5.5 | Bulk import + seller modal | ~30 min |
+| **10** | Phase 6.1-6.4 | Automated Subagent Pipeline & Email Delivery | ~3 hours |
 
-**Total estimated:** ~4.5 hours of implementation
+**Total estimated:** ~7.5 hours of implementation
 
 ---
 

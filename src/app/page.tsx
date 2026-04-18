@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import VehicleForm from "@/components/VehicleForm";
 import AnalysisResults from "@/components/AnalysisResults";
@@ -32,6 +32,23 @@ export default function Home() {
     const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
 
     const [showForm, setShowForm] = useState(true);
+
+    // Deep Link Catcher (from Export CSVs)
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const carParam = params.get('car');
+            if (carParam) {
+                try {
+                    const parsed = JSON.parse(decodeURIComponent(carParam));
+                    // Push to the back of the event loop to ensure state is ready
+                    setTimeout(() => handleAnalyze(parsed), 100);
+                } catch (e) {
+                    console.error("Failed to parse deep link car:", e);
+                }
+            }
+        }
+    }, []); // Run ONLY on mount
 
     const handleAnalyze = async (v: Vehicle) => {
         setIsAnalyzing(true);

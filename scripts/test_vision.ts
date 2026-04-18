@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { VisionManager } from '../src/lib/vision-engine.ts';
+import { VisionManager } from '../src/lib/vision-engine';
 
 // Load environment variables
 const envPath = path.join(process.cwd(), '.env.local');

@@ -29,7 +29,6 @@ const rawData = JSON.parse(fs.readFileSync(inputFile, 'utf-8'));
 
 function mapToVehicle(data: any): Vehicle {
     return {
-        id: Math.random().toString(36).substring(7),
         year: data.year || 2000,
         make: data.make || "Unknown",
         model: data.model || "Unknown",
@@ -37,7 +36,6 @@ function mapToVehicle(data: any): Vehicle {
         mileage: data.mileage || 100000,
         source: "direct",
         description: data.description,
-        conditionExterior: data.conditionExterior,
         vin: data.vin
     };
 }
@@ -72,8 +70,9 @@ async function run() {
         const rideshareClass = analysis.rideshare.eligibility.uberComfort.eligible ? "Uber Comfort" : (analysis.rideshare.eligibility.uberXL.eligible ? "Uber XL" : "UberX");
         
         // Construct the deep link parameter
+        const vehicleId = Math.random().toString(36).substring(7);
         const carParam = {
-            id: vehicle.id,
+            id: vehicleId,
             year: vehicle.year,
             make: vehicle.make,
             model: vehicle.model,

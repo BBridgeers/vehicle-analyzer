@@ -38,7 +38,7 @@ import FinalVerdictPanel from "./FinalVerdictPanel";
 import ConditionPanel from "./ConditionPanel";
 import SellerVerificationPanel from "./SellerVerificationPanel";
 
-import type { AnalysisMode } from "@/app/page";
+import type { AnalysisMode } from "@/lib/types";
 
 interface AnalysisResultsProps {
     vehicle: Vehicle;

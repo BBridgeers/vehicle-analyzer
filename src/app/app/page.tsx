@@ -10,7 +10,7 @@ import BulkImport from "@/components/BulkImport";
 import ListingCapture from "@/components/ListingCapture";
 import Toast from "@/components/Toast";
 import ChatWidget from "@/components/ChatWidget";
-import type { Vehicle, AnalysisResult } from "@/lib/types";
+import type { Vehicle, AnalysisResult, AnalysisMode } from "@/lib/types";
 import { analyzeVehicle } from "@/lib/analyze";
 import { saveToHistory } from "@/lib/history";
 import { downloadDocxReport } from "@/lib/export-docx";
@@ -18,7 +18,6 @@ import { FileText, Search } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 
-export type AnalysisMode = "rideshare" | "personal";
 
 export default function Home() {
     const pageRef = useScrollReveal(0.1);

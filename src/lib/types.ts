@@ -242,3 +242,5 @@ export interface ScoringBreakdown {
     totalScore: number;
     verdict: Verdict;
 }
+
+export type AnalysisMode = "rideshare" | "personal";

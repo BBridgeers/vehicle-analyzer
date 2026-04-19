@@ -80,8 +80,8 @@ export default function LandingPage() {
                     </h1>
 
                     <p className="hero-subline">
-                        Paste a screenshot. Get the truth in seconds.<br />
-                        Market value. Red flags. Rideshare viability. Negotiation script.
+                        Drop a URL, paste a screenshot, or bulk-import a CSV.<br />
+                        Market value. Red flags. Rideshare viability. Negotiation script — in seconds.
                     </p>
 
                     <div className="hero-actions">
@@ -172,32 +172,53 @@ export default function LandingPage() {
                         <span className="chapter-line" />
                     </div>
 
-                    <h2 className="section-headline">HOW IT WORKS</h2>
+                    <h2 className="section-headline">THREE WAYS IN</h2>
+                    <p className="section-sub" style={{ marginBottom: '48px', color: '#6a6660', fontSize: '15px', maxWidth: '540px' }}>Pick the method that fits your workflow. All paths lead to the same deep intelligence report.</p>
 
                     <div className="steps-track">
                         <StepCard
                             step="01"
-                            icon={<PasteIcon />}
-                            title="Paste a Screenshot"
-                            body="Screenshot from Facebook Marketplace, Craigslist, or anywhere. Paste it directly into the app."
+                            icon={<UrlIcon />}
+                            title="Paste Any Listing URL"
+                            body="Drop a link from AutoTrader, Cars.com, Carvana, Facebook Marketplace, Craigslist, or any dealer site. We scrape and extract everything automatically."
                             accent="red"
                         />
                         <div className="step-connector" aria-hidden="true">→</div>
                         <StepCard
                             step="02"
-                            icon={<BrainIcon />}
-                            title="AI Extracts Everything"
-                            body="Our Groq vision model reads price, mileage, VIN, location, condition, seller cues — in seconds."
+                            icon={<PasteIcon />}
+                            title="Screenshot Vision Import"
+                            body="Working from the FB Marketplace app, Craigslist, or any page you can't link to? Screenshot it and paste directly — our Groq vision model reads it in seconds."
                             accent="blue"
                         />
                         <div className="step-connector" aria-hidden="true">→</div>
                         <StepCard
                             step="03"
-                            icon={<ReportIcon />}
-                            title="Get a Full Intelligence Report"
-                            body="Market value benchmarks, red flags, rideshare projections, insurance costs, and a negotiation script written for that exact vehicle."
+                            icon={<BulkIcon />}
+                            title="Bulk CSV / DOCX Import"
+                            body="Comparing a shortlist? Upload a CSV or DOCX with multiple listings. We batch-analyze everything and rank them side-by-side on a single score sheet."
                             accent="red"
                         />
+                    </div>
+
+                    <div style={{ marginTop: '56px', borderTop: '1px solid rgba(255,245,235,0.07)', paddingTop: '48px' }}>
+                        <h3 style={{ fontSize: '12px', fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase', color: '#6a6660', marginBottom: '24px' }}>THEN INSTANTLY GET →</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
+                            {[
+                                { icon: <BrainIcon />, label: 'AI Data Extraction', sub: 'Price, mileage, VIN, seller cues' },
+                                { icon: <ReportIcon />, label: 'Intelligence Report', sub: 'Deal score, red flags, negotiation script' },
+                                { icon: <UrlIcon />, label: 'Market Benchmarks', sub: 'Private party low / avg / high' },
+                                { icon: <BulkIcon />, label: 'Rideshare Viability', sub: 'Uber eligibility + earnings projection' },
+                            ].map(({ icon, label, sub }) => (
+                                <div key={label} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '16px', background: 'rgba(255,245,235,0.03)', borderRadius: '6px', border: '1px solid rgba(255,245,235,0.06)' }}>
+                                    <div style={{ color: '#d94a2a', opacity: 0.8, flexShrink: 0, marginTop: '2px' }}>{icon}</div>
+                                    <div>
+                                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#f0ede6', margin: '0 0 4px' }}>{label}</p>
+                                        <p style={{ fontSize: '12px', color: '#6a6660', margin: 0 }}>{sub}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </section>
@@ -259,7 +280,7 @@ export default function LandingPage() {
                     </h2>
                     <p className="cta-body">
                         No account. No credit card. No bullshit.<br />
-                        Just paste a screenshot and know if the deal is worth it.
+                        Drop a URL, paste a screenshot, or upload a CSV — and know if the deal is worth it.
                     </p>
                     <Link href="/app" className="cta-primary cta-primary-invert">
                         <span>Start Analyzing — It's Free</span>
@@ -780,3 +801,23 @@ function ReportIcon() {
         </svg>
     );
 }
+function UrlIcon() {
+    return (
+        <svg viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="42" height="42" rx="8" fill="rgba(217,74,42,0.1)" />
+            <path d="M19 23a5 5 0 0 0 7.07.07l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="#d94a2a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <path d="M23 19a5 5 0 0 0-7.07-.07l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="#d94a2a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </svg>
+    );
+}
+function BulkIcon() {
+    return (
+        <svg viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="42" height="42" rx="8" fill="rgba(217,74,42,0.1)" />
+            <rect x="12" y="13" width="18" height="4" rx="1.5" stroke="#d94a2a" strokeWidth="1.5" fill="none" />
+            <rect x="12" y="19" width="18" height="4" rx="1.5" stroke="#d94a2a" strokeWidth="1.5" fill="none" />
+            <rect x="12" y="25" width="18" height="4" rx="1.5" stroke="#d94a2a" strokeWidth="1.5" fill="none" />
+        </svg>
+    );
+}
+

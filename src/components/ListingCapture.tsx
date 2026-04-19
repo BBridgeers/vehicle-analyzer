@@ -94,7 +94,7 @@ export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: 
             setError(err.message || "Failed to extract data");
             setStatus("error");
         }
-    }, [onExtracted]);
+    }, [onExtracted, manualUrl]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();

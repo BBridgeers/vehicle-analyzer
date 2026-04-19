@@ -62,16 +62,22 @@ export default function Home() {
             // specific check for 17 chars to avoid bad requests
             if (v.vin && v.vin.length === 17) {
                 try {
-                    const res = await fetch('/api/vin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ vin: v.vin })
-                    });
+                    const timeout = new Promise<null>((_, reject) =>
+                        setTimeout(() => reject(new Error("VIN timeout")), 5000)
+                    );
+                    const res = await Promise.race([
+                        fetch('/api/vin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ vin: v.vin })
+                        }),
+                        timeout
+                    ]) as Response;
                     if (res.ok) {
                         vinData = await res.json();
                     }
                 } catch (e) {
-                    console.error("VIN fetch failed", e);
+                    console.error("VIN fetch failed or timed out, proceeding without VIN data:", e);
                 }
             }
 

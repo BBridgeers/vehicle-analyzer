@@ -193,9 +193,9 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
 
     const formatLabel: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
         csv: { icon: <Table className="w-4 h-4" />, label: "CSV", color: "var(--color-accent-emerald)" },
-        json: { icon: <Code className="w-4 h-4" />, label: "JSON", color: "var(--color-accent-indigo)" },
+        json: { icon: <Code className="w-4 h-4" />, label: "JSON", color: "var(--color-accent-red)" },
         markdown: { icon: <FileText className="w-4 h-4" />, label: "Markdown", color: "var(--color-accent-amber)" },
-        url: { icon: <Globe className="w-4 h-4" />, label: "Web Import", color: "var(--color-accent-cyan)" },
+        url: { icon: <Globe className="w-4 h-4" />, label: "Web Import", color: "var(--color-accent-terra)" },
         unknown: { icon: <AlertTriangle className="w-4 h-4" />, label: "Unknown", color: "var(--color-accent-rose)" },
     };
 
@@ -207,8 +207,8 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                 className="w-full flex items-center justify-between p-5 text-left hover:bg-[var(--color-bg-glass-hover)] transition-colors border-b border-[var(--color-border-subtle)]"
             >
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-sm bg-[var(--color-bg-glass)] border border-[var(--color-border-subtle)] shadow-[inset_0_0_10px_rgba(0,240,255,0.1)]">
-                        <Upload className="w-5 h-5 text-[var(--color-accent-cyan)] drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]" />
+                    <div className="p-2 rounded-sm bg-[var(--color-bg-glass)] border border-[var(--color-border-subtle)] shadow-[inset_0_0_10px_rgba(217,74,42,0.08)]">
+                        <Upload className="w-5 h-5 text-[var(--color-accent-red)] drop-shadow-[0_0_5px_rgba(217,74,42,0.45)]" />
                     </div>
                     <div>
                         <h3 className="text-sm font-mono tracking-widest uppercase text-[var(--color-text-primary)]">
@@ -220,7 +220,7 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                     </div>
                 </div>
                 {expanded ? (
-                    <ChevronUp className="w-5 h-5 text-[var(--color-accent-cyan)] drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]" />
+                    <ChevronUp className="w-5 h-5 text-[var(--color-accent-red)] drop-shadow-[0_0_5px_rgba(217,74,42,0.35)]" />
                 ) : (
                     <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)]" />
                 )}
@@ -236,7 +236,7 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                                 onClick={() => setActiveTab("file")}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-mono tracking-widest uppercase transition-all duration-200
                                     ${activeTab === "file"
-                                        ? "bg-[var(--color-bg-glass-hover)] text-[var(--color-accent-lime)] border-b border-[var(--color-accent-lime)] shadow-[0_0_15px_rgba(204,255,0,0.15)]"
+                                        ? "bg-[var(--color-bg-glass-hover)] text-[var(--color-accent-red)] border-b border-[var(--color-accent-red)] shadow-[0_0_12px_rgba(217,74,42,0.15)]"
                                         : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-glass)]"
                                     }`}
                             >
@@ -247,7 +247,7 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                                 onClick={() => setActiveTab("url")}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-mono tracking-widest uppercase transition-all duration-200
                                     ${activeTab === "url"
-                                        ? "bg-[var(--color-bg-glass-hover)] text-[var(--color-accent-cyan)] border-b border-[var(--color-accent-cyan)] shadow-[0_0_15px_rgba(0,240,255,0.15)]"
+                                        ? "bg-[var(--color-bg-glass-hover)] text-[var(--color-accent-terra)] border-b border-[var(--color-accent-terra)] shadow-[0_0_12px_rgba(194,96,42,0.15)]"
                                         : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-glass)]"
                                     }`}
                             >
@@ -270,7 +270,7 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
                                             bg-[var(--color-bg-glass)] border border-[var(--color-border-subtle)]
                                             text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]
-                                            hover:border-[var(--color-accent-indigo)] transition-all"
+                                            hover:border-[var(--color-accent-red)] transition-all"
                                     >
                                         <Download className="w-3 h-3" />
                                         {type.toUpperCase()}
@@ -286,12 +286,12 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                                 onClick={() => fileInputRef.current?.click()}
                                 className={`relative flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200
                                     ${dragOver
-                                        ? "border-[var(--color-accent-indigo)] bg-indigo-500/10 scale-[1.01]"
-                                        : "border-[var(--color-border-subtle)] hover:border-[var(--color-accent-indigo)]/50 hover:bg-[var(--color-bg-glass-hover)]"
+                                        ? "border-[var(--color-accent-red)] bg-[var(--color-accent-red)]/8 scale-[1.01]"
+                                        : "border-[var(--color-border-subtle)] hover:border-[var(--color-accent-red)]/50 hover:bg-[var(--color-bg-glass-hover)]"
                                     }`}
                             >
-                                <div className={`p-3 rounded-full transition-colors ${dragOver ? "bg-indigo-500/20" : "bg-[var(--color-bg-glass)]"}`}>
-                                    <Upload className={`w-6 h-6 transition-colors ${dragOver ? "text-[var(--color-accent-indigo)]" : "text-[var(--color-text-muted)]"}`} />
+                                <div className={`p-3 rounded-full transition-colors ${dragOver ? "bg-[var(--color-accent-red)]/15" : "bg-[var(--color-bg-glass)]"}`}>
+                                    <Upload className={`w-6 h-6 transition-colors ${dragOver ? "text-[var(--color-accent-red)]" : "text-[var(--color-text-muted)]"}`} />
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm font-medium text-[var(--color-text-primary)]">
@@ -300,7 +300,7 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                                     <p className="text-xs text-[var(--color-text-muted)] mt-1">
                                         Supports <span className="text-[var(--color-accent-emerald)]">.csv</span>
                                         {" · "}
-                                        <span className="text-[var(--color-accent-indigo)]">.json</span>
+                                        <span className="text-[var(--color-accent-red)]">.json</span>
                                         {" · "}
                                         <span className="text-[var(--color-accent-amber)]">.md</span>
                                         {" — or click to browse"}
@@ -339,12 +339,12 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                                     placeholder="Paste vehicle URLs here (one per line)&#10;Example: https://dallas.craigslist.org/cto/d/dallas-2015-toyota-camry/..."
                                     className="w-full h-32 p-4 rounded-xl bg-[var(--color-bg-glass)] border border-[var(--color-border-subtle)] 
                                         text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]
-                                        focus:border-[var(--color-accent-cyan)] focus:ring-1 focus:ring-cyan-500/50 resize-none font-mono text-sm"
+                                        focus:border-[var(--color-accent-red)] focus:ring-1 focus:ring-[var(--color-accent-red)]/20 resize-none font-mono text-sm"
                                     disabled={isScraping}
                                 />
                                 {isScraping && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm rounded-xl">
-                                        <Loader2 className="w-8 h-8 text-[var(--color-accent-cyan)] animate-spin" />
+                                        <Loader2 className="w-8 h-8 text-[var(--color-accent-red)] animate-spin" />
                                         <span className="text-sm font-medium text-white mt-2">{scrapeStatus}</span>
                                     </div>
                                 )}
@@ -355,10 +355,10 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                                     onClick={handleUrlImport}
                                     disabled={!urlInput.trim() || isScraping}
                                     className="inline-flex items-center gap-2 px-6 py-3 rounded-sm font-mono text-xs uppercase tracking-widest font-bold
-                                        bg-[var(--color-accent-cyan)] text-black
-                                        hover:bg-[var(--color-text-primary)]
+                                        bg-[var(--color-accent-red)] text-white
+                                        hover:bg-[var(--color-accent-red-dark)]
                                         disabled:opacity-40 disabled:cursor-not-allowed
-                                        shadow-[0_0_15px_rgba(0,240,255,0.4)] hover:shadow-[0_0_25px_rgba(255,255,255,0.6)]
+                                        shadow-[0_0_15px_rgba(217,74,42,0.35)] hover:shadow-[0_0_25px_rgba(217,74,42,0.55)]
                                         transition-all duration-200"
                                 >
                                     <Zap className="w-4 h-4" />
@@ -449,9 +449,9 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                                                     <tr
                                                         key={i}
                                                         onClick={() => toggleSelect(i)}
-                                                        className={`cursor-pointer transition-colors border-t border-[var(--color-border-subtle)]
+                                                            className={`cursor-pointer transition-colors border-t border-[var(--color-border-subtle)]
                                                             ${selected.has(i)
-                                                                ? "bg-indigo-500/5"
+                                                                ? "bg-[var(--color-accent-red)]/5"
                                                                 : "hover:bg-[var(--color-bg-glass-hover)]"
                                                             }`}
                                                     >
@@ -490,10 +490,10 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                                             onClick={handleAnalyzeSelected}
                                             disabled={selected.size === 0 || isLoading}
                                             className="inline-flex items-center gap-2 px-6 py-3 rounded-sm font-mono text-xs uppercase tracking-widest font-bold
-                                                bg-[var(--color-accent-lime)] text-black
-                                                hover:bg-[var(--color-text-primary)]
+                                                bg-[var(--color-accent-red)] text-white
+                                                hover:bg-[var(--color-accent-red-dark)]
                                                 disabled:opacity-40 disabled:cursor-not-allowed
-                                                shadow-[0_0_15px_rgba(204,255,0,0.4)] hover:shadow-[0_0_25px_rgba(255,255,255,0.6)]
+                                                shadow-[0_0_15px_rgba(217,74,42,0.35)] hover:shadow-[0_0_25px_rgba(217,74,42,0.55)]
                                                 transition-all duration-200"
                                             id="analyze-selected-btn"
                                         >

@@ -447,10 +447,11 @@ function CollapsibleSection({
         <div className="glass-card overflow-hidden">
             <button
                 onClick={onToggle}
-                className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-[var(--color-bg-glass-hover)] transition-colors"
+                className="w-full flex items-center justify-between p-5 sm:p-6 hover:bg-[var(--color-bg-glass-hover)] transition-colors cursor-pointer"
+                style={{ transition: "background 0.2s ease" }}
             >
                 <div className="flex items-center gap-3">
-                    <div className="text-[var(--color-accent-cyan)] drop-shadow-[0_0_5px_rgba(0,240,255,0.4)]">{icon}</div>
+                    <div className="text-[var(--color-accent-red)] drop-shadow-[0_0_6px_rgba(217,74,42,0.35)]">{icon}</div>
                     <h3 className="text-sm font-mono tracking-widest uppercase font-bold text-[var(--color-text-primary)]">
                         {title}
                     </h3>

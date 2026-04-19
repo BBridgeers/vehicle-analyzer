@@ -141,9 +141,9 @@ export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: 
                 className={`
                     relative overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer
                     ${isDragging
-                        ? "border-[var(--color-accent-green)] bg-[var(--color-accent-green)]/5 scale-[1.01]"
+                        ? "border-[var(--color-accent-red)] bg-[var(--color-accent-red)]/5 scale-[1.01]"
                         : status === "idle"
-                            ? "border-[var(--color-border-subtle)] hover:border-[var(--color-accent-indigo)] hover:bg-[var(--color-accent-indigo)]/5"
+                            ? "border-[var(--color-border-subtle)] hover:border-[var(--color-accent-red)] hover:bg-[var(--color-accent-red)]/5"
                             : "border-transparent"
                     }
                 `}
@@ -163,7 +163,7 @@ export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: 
                 {/* Idle state */}
                 {status === "idle" && (
                     <div className="p-8 text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-accent-indigo)] to-[var(--color-accent-purple)] mb-4">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-accent-red)] to-[var(--color-accent-terra)] mb-4">
                             <Camera className="w-8 h-8 text-white" />
                         </div>
                         <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-1">
@@ -197,7 +197,7 @@ export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: 
                         {/* Processing overlay */}
                         {status === "extracting" && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
-                                <Loader2 className="w-10 h-10 text-[var(--color-accent-indigo)] animate-spin mb-3" />
+                                <Loader2 className="w-10 h-10 text-[var(--color-accent-red)] animate-spin mb-3" />
                                 <p className="text-white font-semibold text-lg">Extracting listing data...</p>
                                 <p className="text-white/60 text-sm mt-1">Groq Vision is reading the screenshot...</p>
                             </div>
@@ -256,7 +256,7 @@ export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: 
                     value={manualUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     placeholder="https://www.facebook.com/marketplace/item/..."
-                    className="w-full px-3 py-2 rounded-xl text-sm bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent-indigo)] transition-colors"
+                    className="w-full px-3 py-2 rounded-xl text-sm bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]/50 focus:outline-none focus:border-[var(--color-accent-red)] transition-colors"
                 />
             </div>
         </div>

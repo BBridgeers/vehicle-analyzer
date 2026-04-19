@@ -1,6 +1,7 @@
 "use client";
 
-import { Car, History, Github } from "lucide-react";
+import Link from "next/link";
+import { History, ArrowLeft } from "lucide-react";
 
 interface HeaderProps {
     onToggleHistory: () => void;
@@ -9,49 +10,138 @@ interface HeaderProps {
 
 export default function Header({ onToggleHistory, showHistory }: HeaderProps) {
     return (
-        <header className="sticky top-0 z-40 border-b border-[var(--color-border-subtle)]" style={{ background: "rgba(10, 10, 15, 0.85)", backdropFilter: "blur(20px)" }}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    {/* Logo */}
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--color-accent-indigo)] to-[var(--color-accent-violet)] flex items-center justify-center">
-                            <Car className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <span className="text-base font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Outfit, sans-serif" }}>
-                                VehicleAnalyzer
-                            </span>
-                            <span className="text-[0.625rem] ml-1.5 px-1.5 py-0.5 rounded bg-[var(--color-accent-indigo)]/15 text-[var(--color-accent-indigo)] font-semibold uppercase tracking-wider">
-                                Pro
-                            </span>
-                        </div>
-                    </div>
+        <header style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 400,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 40px",
+            height: "64px",
+            background: "rgba(10,9,5,0.88)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderBottom: "1px solid rgba(255,245,235,0.07)",
+        }}>
+            {/* Left — logo + back link */}
+            <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+                {/* Logo mark */}
+                <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+                    <div style={{
+                        width: "34px", height: "34px",
+                        background: "#d94a2a",
+                        borderRadius: "4px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "12px", fontWeight: "800", letterSpacing: "0.5px",
+                        color: "#fff", flexShrink: 0,
+                    }}>VA</div>
+                    <span style={{
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        letterSpacing: "0.4px",
+                        color: "#f0ede6",
+                        fontFamily: "'Bricolage Grotesque', 'Space Grotesk', sans-serif",
+                    }}>
+                        Vehicle Analyzer
+                        <span style={{
+                            marginLeft: "6px",
+                            fontSize: "9px",
+                            fontWeight: "700",
+                            letterSpacing: "1.5px",
+                            textTransform: "uppercase",
+                            background: "rgba(217,74,42,0.18)",
+                            color: "#d94a2a",
+                            padding: "2px 6px",
+                            borderRadius: "3px",
+                            border: "1px solid rgba(217,74,42,0.25)",
+                        }}>Pro</span>
+                    </span>
+                </Link>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={onToggleHistory}
-                            className={`btn-secondary flex items-center gap-2 text-sm ${showHistory ? "border-[var(--color-accent-indigo)] text-[var(--color-accent-indigo)]" : ""
-                                }`}
-                            id="history-toggle"
-                        >
-                            <History className="w-4 h-4" />
-                            <span className="hidden sm:inline">History</span>
-                        </button>
-
-                        <a
-                            href="https://github.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn-secondary flex items-center gap-2 text-sm"
-                            id="github-link"
-                        >
-                            <Github className="w-4 h-4" />
-                            <span className="hidden sm:inline">GitHub</span>
-                        </a>
-                    </div>
+                {/* Chapter divider + page label */}
+                <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    paddingLeft: "24px",
+                    borderLeft: "1px solid rgba(255,245,235,0.1)",
+                }}>
+                    <span style={{
+                        fontSize: "10px",
+                        fontWeight: "700",
+                        letterSpacing: "2px",
+                        textTransform: "uppercase",
+                        color: "#4a4642",
+                    }}>Analysis Engine</span>
+                    <span style={{
+                        width: "6px", height: "6px",
+                        borderRadius: "50%",
+                        background: "#d94a2a",
+                        animation: "pulse-dot 2s ease-in-out infinite",
+                        flexShrink: 0,
+                    }} />
                 </div>
             </div>
+
+            {/* Right — actions */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <button
+                    onClick={onToggleHistory}
+                    id="history-toggle"
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "7px 16px",
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        letterSpacing: "1px",
+                        textTransform: "uppercase",
+                        color: showHistory ? "#d94a2a" : "#a0998e",
+                        background: showHistory ? "rgba(217,74,42,0.1)" : "transparent",
+                        border: `1px solid ${showHistory ? "rgba(217,74,42,0.35)" : "rgba(255,245,235,0.1)"}`,
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        fontFamily: "inherit",
+                    }}
+                >
+                    <History size={14} />
+                    <span className="hidden sm:inline">History</span>
+                </button>
+
+                <Link
+                    href="/"
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "7px 16px",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        letterSpacing: "1px",
+                        textTransform: "uppercase",
+                        color: "#f0ede6",
+                        background: "#d94a2a",
+                        borderRadius: "4px",
+                        textDecoration: "none",
+                        transition: "background 0.2s",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#c23e22")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "#d94a2a")}
+                >
+                    <ArrowLeft size={14} />
+                    <span className="hidden sm:inline">Back</span>
+                </Link>
+            </div>
+
+            <style>{`
+                @keyframes pulse-dot {
+                    0%,100% { opacity: 1; transform: scale(1); }
+                    50%     { opacity: 0.5; transform: scale(0.6); }
+                }
+            `}</style>
         </header>
     );
 }

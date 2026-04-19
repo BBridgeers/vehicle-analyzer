@@ -1,8 +1,19 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, getClientIp, CHAT_LIMIT } from '@/lib/rate-limit';
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+    // ── Rate Limiting ──
+    const ip = getClientIp(request);
+    const rl = rateLimit(`chat:${ip}`, CHAT_LIMIT.max, CHAT_LIMIT.windowMs);
+    if (!rl.allowed) {
+        return NextResponse.json(
+            { error: `Daily chat limit of ${CHAT_LIMIT.max} messages reached. Resets at midnight.` },
+            { status: 429 }
+        );
+    }
+
     try {
         const groqKey = process.env.GROQ_API_KEY;
         if (!groqKey) {

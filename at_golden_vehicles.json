@@ -1,0 +1,36 @@
+[
+  {
+    "url": "https://carsandbids.com/auctions/9A6JMdOw/2015-bmw-m4-convertible?utm_source=autotempest&utm_medium=referral&utm_campaign=at_search",
+    "year": 2015,
+    "make": "BMW",
+    "model": "M4",
+    "trim": "Convertible",
+    "price": 15000,
+    "mileage": 66000,
+    "titleStatus": "Clean",
+    "sellerType": "Private",
+    "lemonStatus": {
+      "isLemon": false,
+      "reason": null
+    },
+    "description": "This 2015 BMW M4 Convertible is finished in Black Sapphire Metallic over a Sakhir Orange interior. Power is provided by a twin-turbocharged 3.0-liter inline-6 paired with a 7-speed dual-clutch automatic transmission. Equipment includes the Executive and Lighting packages, 19-inch Style 437M wheels, an Adaptive M suspension, heated front seats, a Harman Kardon sound system, and a rearview camera. Modifications reported by the seller are limited to a carbon fiber wrap on the lower front bumper trim. The seller is representing this M4 on behalf of the third owner, who reportedly purchased it in November 2024.",
+    "conditionExterior": "Curb rash on wheels. Some wear on seats and interior trim."
+  },
+  {
+    "url": "https://www.hemmings.com/classifieds/listing/1975-honda-ct70-canton-tx-2917442?utm_source=autotempest&utm_medium=cpc&utm_campaign=autotempest_classifieds",
+    "year": null,
+    "make": null,
+    "model": null,
+    "trim": null,
+    "price": null,
+    "mileage": null,
+    "titleStatus": null,
+    "sellerType": null,
+    "lemonStatus": {
+      "isLemon": false,
+      "reason": null
+    },
+    "description": null,
+    "conditionExterior": null
+  }
+]

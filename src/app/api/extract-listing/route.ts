@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { rateLimit, getClientIp, EXTRACT_LIMIT } from '@/lib/rate-limit';
 
 const EXTRACTION_PROMPT = `You are a vehicle listing data extraction engine. Analyze this screenshot of a vehicle listing (likely from Facebook Marketplace or similar) and extract ALL visible information into structured JSON.
 
@@ -51,6 +52,24 @@ CRITICAL RULES:
 - Return ONLY the JSON object, no markdown, no code fences, no explanation`;
 
 export async function POST(request: Request) {
+    // ── Rate Limiting ──
+    const ip = getClientIp(request);
+    const rl = rateLimit(`extract:${ip}`, EXTRACT_LIMIT.max, EXTRACT_LIMIT.windowMs);
+    if (!rl.allowed) {
+        return NextResponse.json(
+            { error: `Rate limit exceeded. You can analyze ${EXTRACT_LIMIT.max} listings per hour. Resets at ${new Date(rl.resetAt).toLocaleTimeString()}.` },
+            {
+                status: 429,
+                headers: {
+                    'X-RateLimit-Limit': String(EXTRACT_LIMIT.max),
+                    'X-RateLimit-Remaining': '0',
+                    'X-RateLimit-Reset': String(Math.ceil(rl.resetAt / 1000)),
+                    'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+                }
+            }
+        );
+    }
+
     try {
         const body = await request.json();
         const { image, mimeType, manualUrl } = body;

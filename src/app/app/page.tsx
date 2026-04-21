@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Header from "@/components/Header";
 import VehicleForm from "@/components/VehicleForm";
 import AnalysisResults from "@/components/AnalysisResults";
@@ -52,7 +52,7 @@ export default function Home() {
         }
     }, []); // Run ONLY on mount
 
-    const handleAnalyze = async (v: Vehicle) => {
+    const handleAnalyze = useCallback(async (v: Vehicle) => {
         setIsAnalyzing(true);
         setAnalysis(null);
         setBatchResults([]);
@@ -93,7 +93,8 @@ export default function Home() {
         } finally {
             setIsAnalyzing(false);
         }
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleBulkImport = async (vehicles: Vehicle[]) => {
         if (vehicles.length === 0) return;

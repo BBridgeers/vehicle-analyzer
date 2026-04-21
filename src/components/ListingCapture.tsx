@@ -22,28 +22,7 @@ export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: 
     const [urlSaved, setUrlSaved] = useState(false);
     const dropRef = useRef<HTMLDivElement>(null);
 
-    // Global paste handler
-    useEffect(() => {
-        const handlePaste = (e: ClipboardEvent) => {
-            if (isLoading || status === "extracting") return;
-
-            const items = e.clipboardData?.items;
-            if (!items) return;
-
-            for (const item of Array.from(items)) {
-                if (item.type.startsWith("image/")) {
-                    e.preventDefault();
-                    const file = item.getAsFile();
-                    if (file) processImage(file);
-                    return;
-                }
-            }
-        };
-
-        document.addEventListener("paste", handlePaste);
-        return () => document.removeEventListener("paste", handlePaste);
-    }, [isLoading, status]);
-
+    // processImage must be declared before the paste useEffect that references it
     const processImage = useCallback(async (file: File) => {
         // Clear URL from any previous listing — each screenshot is a fresh vehicle
         setManualUrl("");
@@ -95,6 +74,28 @@ export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: 
             setStatus("error");
         }
     }, [onExtracted, manualUrl]);
+
+    // Global paste handler — must come AFTER processImage so it's in-scope for the dep array
+    useEffect(() => {
+        const handlePaste = (e: ClipboardEvent) => {
+            if (isLoading || status === "extracting") return;
+
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (const item of Array.from(items)) {
+                if (item.type.startsWith("image/")) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) processImage(file);
+                    return;
+                }
+            }
+        };
+
+        document.addEventListener("paste", handlePaste);
+        return () => document.removeEventListener("paste", handlePaste);
+    }, [isLoading, status, processImage]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();

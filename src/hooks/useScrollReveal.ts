@@ -1,34 +1,65 @@
 import { useEffect, useRef } from "react";
 
+const REVEAL_SELECTOR = ".reveal, .reveal-stagger, .reveal-left, .reveal-scale";
+
 /**
  * useScrollReveal
- * Attaches an IntersectionObserver to the container ref.
- * When the element enters the viewport, adds the "revealed" class.
- * Works with .reveal, .reveal-stagger, .reveal-left, .reveal-scale CSS classes.
+ * Attaches an IntersectionObserver + MutationObserver to the container ref.
+ * The MutationObserver watches for newly-added .reveal elements (e.g. analysis
+ * results that render after async state updates) and immediately starts
+ * observing them — fixing the "results invisible forever" bug where elements
+ * added after mount never received the "revealed" class.
  */
 export function useScrollReveal(threshold = 0.12) {
     const containerRef = useRef<HTMLElement | null>(null);
 
     useEffect(() => {
-        const els = containerRef.current?.querySelectorAll<HTMLElement>(
-            ".reveal, .reveal-stagger, .reveal-left, .reveal-scale"
-        );
-        if (!els || els.length === 0) return;
+        const container = containerRef.current;
+        if (!container) return;
 
-        const observer = new IntersectionObserver(
+        // ── Intersection Observer ──────────────────────────────────────────
+        const io = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add("revealed");
-                        observer.unobserve(entry.target); // Only animate once
+                        io.unobserve(entry.target);
                     }
                 });
             },
             { threshold, rootMargin: "0px 0px -40px 0px" }
         );
 
-        els.forEach((el) => observer.observe(el));
-        return () => observer.disconnect();
+        const observe = (el: Element) => {
+            // Skip elements that are already revealed
+            if (!el.classList.contains("revealed")) {
+                io.observe(el as HTMLElement);
+            }
+        };
+
+        // Observe everything already in the DOM at mount time
+        container.querySelectorAll<HTMLElement>(REVEAL_SELECTOR).forEach(observe);
+
+        // ── Mutation Observer — catch elements added after mount ───────────
+        const mo = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType !== Node.ELEMENT_NODE) return;
+                    const el = node as Element;
+                    // The added node itself might be a .reveal element
+                    if (el.matches(REVEAL_SELECTOR)) observe(el);
+                    // Or it might contain .reveal descendants
+                    el.querySelectorAll<HTMLElement>(REVEAL_SELECTOR).forEach(observe);
+                });
+            });
+        });
+
+        mo.observe(container, { childList: true, subtree: true });
+
+        return () => {
+            io.disconnect();
+            mo.disconnect();
+        };
     }, [threshold]);
 
     return containerRef;

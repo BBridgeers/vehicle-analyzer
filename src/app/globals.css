@@ -598,3 +598,652 @@ input[type="radio"], input[type="file"], .cursor-pointer {
     100% { transform: scale(1); opacity: 0; }
 }
 .status-ping { animation: status-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+/* =====================================================
+   RADIANT AMERICANA — V.E.R.A. 3-COLUMN SHELL SYSTEM
+   Palette: White / Navy / Red / Sky Blue / Green / Gold
+   ===================================================== */
+
+/* ── Root tokens ─────────────────────────────────────── */
+:root {
+    --ra-white:   #FFFFFF;
+    --ra-navy:    #27358F;
+    --ra-red:     #EB1C22;
+    --ra-blue:    #00ADEF;
+    --ra-green:   #099969;
+    --ra-gold:    #E4B600;
+    --ra-navy-10: rgba(39, 53, 143, 0.10);
+    --ra-navy-06: rgba(39, 53, 143, 0.06);
+    --ra-navy-03: rgba(39, 53, 143, 0.03);
+    --ra-border:  rgba(39, 53, 143, 0.12);
+    --ra-border-strong: rgba(39, 53, 143, 0.25);
+    --ra-text-muted: #8898B0;
+    --ra-sidebar-w: 248px;
+    --ra-results-w: 336px;
+    --ra-header-h: 52px;
+}
+
+/* ── Root reset for VERA shell ──────────────────────── */
+.vera-shell {
+    display: grid;
+    grid-template-columns: var(--ra-sidebar-w) 1fr var(--ra-results-w);
+    grid-template-rows: 1fr;
+    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--ra-white);
+    font-family: "Bricolage Grotesque", "Space Grotesk", sans-serif;
+    color: var(--ra-navy);
+    position: relative;
+}
+
+/* Full-report row spans all columns below the 3-col layout */
+.vera-full-report {
+    grid-column: 2 / 3;
+    grid-row: 2;
+    overflow-y: auto;
+    background: var(--ra-white);
+    border-top: 1px solid var(--ra-border);
+}
+.vera-full-report__inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+}
+
+/* ── LEFT SIDEBAR ───────────────────────────────────── */
+.vera-sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #F7F8FC;
+    border-right: 1px solid var(--ra-border);
+    overflow: hidden;
+    transition: width 0.25s ease;
+    position: relative;
+    z-index: 10;
+}
+.vera-sidebar--collapsed {
+    width: 56px;
+}
+
+.vera-sidebar__logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 14px 14px 16px;
+    border-bottom: 1px solid var(--ra-border);
+    min-height: var(--ra-header-h);
+    position: relative;
+}
+.vera-logo-mark {
+    width: 32px;
+    height: 32px;
+    background: var(--ra-navy);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.vera-logo-mark span {
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: "0.5px";
+}
+.vera-logo-text {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--ra-navy);
+    letter-spacing: "-0.3px";
+    white-space: nowrap;
+}
+.vera-sidebar__collapse-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ra-text-muted);
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+.vera-sidebar__collapse-btn:hover { color: var(--ra-navy); }
+
+/* Nav */
+.vera-sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 10px 8px;
+    border-bottom: 1px solid var(--ra-border);
+}
+.vera-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ra-text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.vera-nav-item:hover {
+    background: var(--ra-navy-06);
+    color: var(--ra-navy);
+}
+.vera-nav-item--active {
+    background: var(--ra-navy-10);
+    color: var(--ra-red);
+}
+
+/* History section */
+.vera-sidebar__history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px;
+    min-height: 0;
+}
+.vera-sidebar__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 6px 8px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: "2px";
+    text-transform: uppercase;
+    color: var(--ra-text-muted);
+}
+
+/* User */
+.vera-sidebar__user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--ra-border);
+}
+.vera-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--ra-navy);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.vera-user-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ra-navy);
+    margin: 0;
+}
+.vera-user-role {
+    font-size: 10px;
+    color: var(--ra-text-muted);
+    margin: 1px 0 0;
+}
+
+/* ── CENTER WORKSHEET ───────────────────────────────── */
+.vera-worksheet {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--ra-white);
+    border-right: 1px solid var(--ra-border);
+}
+
+.vera-worksheet__topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: var(--ra-header-h);
+    border-bottom: 2px solid var(--ra-border);
+    background: var(--ra-white);
+    flex-shrink: 0;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.vera-worksheet__title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--ra-navy);
+    margin: 0;
+    letter-spacing: "-0.4px";
+    white-space: nowrap;
+}
+.vera-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Mode toggle */
+.vera-mode-toggle {
+    display: flex;
+    align-items: center;
+    background: var(--ra-navy-06);
+    border: 1px solid var(--ra-border);
+    border-radius: 6px;
+    padding: 3px;
+    gap: 2px;
+}
+.vera-mode-btn {
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: "0.5px";
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    background: transparent;
+    color: var(--ra-text-muted);
+}
+.vera-mode-btn--active {
+    background: var(--ra-red);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(235, 28, 34, 0.25);
+}
+.vera-mode-btn--active-blue {
+    background: var(--ra-blue);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 173, 239, 0.25);
+}
+
+.vera-btn-clear {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ra-text-muted);
+    background: transparent;
+    border: 1px solid var(--ra-border);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.vera-btn-clear:hover { color: var(--ra-navy); border-color: var(--ra-border-strong); }
+
+.vera-btn-run {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: "0.5px";
+    text-transform: uppercase;
+    background: var(--ra-red);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    white-space: nowrap;
+    box-shadow: 0 2px 12px rgba(235, 28, 34, 0.28);
+}
+.vera-btn-run:hover { background: #cc1219; box-shadow: 0 4px 16px rgba(235, 28, 34, 0.38); }
+.vera-btn-run:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Worksheet body */
+.vera-worksheet__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Cards */
+.vera-card {
+    background: var(--ra-white);
+    border: 1px solid var(--ra-border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(39, 53, 143, 0.04);
+}
+.vera-card__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--ra-border);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ra-navy);
+    background: var(--ra-navy-03);
+}
+
+/* Import tabs */
+.vera-import-tabs {
+    display: flex;
+    gap: 0;
+    padding: 12px 20px 0;
+    border-bottom: 1px solid var(--ra-border);
+}
+.vera-import-tab {
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ra-text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+}
+.vera-import-tab:hover { color: var(--ra-navy); }
+.vera-import-tab--active {
+    color: var(--ra-red);
+    border-bottom-color: var(--ra-red);
+    font-weight: 700;
+}
+
+/* Loading shimmer */
+.vera-shimmer {
+    background: linear-gradient(90deg, var(--ra-navy-06) 25%, var(--ra-navy-10) 50%, var(--ra-navy-06) 75%);
+    background-size: 200% 100%;
+    animation: ra-shimmer 1.5s linear infinite;
+    border-radius: 4px;
+}
+@keyframes ra-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Spinner */
+.vera-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid var(--ra-navy-10);
+    border-top-color: var(--ra-navy);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+/* ── RIGHT PANEL ────────────────────────────────────── */
+.vera-results-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: #F7F8FC;
+    min-width: 0;
+}
+.vera-results-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: var(--ra-header-h);
+    border-bottom: 1px solid var(--ra-border);
+    flex-shrink: 0;
+}
+.vera-status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.vera-status-dot--active {
+    background: var(--ra-green);
+    box-shadow: 0 0 0 3px rgba(9, 153, 105, 0.2);
+    animation: vera-pulse 1.8s ease-in-out infinite;
+}
+.vera-status-dot--idle {
+    background: #C0C8D8;
+}
+.vera-status-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: "1px";
+    text-transform: uppercase;
+    color: var(--ra-navy);
+}
+
+.vera-results-panel__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 8px;
+    min-height: 0;
+}
+
+/* Empty state */
+.vera-results-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 48px 24px;
+    text-align: center;
+}
+.vera-results-empty__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--ra-navy-06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Result sections */
+.vera-result-section {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--ra-border);
+}
+.vera-result-section:last-child { border-bottom: none; }
+.vera-result-section__label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: "2px";
+    text-transform: uppercase;
+    color: var(--ra-text-muted);
+    margin-bottom: 10px;
+}
+
+/* Market value display */
+.vera-market-price {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--ra-navy);
+    letter-spacing: "-1px";
+    line-height: 1;
+}
+.vera-verdict-pill {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: "0.5px";
+}
+.vera-price-range {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--ra-text-muted);
+    margin-bottom: 6px;
+}
+.vera-price-bar { margin-top: 4px; }
+.vera-price-bar__track {
+    height: 5px;
+    background: linear-gradient(to right, var(--ra-green), var(--ra-gold), var(--ra-red));
+    border-radius: 3px;
+    position: relative;
+    overflow: visible;
+}
+.vera-price-bar__fill {
+    position: absolute;
+    top: -3px;
+    width: 10px;
+    height: 10px;
+    background: var(--ra-navy);
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    transform: translateX(-50%);
+    transition: left 0.4s ease;
+}
+
+/* Score ring */
+.vera-score-ring {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid currentColor;
+    flex-shrink: 0;
+}
+.vera-score-ring span { font-size: 18px; font-weight: 900; line-height: 1; }
+.vera-score-ring small { font-size: 8px; font-weight: 600; opacity: 0.7; }
+.vera-score-ring--good { color: var(--ra-green); }
+.vera-score-ring--fair { color: var(--ra-gold); }
+.vera-score-ring--bad  { color: var(--ra-red); }
+
+/* Metric chips */
+.vera-metric-chip {
+    background: var(--ra-white);
+    border: 1px solid var(--ra-border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.vera-metric-chip__label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: "1px";
+    color: var(--ra-text-muted);
+}
+.vera-metric-chip__value {
+    font-size: 13px;
+    font-weight: 800;
+}
+
+/* Red flags */
+.vera-red-flag {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+}
+.vera-red-flag__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ra-red);
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+/* Report buttons */
+.vera-btn-full-report {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--ra-navy);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+.vera-btn-full-report:hover { background: #1d2b7a; }
+.vera-btn-export {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 9px 16px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ra-navy);
+    background: transparent;
+    border: 1px solid var(--ra-border-strong);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    justify-content: center;
+}
+.vera-btn-export:hover { background: var(--ra-navy-06); }
+
+/* VERA Chat anchor at bottom of right panel */
+.vera-chat-anchor {
+    flex-shrink: 0;
+    border-top: 1px solid var(--ra-border);
+}
+
+/* ── Global scrollbar override for VERA shell ────────── */
+.vera-shell *::-webkit-scrollbar { width: 4px; }
+.vera-shell *::-webkit-scrollbar-track { background: transparent; }
+.vera-shell *::-webkit-scrollbar-thumb { background: var(--ra-border); border-radius: 4px; }
+.vera-shell *::-webkit-scrollbar-thumb:hover { background: var(--ra-border-strong); }
+
+/* ── Responsive: collapse sidebar on small screens ────── */
+@media (max-width: 1024px) {
+    .vera-shell {
+        grid-template-columns: 56px 1fr var(--ra-results-w);
+    }
+    .vera-sidebar { width: 56px; }
+    .vera-logo-text,
+    .vera-sidebar__history,
+    .vera-sidebar__user,
+    .vera-nav-item span { display: none; }
+    .vera-nav-item { justify-content: center; padding: 10px; }
+}
+@media (max-width: 768px) {
+    .vera-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        height: auto;
+        overflow: auto;
+    }
+    .vera-sidebar { width: 100%; height: auto; flex-direction: row; }
+    .vera-results-panel { height: auto; min-height: 400px; }
+    .vera-worksheet { height: auto; }
+    .vera-full-report { grid-column: 1; }
+}

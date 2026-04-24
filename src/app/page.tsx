@@ -782,6 +782,7 @@ const App = () => {
   const [chatMessages, setChatMessages] = useState(defaultMessages);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     const style = document.createElement('style');

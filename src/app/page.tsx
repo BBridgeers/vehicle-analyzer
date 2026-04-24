@@ -541,24 +541,7 @@ const MainContent = ({ form, setForm, activeMode, setActiveMode, onClearForm, on
           Clear Form
         </button>
         <button
-            onClick={async () => {
-              setIsAnalyzing(true);
-              // Use VIN endpoint if VIN exists, otherwise use extract-listing for screenshot analysis
-              if (form.vin && form.vin.length === 17) {
-                await fetch('/api/vin', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ vin: form.vin }),
-                });
-              } else if (form.listingUrl) {
-                await fetch('/api/extract-listing', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ url: form.listingUrl }),
-                });
-              }
-              setIsAnalyzing(false);
-            }}
+            onClick={onRunAnalysis}
             className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
             style={{ boxShadow: '0 0 15px rgba(8,145,178,0.3)' }}
           >

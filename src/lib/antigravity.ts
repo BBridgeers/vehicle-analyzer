@@ -217,6 +217,19 @@ export class AntigravityEngine {
         return this.data;
     }
 
+    async processVisionInput(dataUrl: string) {
+        // For now, return empty results - full vision processing requires API key configuration
+        // This is a placeholder until VERA Groq API is configured
+        return {
+            vin: null,
+            year: null,
+            make: null,
+            model: null,
+            price: null,
+            mileage: null,
+        };
+    }
+
     static async getComparison(vins: string[]) {
         if (!redis) return [];
         const reports = await Promise.all(vins.map(vin => redis!.get(vin.toUpperCase())));

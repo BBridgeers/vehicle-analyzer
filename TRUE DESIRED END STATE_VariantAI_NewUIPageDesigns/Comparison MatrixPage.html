@@ -1,0 +1,584 @@
+<html lang="en" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">V.E.R.A. | MAUA Comparison Matrix</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17" vid="5"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet" vid="6">
+    <style vid="7">
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0905;
+            color: #d1d5db;
+        }
+        .font-mono { font-family: 'JetBrains+Mono', monospace; }
+        
+        .glass-card {
+            background: linear-gradient(145deg, rgba(20,19,17,1) 0%, rgba(10,9,5,1) 100%);
+            border: 1px solid #262420;
+        }
+
+        .winner-glow {
+            border: 1px solid #10b981;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.05);
+            position: relative;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+        .metric-label-col {
+            width: 280px;
+            flex-shrink: 0;
+            border-right: 1px solid #262420;
+        }
+
+        .vehicle-col {
+            flex: 1;
+            border-right: 1px solid #262420;
+        }
+
+        .vehicle-col:last-child {
+            border-right: none;
+        }
+
+        .cliff-marker {
+            position: absolute;
+            top: -4px;
+            bottom: -4px;
+            width: 2px;
+            background: #ef4444;
+        }
+
+        .cliff-label {
+            position: absolute;
+            top: -18px;
+            font-size: 8px;
+            font-weight: 900;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0905; }
+        ::-webkit-scrollbar-thumb { background: #262420; border-radius: 10px; }
+        
+        .tier-badge {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body class="w-full h-full min-h-screen flex flex-col overflow-x-hidden" vid="8">
+
+    
+    <header class="h-20 bg-[#0d0c0a] border-b border-[#262420] flex items-center justify-between px-8 shrink-0 z-50" vid="9">
+        <div class="flex items-center gap-10" vid="10">
+            <div class="flex items-center gap-3" vid="11">
+                <div class="w-10 h-10 bg-cyan-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-900/30" vid="12">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="13">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" vid="14"></path>
+                    </svg>
+                </div>
+                <span class="font-black text-2xl tracking-tighter text-white uppercase" vid="15">V.E.R.A.</span>
+            </div>
+            
+            <nav class="flex items-center gap-2" vid="16">
+                <a href="#" class="px-5 py-2 text-gray-400 hover:text-white text-sm font-semibold transition-all flex items-center gap-2" vid="17">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" vid="19"></path></svg>
+                    New Evaluation
+                </a>
+                <a href="#" class="px-5 py-2 text-gray-400 hover:text-white text-sm font-semibold transition-all flex items-center gap-2" vid="20">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="21"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" vid="22"></path></svg>
+                    Fleet Dashboard
+                </a>
+                <a href="#" class="px-5 py-2 bg-cyan-900/20 text-cyan-400 border border-cyan-800/30 rounded-lg text-sm font-black flex items-center gap-2" vid="23">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" vid="25"></path></svg>
+                    Comparison Matrix
+                </a>
+                <a href="#" class="px-5 py-2 text-gray-400 hover:text-white text-sm font-semibold transition-all flex items-center gap-2" vid="26">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="27"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" vid="28"></path></svg>
+                    Market Analytics
+                </a>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-6" vid="29">
+            <div class="flex items-center gap-3 pr-6 border-r border-[#262420]" vid="30">
+                <div class="text-right" vid="31">
+                    <div class="text-sm font-bold text-white" vid="32">Julian Smith</div>
+                    <div class="text-[10px] text-gray-500 uppercase font-black tracking-widest" vid="33">Fleet Director</div>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-cyan-900/40 border border-cyan-700/50 flex items-center justify-center font-black text-cyan-100 text-xs" vid="34">JS</div>
+            </div>
+            <button class="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-white transition-colors" vid="35">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="36"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" vid="37"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" vid="38"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    
+    <div class="h-16 bg-[#0a0905]/80 backdrop-blur-xl border-b border-[#262420] flex items-center justify-between px-8 sticky top-0 z-40 shrink-0" vid="39">
+        <div class="flex items-center gap-8" vid="40">
+            <div class="flex items-center gap-2" vid="41">
+                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest mr-2" vid="42">Engine Mode:</span>
+                <div class="flex bg-[#141311] p-1 rounded-lg border border-[#262420]" vid="43">
+                    <button class="px-4 py-1.5 text-[10px] font-black text-gray-400 uppercase tracking-tight hover:text-white" vid="44">2-Up</button>
+                    <button class="px-4 py-1.5 bg-cyan-950/40 text-cyan-400 border border-cyan-800/30 rounded-md text-[10px] font-black uppercase tracking-tight" vid="45">3-Up Triad</button>
+                    <button class="px-4 py-1.5 text-[10px] font-black text-gray-400 uppercase tracking-tight hover:text-white" vid="46">4+ Matrix</button>
+                </div>
+            </div>
+            <div class="h-6 w-px bg-[#262420]" vid="47"></div>
+            <div class="flex items-center gap-3" vid="48">
+                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest" vid="49">Active Assets:</span>
+                <div class="flex items-center gap-2" vid="50">
+                    <div class="px-2.5 py-1 bg-emerald-900/20 border border-emerald-900/40 rounded flex items-center gap-1.5" vid="51">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500" vid="52"></span>
+                        <span class="text-[10px] font-bold text-white uppercase tracking-tight" vid="53">Civic</span>
+                    </div>
+                    <div class="px-2.5 py-1 bg-cyan-900/20 border border-cyan-900/40 rounded flex items-center gap-1.5" vid="54">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500" vid="55"></span>
+                        <span class="text-[10px] font-bold text-white uppercase tracking-tight" vid="56">RAV4</span>
+                    </div>
+                    <div class="px-2.5 py-1 bg-cyan-900/20 border border-cyan-900/40 rounded flex items-center gap-1.5" vid="57">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500" vid="58"></span>
+                        <span class="text-[10px] font-bold text-white uppercase tracking-tight" vid="59">CX-9</span>
+                    </div>
+                    <button class="w-6 h-6 rounded border border-dashed border-[#262420] flex items-center justify-center text-gray-500 hover:text-white hover:border-gray-500 transition-all text-sm" vid="60">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4" vid="61">
+            <button class="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-cyan-900/20" vid="62">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="63"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" vid="64"></path></svg>
+                Add Vehicle
+            </button>
+            <button class="bg-[#141311] border border-[#262420] text-gray-400 hover:text-white hover:border-gray-600 px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all" vid="65">
+                Export Matrix
+            </button>
+        </div>
+    </div>
+
+    
+    <main class="flex-1 p-10 space-y-10" vid="66">
+        
+        <div class="flex items-baseline gap-4 mb-4" vid="67">
+            <h1 class="text-4xl font-black text-white tracking-tight" vid="68">Multi-Attribute Utility Analysis</h1>
+            <span class="text-xs font-black text-gray-500 uppercase tracking-[0.4em]" vid="69">Comparison Engine V.2.1</span>
+        </div>
+
+        <section class="glass-card rounded-[2.5rem] overflow-hidden flex shadow-2xl" vid="70">
+            
+            
+            <div class="metric-label-col bg-[#0d0c0a]" vid="71">
+                <div class="h-44 border-b border-[#262420] p-8 flex flex-col justify-end" vid="72">
+                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest" vid="73">Selection ID / Metadata</span>
+                </div>
+                <div class="p-8 space-y-0" vid="74">
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="75">
+                        <span class="text-xs font-black text-gray-400 uppercase tracking-[0.15em]" vid="76">I-Score Performance</span>
+                    </div>
+                    <div class="h-28 flex items-center border-b border-[#262420]/50" vid="77">
+                        <span class="text-xs font-black text-gray-400 uppercase tracking-[0.15em]" vid="78">Rideshare Tier</span>
+                    </div>
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="79">
+                        <span class="text-xs font-black text-gray-400 uppercase tracking-[0.15em]" vid="80">Pricing Dynamics</span>
+                    </div>
+                    <div class="h-28 flex items-center border-b border-[#262420]/50" vid="81">
+                        <span class="text-xs font-black text-gray-400 uppercase tracking-[0.15em]" vid="82">Instant Equity (LTV)</span>
+                    </div>
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="83">
+                        <span class="text-xs font-black text-gray-400 uppercase tracking-[0.15em]" vid="84">Insurance Estimates</span>
+                    </div>
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="85">
+                        <span class="text-xs font-black text-gray-400 uppercase tracking-[0.15em]" vid="86">Life Projection</span>
+                    </div>
+                    <div class="h-28 flex items-center" vid="87">
+                        <span class="text-xs font-black text-gray-400 uppercase tracking-[0.15em]" vid="88">Pre-Flight Repair Cost</span>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="vehicle-col winner-glow bg-emerald-950/5 relative" vid="89">
+                <div class="h-44 border-b border-emerald-900/30 p-8 flex flex-col justify-end" vid="90">
+                    <div class="absolute top-6 left-8 flex items-center gap-2" vid="91">
+                        <span class="bg-emerald-500 text-[#0a0905] px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest" vid="92">Primary Winner</span>
+                        <svg class="w-5 h-5 text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" fill="currentColor" viewBox="0 0 24 24" vid="93">
+                            <path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5ZM19 19C19 19.5523 18.5523 20 18 20H6C5.44772 20 5 19.5523 5 19V18H19V19Z" vid="94"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-black text-white leading-none" vid="95">2019 Honda Civic Sport</h2>
+                    <span class="font-mono text-[10px] text-emerald-500 mt-2" vid="96">ID: VA-9023-CS // COMPACT</span>
+                </div>
+                
+                <div class="p-8 space-y-0" vid="97">
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="98">
+                        <div class="flex items-center gap-6" vid="99">
+                            <div class="gauge-container flex items-center justify-center" vid="100">
+                                <svg class="w-24 h-24 transform -rotate-90" vid="101">
+                                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-900" vid="102"></circle>
+                                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="32.6" class="text-emerald-500" vid="103"></circle>
+                                </svg>
+                                <span class="absolute text-2xl font-black text-white" vid="104">87</span>
+                            </div>
+                            <div class="text-left" vid="105">
+                                <div class="text-emerald-500 font-black text-sm uppercase tracking-tighter" vid="106">+18.4%</div>
+                                <div class="text-[9px] text-gray-500 font-bold uppercase" vid="107">vs. Market Average</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-28 flex items-center border-b border-[#262420]/50" vid="108">
+                        <div class="flex flex-col gap-2" vid="109">
+                            <div class="flex items-center gap-2" vid="110">
+                                <span class="tier-badge bg-gray-800 text-gray-100 border border-gray-700" vid="111">Uber X</span>
+                                <span class="text-xs font-black text-cyan-400" vid="112">1.0x</span>
+                            </div>
+                            <span class="text-[9px] text-gray-500 font-medium" vid="113">Standard liability entry point. No premium surcharge.</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="114">
+                        <div class="grid grid-cols-2 gap-4 w-full" vid="115">
+                            <div vid="116">
+                                <div class="text-[9px] text-gray-500 font-black uppercase mb-1" vid="117">Asking Price</div>
+                                <div class="text-lg font-bold text-gray-400 line-through decoration-red-500/50 decoration-2" vid="118">$18,500</div>
+                            </div>
+                            <div vid="119">
+                                <div class="text-[9px] text-emerald-400 font-black uppercase mb-1" vid="120">Est. Negotiated</div>
+                                <div class="text-xl font-black text-white" vid="121">$16,200</div>
+                                <div class="text-[10px] font-black text-emerald-500 uppercase tracking-tighter" vid="122">-$2,300 (12%)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-28 flex items-center border-b border-[#262420]/50" vid="123">
+                        <div class="flex items-baseline gap-2" vid="124">
+                            <span class="text-3xl font-black text-emerald-500" vid="125">+$2,950</span>
+                            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest" vid="126">Equity Surplus</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="127">
+                        <div class="w-full space-y-2" vid="128">
+                            <div class="flex justify-between items-center bg-[#141311] px-4 py-2 rounded-lg border border-[#262420]" vid="129">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase" vid="130">Liability Only</span>
+                                <span class="text-xs font-black text-white" vid="131">$142/mo</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-cyan-950/20 px-4 py-2 rounded-lg border border-cyan-800/30" vid="132">
+                                <span class="text-[10px] font-bold text-cyan-400 uppercase" vid="133">+ Rideshare Ext.</span>
+                                <span class="text-xs font-black text-cyan-400" vid="134">$38/mo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="135">
+                        <div class="w-full" vid="136">
+                            <div class="flex justify-between mb-2" vid="137">
+                                <span class="text-[10px] font-black text-gray-400 uppercase" vid="138">42,000 MILES</span>
+                                <span class="text-[10px] font-black text-emerald-500 uppercase" vid="139">HIGH RUNWAY</span>
+                            </div>
+                            <div class="relative w-full h-2 bg-gray-900 rounded-full overflow-visible" vid="140">
+                                <div class="absolute left-0 top-0 h-full bg-emerald-500 w-[33%] rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" vid="141"></div>
+                                
+                                <div class="cliff-marker left-[80%]" vid="142"><span class="cliff-label text-yellow-500" vid="143">100K</span></div>
+                                <div class="cliff-marker left-[95%]" vid="144"><span class="cliff-label text-red-500" vid="145">125K</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-28 flex items-center" vid="146">
+                        <div class="flex items-center gap-3" vid="147">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500" vid="148"></div>
+                            <span class="text-xl font-black text-white" vid="149">$240</span>
+                            <span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest" vid="150">(Filters/Fluid Only)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="vehicle-col bg-transparent" vid="151">
+                <div class="h-44 border-b border-[#262420] p-8 flex flex-col justify-end" vid="152">
+                    <h2 class="text-2xl font-black text-white leading-none" vid="153">2019 Toyota RAV4 Hybrid</h2>
+                    <span class="font-mono text-[10px] text-gray-500 mt-2" vid="154">ID: VA-1108-TR // SUV</span>
+                </div>
+                
+                <div class="p-8 space-y-0" vid="155">
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="156">
+                        <div class="flex items-center gap-6" vid="157">
+                            <div class="gauge-container flex items-center justify-center" vid="158">
+                                <svg class="w-24 h-24 transform -rotate-90" vid="159">
+                                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-900" vid="160"></circle>
+                                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="65.3" class="text-gray-600" vid="161"></circle>
+                                </svg>
+                                <span class="absolute text-2xl font-black text-gray-400" vid="162">74</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-28 flex items-center border-b border-[#262420]/50" vid="163">
+                        <div class="flex flex-col gap-2" vid="164">
+                            <div class="flex items-center gap-2" vid="165">
+                                <span class="tier-badge bg-cyan-900/40 text-cyan-400 border border-cyan-800/50" vid="166">Comfort</span>
+                                <span class="text-xs font-black text-cyan-400" vid="167">1.2x</span>
+                            </div>
+                            <span class="text-[9px] text-gray-500 font-medium" vid="168">Premium tier eligibility. Higher earnings per mile.</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="169">
+                        <div class="grid grid-cols-2 gap-4 w-full" vid="170">
+                            <div vid="171">
+                                <div class="text-[9px] text-gray-500 font-black uppercase mb-1" vid="172">Asking Price</div>
+                                <div class="text-lg font-bold text-gray-400 line-through decoration-red-500/50 decoration-2" vid="173">$24,200</div>
+                            </div>
+                            <div vid="174">
+                                <div class="text-[9px] text-emerald-400 font-black uppercase mb-1" vid="175">Est. Negotiated</div>
+                                <div class="text-xl font-black text-white" vid="176">$22,800</div>
+                                <div class="text-[10px] font-black text-emerald-500 uppercase tracking-tighter" vid="177">-$1,400 (6%)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-28 flex items-center border-b border-[#262420]/50" vid="178">
+                        <div class="flex items-baseline gap-2" vid="179">
+                            <span class="text-3xl font-black text-emerald-500" vid="180">+$1,450</span>
+                            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest" vid="181">Equity Surplus</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="182">
+                        <div class="w-full space-y-2" vid="183">
+                            <div class="flex justify-between items-center bg-[#141311] px-4 py-2 rounded-lg border border-[#262420]" vid="184">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase" vid="185">Liability Only</span>
+                                <span class="text-xs font-black text-white" vid="186">$168/mo</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-[#141311] px-4 py-2 rounded-lg border border-[#262420]" vid="187">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase" vid="188">+ Rideshare Ext.</span>
+                                <span class="text-xs font-black text-white" vid="189">$45/mo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="190">
+                        <div class="w-full" vid="191">
+                            <div class="flex justify-between mb-2" vid="192">
+                                <span class="text-[10px] font-black text-gray-400 uppercase" vid="193">102,400 MILES</span>
+                                <span class="text-[10px] font-black text-yellow-500 uppercase" vid="194">WARNING ZONE</span>
+                            </div>
+                            <div class="relative w-full h-2 bg-gray-900 rounded-full" vid="195">
+                                <div class="absolute left-0 top-0 h-full bg-yellow-500 w-[82%] rounded-full shadow-[0_0_10px_rgba(234,179,8,0.4)]" vid="196"></div>
+                                <div class="cliff-marker left-[80%]" vid="197"></div>
+                                <div class="cliff-marker left-[95%]" vid="198"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-28 flex items-center" vid="199">
+                        <div class="flex items-center gap-3" vid="200">
+                            <div class="w-2 h-2 rounded-full bg-yellow-500" vid="201"></div>
+                            <span class="text-xl font-black text-white" vid="202">$850</span>
+                            <span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest" vid="203">(Tires/Brake Service)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="vehicle-col bg-transparent" vid="204">
+                <div class="h-44 border-b border-[#262420] p-8 flex flex-col justify-end" vid="205">
+                    <h2 class="text-2xl font-black text-white leading-none" vid="206">2018 Mazda CX-9 XL</h2>
+                    <span class="font-mono text-[10px] text-gray-500 mt-2" vid="207">ID: VA-4421-MC // L-SUV</span>
+                </div>
+                
+                <div class="p-8 space-y-0" vid="208">
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="209">
+                        <div class="flex items-center gap-6" vid="210">
+                            <div class="gauge-container flex items-center justify-center" vid="211">
+                                <svg class="w-24 h-24 transform -rotate-90" vid="212">
+                                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-900" vid="213"></circle>
+                                    <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="80.4" class="text-gray-800" vid="214"></circle>
+                                </svg>
+                                <span class="absolute text-2xl font-black text-gray-500" vid="215">68</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-28 flex items-center border-b border-[#262420]/50" vid="216">
+                        <div class="flex flex-col gap-2" vid="217">
+                            <div class="flex items-center gap-2" vid="218">
+                                <span class="tier-badge bg-emerald-900/40 text-emerald-400 border border-emerald-800/50" vid="219">Uber XL</span>
+                                <span class="text-xs font-black text-emerald-400" vid="220">1.5x</span>
+                            </div>
+                            <span class="text-[9px] text-gray-500 font-medium" vid="221">Large capacity tier. Maximum earning potential.</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="222">
+                        <div class="grid grid-cols-2 gap-4 w-full" vid="223">
+                            <div vid="224">
+                                <div class="text-[9px] text-gray-500 font-black uppercase mb-1" vid="225">Asking Price</div>
+                                <div class="text-lg font-bold text-gray-400 line-through decoration-red-500/50 decoration-2" vid="226">$21,800</div>
+                            </div>
+                            <div vid="227">
+                                <div class="text-[9px] text-emerald-400 font-black uppercase mb-1" vid="228">Est. Negotiated</div>
+                                <div class="text-xl font-black text-white" vid="229">$21,100</div>
+                                <div class="text-[10px] font-black text-red-400 uppercase tracking-tighter" vid="230">-$700 (3%)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-28 flex items-center border-b border-[#262420]/50" vid="231">
+                        <div class="flex items-baseline gap-2" vid="232">
+                            <span class="text-3xl font-black text-amber-500" vid="233">+$820</span>
+                            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest" vid="234">Equity Surplus</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="235">
+                        <div class="w-full space-y-2" vid="236">
+                            <div class="flex justify-between items-center bg-[#141311] px-4 py-2 rounded-lg border border-[#262420]" vid="237">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase" vid="238">Liability Only</span>
+                                <span class="text-xs font-black text-white" vid="239">$212/mo</span>
+                            </div>
+                            <div class="flex justify-between items-center bg-[#141311] px-4 py-2 rounded-lg border border-[#262420]" vid="240">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase" vid="241">+ Rideshare Ext.</span>
+                                <span class="text-xs font-black text-white" vid="242">$62/mo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-32 flex items-center border-b border-[#262420]/50" vid="243">
+                        <div class="w-full" vid="244">
+                            <div class="flex justify-between mb-2" vid="245">
+                                <span class="text-[10px] font-black text-gray-400 uppercase" vid="246">128,100 MILES</span>
+                                <span class="text-[10px] font-black text-red-500 uppercase" vid="247">CRITICAL CLIFF</span>
+                            </div>
+                            <div class="relative w-full h-2 bg-gray-900 rounded-full" vid="248">
+                                <div class="absolute left-0 top-0 h-full bg-red-600 w-[97%] rounded-full shadow-[0_0_10px_rgba(220,38,38,0.4)]" vid="249"></div>
+                                <div class="cliff-marker left-[80%]" vid="250"></div>
+                                <div class="cliff-marker left-[95%]" vid="251"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-28 flex items-center" vid="252">
+                        <div class="flex flex-col" vid="253">
+                            <div class="flex items-center gap-3" vid="254">
+                                <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse" vid="255"></div>
+                                <span class="text-xl font-black text-red-500" vid="256">$2,450</span>
+                                <span class="text-[9px] text-gray-500 font-black uppercase tracking-widest" vid="257">CRITICAL WARNING</span>
+                            </div>
+                            <span class="text-[10px] text-gray-400 font-medium mt-1" vid="258">Immediate timing belt &amp; transmission service req.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        
+        <div class="grid grid-cols-4 gap-8" vid="259">
+            <div class="glass-card p-8 rounded-3xl relative overflow-hidden group" vid="260">
+                <div class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4" vid="261">Predicted Net Yield</div>
+                <div class="flex items-baseline gap-2" vid="262">
+                    <span class="text-4xl font-black text-white" vid="263">$4.2k</span>
+                    <span class="text-emerald-500 font-bold text-sm" vid="264">/MO</span>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-4 leading-relaxed uppercase font-black" vid="265">Aggregated portfolio yield based on current tier selection.</p>
+                <div class="absolute bottom-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity" vid="266">
+                    <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="267"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" vid="268"></path></svg>
+                </div>
+            </div>
+
+            <div class="glass-card p-8 rounded-3xl relative overflow-hidden group" vid="269">
+                <div class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4" vid="270">Payback Velocity</div>
+                <div class="flex items-baseline gap-2" vid="271">
+                    <span class="text-4xl font-black text-white" vid="272">16.4</span>
+                    <span class="text-cyan-500 font-bold text-sm uppercase" vid="273">MONTHS</span>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-4 leading-relaxed uppercase font-black" vid="274">Estimated duration to recover initial acquisition costs.</p>
+                <div class="absolute bottom-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity" vid="275">
+                    <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="276"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" vid="277"></path></svg>
+                </div>
+            </div>
+
+            <div class="glass-card p-8 rounded-3xl relative overflow-hidden group" vid="278">
+                <div class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4" vid="279">Mechanical Exposure</div>
+                <div class="flex items-baseline gap-2" vid="280">
+                    <span class="text-4xl font-black text-rose-500" vid="281">High</span>
+                    <span class="text-rose-500/50 font-black text-xs uppercase ml-2" vid="282">Alert Level</span>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-4 leading-relaxed uppercase font-black" vid="283">Portion of fleet operating within 5k miles of major cliff.</p>
+                <div class="absolute bottom-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity" vid="284">
+                    <svg class="w-12 h-12 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="285"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" vid="286"></path></svg>
+                </div>
+            </div>
+
+            <div class="glass-card p-8 rounded-3xl border-emerald-900/30 bg-emerald-950/5 relative overflow-hidden group" vid="287">
+                <div class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4" vid="288">Decision Confidence</div>
+                <div class="flex items-baseline gap-2" vid="289">
+                    <span class="text-4xl font-black text-white" vid="290">94%</span>
+                    <span class="text-emerald-500 font-black text-xl" vid="291">↑</span>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-4 leading-relaxed uppercase font-black" vid="292">Statistical reliability of analysis based on asset data density.</p>
+                <div class="absolute bottom-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity" vid="293">
+                    <svg class="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="294"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" vid="295"></path></svg>
+                </div>
+            </div>
+        </div>
+
+        
+        <footer class="flex items-center justify-between pt-10 pb-20 border-t border-[#262420]" vid="296">
+            <div class="flex gap-6" vid="297">
+                <div class="flex items-center gap-2" vid="298">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500" vid="299"></span>
+                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest" vid="300">Optimal Performance</span>
+                </div>
+                <div class="flex items-center gap-2" vid="301">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500" vid="302"></span>
+                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest" vid="303">Standard Maintenance</span>
+                </div>
+                <div class="flex items-center gap-2" vid="304">
+                    <span class="w-2 h-2 rounded-full bg-red-500" vid="305"></span>
+                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest" vid="306">High Risk Acquisition</span>
+                </div>
+            </div>
+            <div class="flex gap-4" vid="307">
+                <button class="bg-[#141311] border border-[#262420] text-gray-300 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:bg-gray-800" vid="308">Save Scenario</button>
+                <button class="bg-emerald-600 text-[#0a0905] px-10 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:bg-emerald-500 shadow-xl shadow-emerald-900/20" vid="309">Execute Acquisition</button>
+            </div>
+        </footer>
+    </main>
+
+
+</body></html>

@@ -1,4 +1,6 @@
-const fetch = require('node-fetch');
+// For Node 18+, fetch is global. If using older node, use node-fetch v2.
+// const fetch = require('node-fetch'); 
+
 
 async function testLiveApi() {
   const dummyBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";

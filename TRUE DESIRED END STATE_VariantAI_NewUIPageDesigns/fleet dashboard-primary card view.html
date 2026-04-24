@@ -1,0 +1,273 @@
+<html lang="en" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">V.E.R.A. Fleet Dashboard</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17" vid="5"></script>
+    <style vid="6">
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0905;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2825;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a3835;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="bg-[#0a0905] text-gray-200 h-screen w-full flex overflow-hidden font-sans selection:bg-cyan-900 selection:text-white" vid="7">
+
+    <aside class="w-64 bg-[#11100e] border-r border-[#262420] flex flex-col h-full z-10 flex-shrink-0 hidden md:flex" vid="8">
+        <div class="h-16 flex items-center px-6 border-b border-[#262420]" vid="9">
+            <div class="flex items-center gap-2" vid="10">
+                <div class="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center font-bold text-white tracking-widest text-sm" vid="11">
+                    VA
+                </div>
+                <span class="font-bold text-lg tracking-wider text-gray-100" vid="12">V.E.R.A.</span>
+            </div>
+        </div>
+
+        <nav class="p-4 space-y-1 border-b border-[#262420]" vid="13">
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#1a1816] rounded-md text-sm font-medium transition-colors" vid="14">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="15"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" vid="16"></path></svg>
+                New Evaluation
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 bg-cyan-950/30 text-cyan-400 rounded-md text-sm font-medium transition-colors border border-cyan-900/30" vid="17">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" vid="19"></path></svg>
+                Fleet Dashboard
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#1a1816] rounded-md text-sm font-medium transition-colors" vid="20">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="21"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" vid="22"></path></svg>
+                Comparison Matrix
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#1a1816] rounded-md text-sm font-medium transition-colors" vid="23">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" vid="25"></path></svg>
+                Market Analytics
+            </a>
+        </nav>
+
+        <div class="flex-1 overflow-y-auto p-4" vid="26">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4" vid="27">Analysis History</h3>
+            <div class="space-y-3" vid="28">
+                <div class="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors" vid="29">
+                    <div class="flex justify-between items-start mb-1" vid="30">
+                        <span class="text-sm font-medium text-gray-300" vid="31">2019 Honda Civic</span>
+                        <span class="text-xs text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded" vid="32">Strong</span>
+                    </div>
+                </div>
+                <div class="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors" vid="33">
+                    <div class="flex justify-between items-start mb-1" vid="34">
+                        <span class="text-sm font-medium text-gray-300" vid="35">2019 Toyota RAV4</span>
+                        <span class="text-xs text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded" vid="36">Good</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-4 border-t border-[#262420] flex items-center gap-3" vid="37">
+            <div class="w-8 h-8 rounded-full bg-cyan-900 flex items-center justify-center text-cyan-100 font-bold text-sm" vid="38">JS</div>
+            <div class="flex-1" vid="39">
+                <div class="text-sm font-medium" vid="40">J. Smith</div>
+                <div class="text-xs text-gray-500" vid="41">Pro Analyst</div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full bg-[#0a0905] overflow-hidden" vid="42">
+        <header class="h-16 flex items-center justify-between px-8 border-b border-[#262420] flex-shrink-0 bg-[#0a0905]/90 backdrop-blur z-30" vid="43">
+            <div class="flex flex-col" vid="44">
+                <h1 class="text-xl font-semibold text-gray-100" vid="45">Fleet Dashboard</h1>
+                <p class="text-[10px] text-gray-500 uppercase tracking-[0.2em]" vid="46">Monitoring 14 Active Units</p>
+            </div>
+            <div class="flex items-center gap-3" vid="47"><div id="selection-actions" class="flex items-center gap-3 bg-cyan-950/30 border border-cyan-800/50 rounded-lg px-3 py-1.5" vid="48"><span class="text-xs text-cyan-400 font-medium" vid="49">2 selected</span><button class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1.5" vid="50"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="51"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" vid="52"></path></svg>Compare</button><button class="text-gray-500 hover:text-gray-300 text-xs px-2" vid="53">Clear</button></div>
+                <div class="flex bg-[#11100e] border border-[#262420] p-1 rounded-lg" vid="54">
+                    <button class="px-4 py-1.5 text-xs font-bold rounded-md bg-cyan-600 text-white shadow-lg" vid="55">Active</button>
+                    <button class="px-4 py-1.5 text-xs font-bold rounded-md text-gray-500 hover:text-gray-300" vid="56">Watching</button>
+                    <button class="px-4 py-1.5 text-xs font-bold rounded-md text-gray-500 hover:text-gray-300" vid="57">Passed</button>
+                </div>
+                <button class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-md text-sm font-bold transition-colors flex items-center gap-2" vid="58">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="59"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" vid="60"></path></svg>
+                    New Analysis
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8" vid="61">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" vid="62">
+                
+                <div class="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative" vid="63">
+                    <div class="absolute top-3 left-3 z-10" vid="64"><label class="flex items-center cursor-pointer" vid="65"><input type="checkbox" class="peer sr-only" checked="" vid="66"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="67"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="68"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="69"></path></svg></div></label></div><div class="absolute top-3 left-3 z-10" vid="70"><label class="flex items-center cursor-pointer" vid="71"><input type="checkbox" class="peer sr-only" vid="72"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="73"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="74"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="75"></path></svg></div></label></div><div class="p-5 border-b border-[#262420] relative" vid="76">
+                        <div class="flex justify-between items-start mb-4 pl-8" vid="77">
+                            <div vid="78">
+                                <h3 class="font-bold text-gray-100 text-lg" vid="79">2019 Honda Civic Sport</h3>
+                                <p class="text-xs text-gray-500 mt-1" vid="80">38,900 miles • Austin, TX</p>
+                            </div>
+                            <div class="relative w-12 h-12 flex items-center justify-center" vid="81">
+                                <svg class="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 36 36" vid="82">
+                                    <path class="text-[#2a2825]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="83"></path>
+                                    <path class="text-emerald-500" stroke-dasharray="87, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="84"></path>
+                                </svg>
+                                <span class="text-xs font-black text-white" vid="85">87</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2" vid="86">
+                            <span class="px-2 py-0.5 bg-emerald-500 text-[#0a0905] font-black tracking-widest uppercase text-[10px] rounded" vid="87">Strong Buy</span>
+                        </div>
+                    </div>
+                    <div class="p-5 grid grid-cols-2 gap-4 bg-[#141311]" vid="88">
+                        <div vid="89">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="90">Equity</p>
+                            <p class="text-lg font-bold text-emerald-400" vid="91">+$2,950</p>
+                        </div>
+                        <div vid="92">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="93">Monthly OpEx</p>
+                            <p class="text-lg font-bold text-gray-200" vid="94">$484</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative" vid="95">
+                    <div class="absolute top-3 left-3 z-10" vid="96"><label class="flex items-center cursor-pointer" vid="97"><input type="checkbox" class="peer sr-only" checked="" vid="98"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="99"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="100"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="101"></path></svg></div></label></div><div class="absolute top-3 left-3 z-10" vid="102"><label class="flex items-center cursor-pointer" vid="103"><input type="checkbox" class="peer sr-only" vid="104"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="105"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="106"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="107"></path></svg></div></label></div><div class="p-5 border-b border-[#262420] relative" vid="108">
+                        <div class="flex justify-between items-start mb-4 pl-8" vid="109">
+                            <div vid="110">
+                                <h3 class="font-bold text-gray-100 text-lg" vid="111">2021 Tesla Model 3</h3>
+                                <p class="text-xs text-gray-500 mt-1" vid="112">12,400 miles • Phoenix, AZ</p>
+                            </div>
+                            <div class="relative w-12 h-12 flex items-center justify-center" vid="113">
+                                <svg class="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 36 36" vid="114">
+                                    <path class="text-[#2a2825]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="115"></path>
+                                    <path class="text-cyan-500" stroke-dasharray="72, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="116"></path>
+                                </svg>
+                                <span class="text-xs font-black text-white" vid="117">72</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2" vid="118">
+                            <span class="px-2 py-0.5 bg-cyan-600 text-white font-black tracking-widest uppercase text-[10px] rounded" vid="119">Fair Deal</span>
+                        </div>
+                    </div>
+                    <div class="p-5 grid grid-cols-2 gap-4 bg-[#141311]" vid="120">
+                        <div vid="121">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="122">Equity</p>
+                            <p class="text-lg font-bold text-cyan-400" vid="123">+$1,120</p>
+                        </div>
+                        <div vid="124">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="125">Monthly OpEx</p>
+                            <p class="text-lg font-bold text-gray-200" vid="126">$312</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative" vid="127">
+                    <div class="absolute top-3 left-3 z-10" vid="128"><label class="flex items-center cursor-pointer" vid="129"><input type="checkbox" class="peer sr-only" vid="130"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="131"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="132"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="133"></path></svg></div></label></div><div class="absolute top-3 left-3 z-10" vid="134"><label class="flex items-center cursor-pointer" vid="135"><input type="checkbox" class="peer sr-only" vid="136"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="137"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="138"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="139"></path></svg></div></label></div><div class="p-5 border-b border-[#262420] relative" vid="140">
+                        <div class="flex justify-between items-start mb-4 pl-8" vid="141">
+                            <div vid="142">
+                                <h3 class="font-bold text-gray-100 text-lg" vid="143">2018 Toyota Camry XLE</h3>
+                                <p class="text-xs text-gray-500 mt-1" vid="144">54,000 miles • Dallas, TX</p>
+                            </div>
+                            <div class="relative w-12 h-12 flex items-center justify-center" vid="145">
+                                <svg class="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 36 36" vid="146">
+                                    <path class="text-[#2a2825]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="147"></path>
+                                    <path class="text-green-500" stroke-dasharray="91, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="148"></path>
+                                </svg>
+                                <span class="text-xs font-black text-white" vid="149">91</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2" vid="150">
+                            <span class="px-2 py-0.5 bg-green-600 text-white font-black tracking-widest uppercase text-[10px] rounded" vid="151">Excellent</span>
+                        </div>
+                    </div>
+                    <div class="p-5 grid grid-cols-2 gap-4 bg-[#141311]" vid="152">
+                        <div vid="153">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="154">Equity</p>
+                            <p class="text-lg font-bold text-emerald-400" vid="155">+$4,200</p>
+                        </div>
+                        <div vid="156">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="157">Monthly OpEx</p>
+                            <p class="text-lg font-bold text-gray-200" vid="158">$525</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative" vid="159">
+                    <div class="absolute top-3 left-3 z-10" vid="160"><label class="flex items-center cursor-pointer" vid="161"><input type="checkbox" class="peer sr-only" vid="162"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="163"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="164"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="165"></path></svg></div></label></div><div class="absolute top-3 left-3 z-10" vid="166"><label class="flex items-center cursor-pointer" vid="167"><input type="checkbox" class="peer sr-only" vid="168"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="169"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="170"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="171"></path></svg></div></label></div><div class="p-5 border-b border-[#262420] relative" vid="172">
+                        <div class="flex justify-between items-start mb-4 pl-8" vid="173">
+                            <div vid="174">
+                                <h3 class="font-bold text-gray-100 text-lg" vid="175">2020 Ford Fusion Hybrid</h3>
+                                <p class="text-xs text-gray-500 mt-1" vid="176">42,100 miles • Houston, TX</p>
+                            </div>
+                            <div class="relative w-12 h-12 flex items-center justify-center" vid="177">
+                                <svg class="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 36 36" vid="178">
+                                    <path class="text-[#2a2825]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="179"></path>
+                                    <path class="text-amber-500" stroke-dasharray="64, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="180"></path>
+                                </svg>
+                                <span class="text-xs font-black text-white" vid="181">64</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2" vid="182">
+                            <span class="px-2 py-0.5 bg-amber-500 text-[#0a0905] font-black tracking-widest uppercase text-[10px] rounded" vid="183">Moderate Buy</span>
+                        </div>
+                    </div>
+                    <div class="p-5 grid grid-cols-2 gap-4 bg-[#141311]" vid="184">
+                        <div vid="185">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="186">Equity</p>
+                            <p class="text-lg font-bold text-gray-300" vid="187">+$850</p>
+                        </div>
+                        <div vid="188">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="189">Monthly OpEx</p>
+                            <p class="text-lg font-bold text-gray-200" vid="190">$442</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative" vid="191">
+                    <div class="absolute top-3 left-3 z-10" vid="192"><label class="flex items-center cursor-pointer" vid="193"><input type="checkbox" class="peer sr-only" vid="194"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="195"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="196"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="197"></path></svg></div></label></div><div class="absolute top-3 left-3 z-10" vid="198"><label class="flex items-center cursor-pointer" vid="199"><input type="checkbox" class="peer sr-only" vid="200"><div class="w-5 h-5 rounded border-2 border-[#3a3730] bg-[#0a0905] peer-checked:bg-cyan-600 peer-checked:border-cyan-600 flex items-center justify-center transition-all" vid="201"><svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="202"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" vid="203"></path></svg></div></label></div><div class="p-5 border-b border-[#262420] relative" vid="204">
+                        <div class="flex justify-between items-start mb-4 pl-8" vid="205">
+                            <div vid="206">
+                                <h3 class="font-bold text-gray-100 text-lg" vid="207">2017 Honda Accord Sport</h3>
+                                <p class="text-xs text-gray-500 mt-1" vid="208">62,000 miles • San Antonio, TX</p>
+                            </div>
+                            <div class="relative w-12 h-12 flex items-center justify-center" vid="209">
+                                <svg class="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 36 36" vid="210">
+                                    <path class="text-[#2a2825]" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="211"></path>
+                                    <path class="text-emerald-500" stroke-dasharray="82, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" vid="212"></path>
+                                </svg>
+                                <span class="text-xs font-black text-white" vid="213">82</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2" vid="214">
+                            <span class="px-2 py-0.5 bg-emerald-500 text-[#0a0905] font-black tracking-widest uppercase text-[10px] rounded" vid="215">Strong Buy</span>
+                        </div>
+                    </div>
+                    <div class="p-5 grid grid-cols-2 gap-4 bg-[#141311]" vid="216">
+                        <div vid="217">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="218">Equity</p>
+                            <p class="text-lg font-bold text-emerald-400" vid="219">+$2,100</p>
+                        </div>
+                        <div vid="220">
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1" vid="221">Monthly OpEx</p>
+                            <p class="text-lg font-bold text-gray-200" vid="222">$498</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-[#11100e] border border-[#262420] border-dashed rounded-xl flex flex-col items-center justify-center p-8 group hover:bg-[#1a1816] hover:border-cyan-500/30 transition-all cursor-pointer" vid="223">
+                    <div class="w-12 h-12 rounded-full bg-[#1e1c19] border border-[#262420] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform" vid="224">
+                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="225"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" vid="226"></path></svg>
+                    </div>
+                    <p class="text-sm font-bold text-gray-400" vid="227">Add Evaluation</p>
+                    <p class="text-[10px] text-gray-600 mt-1 uppercase tracking-widest" vid="228">Expand Fleet Capacity</p>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+</body></html>

@@ -1,0 +1,688 @@
+<html lang="en" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">V.E.R.A. Vehicle Evaluation Analyzer</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17" vid="5"></script>
+    <style vid="6">
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0905;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2825;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a3835;
+        }
+        
+        
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.25rem 1.25rem;
+        }
+    </style>
+</head>
+<body class="bg-[#0a0905] text-gray-200 h-screen w-full flex overflow-hidden font-sans selection:bg-cyan-900 selection:text-white" vid="7">
+
+    
+    <aside class="w-64 bg-[#11100e] border-r border-[#262420] flex flex-col h-full z-10 flex-shrink-0" vid="8">
+        
+        <div class="h-16 flex items-center px-6 border-b border-[#262420]" vid="9">
+            <div class="flex items-center gap-2" vid="10">
+                <div class="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center font-bold text-white tracking-widest text-sm" vid="11">
+                    VA
+                </div>
+                <span class="font-bold text-lg tracking-wider text-gray-100" vid="12">V.E.R.A.</span>
+            </div>
+        </div>
+
+        
+        <nav class="p-4 space-y-1 border-b border-[#262420]" vid="13">
+            <a href="#" class="flex items-center gap-3 px-3 py-2 bg-[#1e1c19] text-cyan-400 rounded-md text-sm font-medium" vid="14">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="15"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" vid="16"></path></svg>
+                New Evaluation
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#1a1816] rounded-md text-sm font-medium transition-colors" vid="17">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" vid="19"></path></svg>
+                Fleet Dashboard
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#1a1816] rounded-md text-sm font-medium transition-colors" vid="20">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="21"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" vid="22"></path></svg>
+                Comparison Matrix
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#1a1816] rounded-md text-sm font-medium transition-colors" vid="23">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" vid="25"></path></svg>
+                Market Analytics
+            </a>
+        </nav>
+
+        
+        <div class="flex-1 overflow-y-auto p-4" vid="26">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4" vid="27">Analysis History</h3>
+            <div class="space-y-3" vid="28">
+                
+                <div class="p-3 bg-[#1e1c19] border border-[#262420] rounded-lg cursor-pointer hover:border-cyan-800 transition-colors" vid="29">
+                    <div class="flex justify-between items-start mb-1" vid="30">
+                        <span class="text-sm font-medium text-gray-200" vid="31">2019 Toyota RAV4</span>
+                        <span class="text-xs text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded" vid="32">Good</span>
+                    </div>
+                    <div class="text-xs text-gray-500 flex justify-between" vid="33">
+                        <span vid="34">$22,500</span>
+                        <span vid="35">2 hrs ago</span>
+                    </div>
+                </div>
+                
+                <div class="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors" vid="36">
+                    <div class="flex justify-between items-start mb-1" vid="37">
+                        <span class="text-sm font-medium text-gray-200" vid="38">2016 Honda Civic</span>
+                        <span class="text-xs text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded" vid="39">Risk</span>
+                    </div>
+                    <div class="text-xs text-gray-500 flex justify-between" vid="40">
+                        <span vid="41">$14,200</span>
+                        <span vid="42">Yesterday</span>
+                    </div>
+                </div>
+                
+                <div class="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors" vid="43">
+                    <div class="flex justify-between items-start mb-1" vid="44">
+                        <span class="text-sm font-medium text-gray-200" vid="45">2021 Tesla Model 3</span>
+                        <span class="text-xs text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded" vid="46">Fair</span>
+                    </div>
+                    <div class="text-xs text-gray-500 flex justify-between" vid="47">
+                        <span vid="48">$31,000</span>
+                        <span vid="49">Oct 24</span>
+                    </div>
+                </div>
+                
+                <div class="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors" vid="50">
+                    <div class="flex justify-between items-start mb-1" vid="51">
+                        <span class="text-sm font-medium text-gray-200" vid="52">2015 Ford F-150</span>
+                        <span class="text-xs text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded" vid="53">Good</span>
+                    </div>
+                    <div class="text-xs text-gray-500 flex justify-between" vid="54">
+                        <span vid="55">$19,800</span>
+                        <span vid="56">Oct 22</span>
+                    </div>
+                </div>
+                
+                <div class="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors" vid="57">
+                    <div class="flex justify-between items-start mb-1" vid="58">
+                        <span class="text-sm font-medium text-gray-200" vid="59">2020 Hyundai Sonata</span>
+                        <span class="text-xs text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded" vid="60">Risk</span>
+                    </div>
+                    <div class="text-xs text-gray-500 flex justify-between" vid="61">
+                        <span vid="62">$17,500</span>
+                        <span vid="63">Oct 20</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="p-4 border-t border-[#262420] flex items-center gap-3" vid="64">
+            <div class="w-8 h-8 rounded-full bg-cyan-900 flex items-center justify-center text-cyan-100 font-bold text-sm" vid="65">JS</div>
+            <div class="flex-1" vid="66">
+                <div class="text-sm font-medium" vid="67">J. Smith</div>
+                <div class="text-xs text-gray-500" vid="68">Pro Analyst</div>
+            </div>
+        </div>
+    </aside>
+
+    
+    <main class="flex-[3] flex flex-col h-full bg-[#0a0905]" vid="69">
+        
+        <header class="h-16 flex items-center justify-between px-8 border-b border-[#262420] flex-shrink-0 bg-[#0a0905]/80 backdrop-blur z-10" vid="70">
+            <div class="flex items-center gap-6" vid="71">
+                <h1 class="text-xl font-semibold text-gray-100" vid="72">Vehicle Evaluation Worksheet</h1>
+                <div class="flex items-center bg-[#131210] border border-[#2a2825] rounded-lg p-1" vid="73">
+                    <button class="px-3 py-1.5 text-xs font-medium rounded-md bg-cyan-600 text-white transition-colors" vid="74">Rideshare Mode</button>
+                    <button class="px-3 py-1.5 text-xs font-medium rounded-md text-gray-400 hover:text-gray-200 transition-colors" vid="75">Personal Use</button>
+                </div>
+            </div>
+            <div class="flex items-center gap-4" vid="76">
+                <button class="text-gray-400 hover:text-white transition-colors text-sm font-medium flex items-center gap-2" vid="77">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="78"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" vid="79"></path></svg>
+                    Clear Form
+                </button>
+                <button class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-[0_0_15px_rgba(8,145,178,0.3)]" vid="80">
+                    Run AI Analysis
+                </button>
+            </div>
+        </header>
+
+        
+        <div class="flex-1 overflow-y-auto p-8 scrollbar-hide" vid="81">
+            <div class="max-w-4xl mx-auto space-y-8 pb-12" vid="82">
+
+                
+                <section class="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm" vid="83">
+                    <div class="px-5 py-4 border-b border-[#2a2825] flex justify-between items-center bg-[#161513]" vid="84">
+                        <h2 class="text-sm font-semibold text-gray-200 flex items-center gap-2" vid="85">
+                            <svg class="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="86"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" vid="87"></path></svg>
+                            Quick Import &amp; Auto-Fill
+                        </h2>
+                        <span class="text-xs text-gray-500" vid="88">AI extracts data from screenshots &amp; URLs</span>
+                    </div>
+                    <div class="p-5 grid grid-cols-1 gap-4" vid="89">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" vid="90">
+                            <div class="md:col-span-2" vid="91">
+                                <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide flex items-center gap-1" vid="92">
+                                    Listing URL
+                                    <span class="text-[10px] text-cyan-500 normal-case" vid="93">Auto-detects platform</span>
+                                </label>
+                                <div class="flex" vid="94">
+                                    <input type="text" placeholder="https://www.facebook.com/marketplace/item/..." class="flex-1 bg-[#050403] border border-[#3a3730] rounded-l-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 font-mono text-xs" vid="95">
+                                    <button class="bg-cyan-900/50 hover:bg-cyan-800/50 text-cyan-400 px-4 py-2 rounded-r-md text-sm font-medium border border-l-0 border-[#3a3730] transition-colors" vid="96">
+                                        Scrape
+                                    </button>
+                                </div>
+                            </div>
+                            <div vid="97">
+                                <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="98">Quick Reference URL</label>
+                                <input type="url" placeholder="Companion URL..." class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 font-mono text-xs" vid="99">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" vid="100">
+                            <div vid="101">
+                                <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide flex items-center gap-1" vid="102">
+                                    Listing Screenshot
+                                    <span class="text-[10px] text-cyan-500 normal-case" vid="103">Ctrl+V paste enabled</span>
+                                </label>
+                                <div class="border-2 border-dashed border-[#3a3730] rounded-lg p-4 text-center hover:border-cyan-800 transition-colors bg-[#0a0905]/50 cursor-pointer flex flex-col items-center justify-center h-24" vid="104">
+                                    <svg class="w-5 h-5 text-gray-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="105"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" vid="106"></path></svg>
+                                    <p class="text-xs text-gray-400" vid="107">Drop, paste, or <span class="text-cyan-500 font-medium" vid="108">browse</span> listing screenshot</p>
+                                </div>
+                            </div>
+                            <div vid="109">
+                                <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide flex items-center gap-1" vid="110">
+                                    Vehicle Photos
+                                    <span class="text-[10px] text-gray-500 normal-case" vid="111">Multi-file</span>
+                                </label>
+                                <div class="border-2 border-dashed border-[#3a3730] rounded-lg p-4 text-center hover:border-cyan-800 transition-colors bg-[#0a0905]/50 cursor-pointer flex flex-col items-center justify-center h-24" vid="112">
+                                    <input type="file" multiple="" class="hidden" id="photos-upload" vid="113">
+                                    <label for="photos-upload" class="cursor-pointer flex flex-col items-center" vid="114">
+                                        <div class="flex items-center gap-1 text-gray-400" vid="115">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="116"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" vid="117"></path></svg>
+                                            <span class="text-xs" vid="118">Add vehicle photos</span>
+                                        </div>
+                                        <span class="text-[10px] text-gray-500 mt-0.5" vid="119">JPEG, PNG, WEBP</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                
+                <section class="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm" vid="120">
+                    <div class="px-5 py-3 border-b border-[#2a2825] bg-[#161513]" vid="121">
+                        <h2 class="text-sm font-semibold text-gray-200" vid="122">Core Vehicle Identity</h2>
+                    </div>
+                    <div class="p-5 grid grid-cols-12 gap-x-5 gap-y-6" vid="123">
+                        
+                        
+                        <div class="col-span-12 md:col-span-6" vid="124">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="125">VIN (Vehicle Identification Number)</label>
+                            <div class="flex" vid="126">
+                                <input type="text" maxlength="17" placeholder="17-character VIN" class="flex-1 bg-[#050403] border border-[#3a3730] rounded-l-md px-3 py-2 text-sm text-gray-200 uppercase placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 font-mono" vid="127">
+                                <button class="bg-[#1e1c19] hover:bg-[#2a2825] text-cyan-400 px-4 py-2 rounded-r-md text-sm font-medium border border-l-0 border-[#3a3730] transition-colors flex items-center gap-1" vid="128">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="129"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" vid="130"></path></svg>
+                                    Decode
+                                </button>
+                            </div>
+                        </div>
+
+                        
+                        <div class="col-span-12 md:col-span-3" vid="131">
+                            <label class="block text-xs font-medium text-red-400 mb-1.5 uppercase tracking-wide" vid="132">Price *</label>
+                            <div class="relative" vid="133">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-sm" vid="134">$</span>
+                                <input type="number" step="100" required="" class="w-full bg-[#050403] border border-[#3a3730] rounded-md pl-7 pr-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="135">
+                            </div>
+                        </div>
+
+                        
+                        <div class="col-span-12 md:col-span-3" vid="136">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="137">Mileage</label>
+                            <div class="relative" vid="138">
+                                <input type="number" class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="139">
+                                <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 text-xs" vid="140">mi</span>
+                            </div>
+                        </div>
+
+                        
+                        <div class="col-span-6 md:col-span-2" vid="141">
+                            <label class="block text-xs font-medium text-cyan-400 mb-1.5 uppercase tracking-wide" vid="142">Year *</label>
+                            <input type="number" min="1990" max="2026" required="" class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="143">
+                        </div>
+
+                        
+                        <div class="col-span-6 md:col-span-3" vid="144">
+                            <label class="block text-xs font-medium text-cyan-400 mb-1.5 uppercase tracking-wide" vid="145">Make *</label>
+                            <input type="text" required="" class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="146">
+                        </div>
+
+                        
+                        <div class="col-span-6 md:col-span-4" vid="147">
+                            <label class="block text-xs font-medium text-cyan-400 mb-1.5 uppercase tracking-wide" vid="148">Model *</label>
+                            <input type="text" required="" class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="149">
+                        </div>
+
+                        
+                        <div class="col-span-6 md:col-span-3" vid="150">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="151">Trim</label>
+                            <input type="text" class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="152">
+                        </div>
+
+                    </div>
+                </section>
+
+                
+                <section class="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm" vid="153">
+                    <div class="px-5 py-3 border-b border-[#2a2825] bg-[#161513]" vid="154">
+                        <h2 class="text-sm font-semibold text-gray-200" vid="155">Specifications &amp; Details</h2>
+                    </div>
+                    <div class="p-5 grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-6" vid="156">
+                        
+                        
+                        <div vid="157">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="158">Transmission</label>
+                            <select class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="159">
+                                <option value="" disabled="" selected="" vid="160">Select...</option>
+                                <option vid="161">Automatic</option>
+                                <option vid="162">Manual</option>
+                                <option vid="163">CVT</option>
+                                <option vid="164">Dual-Clutch</option>
+                            </select>
+                        </div>
+
+                        
+                        <div vid="165">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="166">Fuel Type</label>
+                            <select class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="167">
+                                <option value="" disabled="" selected="" vid="168">Select...</option>
+                                <option vid="169">Gasoline</option>
+                                <option vid="170">Diesel</option>
+                                <option vid="171">Hybrid</option>
+                                <option vid="172">Electric</option>
+                                <option vid="173">Plug-in Hybrid</option>
+                                <option vid="174">Flex Fuel</option>
+                            </select>
+                        </div>
+
+                        
+                        <div vid="175">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="176">Seats</label>
+                            <input type="number" min="2" max="9" class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="177">
+                        </div>
+
+                        
+                        <div vid="178">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="179">Title Status</label>
+                            <select class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="180">
+                                <option value="" disabled="" selected="" vid="181">Select...</option>
+                                <option vid="182">Clean</option>
+                                <option class="text-red-400" vid="183">Salvage</option>
+                                <option class="text-orange-400" vid="184">Rebuilt</option>
+                                <option class="text-red-500" vid="185">Lemon</option>
+                                <option vid="186">Unknown</option>
+                            </select>
+                        </div>
+
+                        
+                        <div class="col-span-2" vid="187">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="188">Exterior Color</label>
+                            <input type="text" class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="189">
+                        </div>
+
+                        
+                        <div class="col-span-2" vid="190">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="191">Interior Color</label>
+                            <input type="text" class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="192">
+                        </div>
+
+                    </div>
+                </section>
+
+                
+<section class="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm" vid="193">
+                    <div class="px-5 py-3 border-b border-[#2a2825] bg-[#161513] flex justify-between items-center" vid="194">
+                        <h2 class="text-sm font-semibold text-gray-200" vid="195">Listing Context &amp; Market Intel</h2>
+                        <span class="text-[10px] text-gray-500" vid="196">Pricing &amp; urgency signals</span>
+                    </div>
+                    <div class="p-5 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-5" vid="197">
+                        <div vid="198">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="199">Source Platform</label>
+                            <select class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="200">
+                                <option value="" disabled="" selected="" vid="201">Select...</option>
+                                <option vid="202">Facebook Marketplace</option>
+                                <option vid="203">Craigslist</option>
+                                <option vid="204">AutoTempest</option>
+                                <option vid="205">Cars.com</option>
+                                <option vid="206">CarGurus</option>
+                                <option vid="207">Autotrader</option>
+                                <option vid="208">OfferUp</option>
+                                <option vid="209">Carvana</option>
+                                <option vid="210">Dealer Website</option>
+                                <option vid="211">Other</option>
+                            </select>
+                        </div>
+                        <div vid="212">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="213">Posted Date</label>
+                            <select class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="214">
+                                <option value="" disabled="" selected="" vid="215">Select...</option>
+                                <option vid="216">Today</option>
+                                <option vid="217">&lt; 3 days</option>
+                                <option vid="218">&lt; 7 days</option>
+                                <option vid="219">1-2 weeks ago</option>
+                                <option vid="220">Older than 2 weeks</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2" vid="221">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="222">Location (City, State)</label>
+                            <input type="text" placeholder="e.g. Austin, TX" class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="223">
+                        </div>
+                        <div class="col-span-2 md:col-span-4" vid="224">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide flex justify-between" vid="225">
+                                Seller's Description
+                                <span class="text-[10px] text-cyan-500 normal-case" vid="226">AI scans for red flags &amp; leverage points</span>
+                            </label>
+                            <textarea rows="3" placeholder="Paste the full listing description here..." class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 resize-y" vid="227"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                
+                <section class="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm" vid="228">
+                    <div class="px-5 py-3 border-b border-[#2a2825] bg-[#161513]" vid="229">
+                        <h2 class="text-sm font-semibold text-gray-200" vid="230">Physical Condition Assessment</h2>
+                    </div>
+                    <div class="p-5" vid="231">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5" vid="232">
+                            <div vid="233">
+                                <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="234">Exterior Condition</label>
+                                <textarea rows="3" placeholder="Paint condition, dents, rust, scratches, panel gaps..." class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 resize-none" vid="235"></textarea>
+                            </div>
+                            <div vid="236">
+                                <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="237">Interior Condition</label>
+                                <textarea rows="3" placeholder="Seat wear, dashboard, headliner, odors, electronics..." class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 resize-none" vid="238"></textarea>
+                            </div>
+                            <div vid="239">
+                                <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="240">Mechanical Condition</label>
+                                <textarea rows="3" placeholder="Engine sounds, transmission, leaks, warning lights..." class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 resize-none" vid="241"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                
+                <section class="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm" vid="242">
+                    <div class="px-5 py-3 border-b border-[#2a2825] bg-[#161513]" vid="243">
+                        <h2 class="text-sm font-semibold text-gray-200" vid="244">Seller Intelligence</h2>
+                    </div>
+                    <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6" vid="245">
+                        
+                        
+                        <div vid="246">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="247">Communication / Responsiveness</label>
+                            <select class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="248">
+                                <option value="" disabled="" selected="" vid="249">Select status...</option>
+                                <option vid="250">Not Contacted</option>
+                                <option class="text-green-400" vid="251">Responsive</option>
+                                <option class="text-yellow-400" vid="252">Slow</option>
+                                <option class="text-red-400" vid="253">Unresponsive</option>
+                            </select>
+                        </div>
+
+                        
+                        <div vid="254">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="255">Transparency Assessment</label>
+                            <select class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="256">
+                                <option value="" disabled="" selected="" vid="257">Select status...</option>
+                                <option vid="258">Not Assessed</option>
+                                <option class="text-green-400" vid="259">Transparent (Provided VIN/History)</option>
+                                <option class="text-orange-400" vid="260">Evasive (Dodges questions)</option>
+                                <option class="text-red-500" vid="261">Dishonest (Caught in lie)</option>
+                            </select>
+                        </div>
+
+                        
+                        <div class="col-span-1" vid="262">
+                            <label class="block text-xs font-medium text-red-400 mb-1.5 uppercase tracking-wide flex items-center gap-1" vid="263">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="264"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" vid="265"></path></svg>
+                                Manual Red Flags
+                            </label>
+                            <textarea rows="3" placeholder="Note any suspicious behavior, missing info, title issues..." class="w-full bg-[#050403] border border-red-900/50 rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 resize-none" vid="266"></textarea>
+                        </div>
+
+                        
+                        <div class="col-span-1" vid="267">
+                            <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide" vid="268">Seller Quotes / Notes</label>
+                            <textarea rows="3" placeholder="Important quotes from messages or calls..." class="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 resize-none" vid="269"></textarea>
+                        </div>
+
+                    </div>
+                </section>
+
+                
+                <div class="flex justify-end pt-4" vid="270">
+                    <button class="bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-3 rounded-md text-sm font-bold tracking-wide transition-colors shadow-[0_0_20px_rgba(8,145,178,0.4)] flex items-center gap-2" vid="271">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="272"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" vid="273"></path></svg>
+                        Generate VERA Intelligence Report
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    
+    <aside class="w-[420px] bg-[#141311] border-l border-[#262420] flex flex-col h-full flex-shrink-0 z-20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]" vid="274">
+        
+        
+        <div class="h-16 flex items-center justify-between px-6 border-b border-[#262420] bg-[#1a1816]" vid="275">
+            <div class="flex items-center gap-2" vid="276">
+                <div class="relative flex h-3 w-3" vid="277">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" vid="278"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500" vid="279"></span>
+                </div>
+                <span class="font-bold text-sm text-cyan-400 uppercase tracking-widest" vid="280">VERA AI Active</span>
+            </div>
+            <span class="text-xs text-gray-500 font-mono" vid="281">Analysis: Complete</span>
+        </div>
+
+        
+        <div class="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-hide" vid="282">
+            
+            
+            <div class="bg-gradient-to-br from-[#1a1816] to-[#161513] border border-[#2a2825] rounded-xl p-5 relative overflow-hidden" vid="283">
+                <div class="absolute top-3 right-3 px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-md" vid="284">
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider" vid="285">RECOMMENDED</span>
+                </div>
+                <div class="flex items-center gap-3 mb-4" vid="286">
+                    <div class="w-12 h-12 bg-cyan-900/30 rounded-lg flex items-center justify-center border border-cyan-800/50" vid="287">
+                        <svg class="w-6 h-6 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="288"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" vid="289"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" vid="290"></path></svg>
+                    </div>
+                    <div vid="291">
+                        <h3 class="text-base font-bold text-gray-100" vid="292">2019 Honda Civic Sport</h3>
+                        <p class="text-xs text-gray-500" vid="293">Austin, TX • 84,250 miles</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4" vid="294">
+                    <div class="bg-[#11100e] border border-[#2a2825] rounded-lg p-3" vid="295">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wide mb-1" vid="296">Asking Price</div>
+                        <div class="text-lg font-bold text-gray-200" vid="297">$18,500</div>
+                    </div>
+                    <div class="bg-[#11100e] border border-[#2a2825] rounded-lg p-3" vid="298">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wide mb-1" vid="299">Market Value</div>
+                        <div class="text-lg font-bold text-cyan-400" vid="300">$21,450</div>
+                    </div>
+                    <div class="bg-[#11100e] border border-[#2a2825] rounded-lg p-3" vid="301">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wide mb-1" vid="302">Instant Equity</div>
+                        <div class="text-lg font-bold text-emerald-400" vid="303">+$2,950</div>
+                    </div>
+                    <div class="bg-[#11100e] border border-[#2a2825] rounded-lg p-3" vid="304">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wide mb-1" vid="305">Issues Found</div>
+                        <div class="flex items-center gap-2" vid="306">
+                            <span class="text-lg font-bold text-amber-400" vid="307">3</span>
+                            <span class="text-[10px] text-amber-500/80 bg-amber-500/10 px-1.5 py-0.5 rounded" vid="308">Medium</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-2" vid="309">
+                    <div class="flex justify-between text-[10px] text-gray-500" vid="310">
+                        <span vid="311">Trade-In: $16.2k</span>
+                        <span vid="312">Low: $19k</span>
+                        <span vid="313" class="text-cyan-400 font-medium">Avg: $21.4k</span>
+                        <span vid="314">High: $24.8k</span>
+                        <span vid="315">Retail: $26.5k</span>
+                    </div>
+                    <div class="h-2 w-full bg-[#2a2825] rounded-full overflow-hidden flex" vid="316">
+                        <div class="h-full bg-gray-600 w-[25%]" vid="317" title="Trade-In"></div>
+                        <div class="h-full bg-emerald-500/60 w-[18%]" vid="318" title="Good Deal Range"></div>
+                        <div class="h-full bg-emerald-500 w-[12%] relative" vid="319">
+                            <div class="absolute -top-0.5 left-1/2 w-0.5 h-3 bg-white shadow" vid="320"></div>
+                        </div>
+                        <div class="h-full bg-gray-700 w-[20%]" vid="321" title="Above Market"></div>
+                        <div class="h-full bg-red-500/40 w-[25%]" vid="322" title="Dealer Retail"></div>
+                    </div>
+                    <p class="text-[11px] text-gray-400 mt-2" vid="323">Asking is <span class="text-emerald-400 font-medium" vid="324">$2,950 below</span> market average • 42 local comps analyzed</p>
+                </div>
+            </div>
+
+            
+            <div class="bg-[#1a1816] border border-[#2a2825] rounded-xl overflow-hidden" vid="325">
+                <div class="px-4 py-3 border-b border-[#2a2825] bg-[#1e1c19] flex justify-between items-center cursor-pointer" vid="326">
+                    <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2" vid="327">
+                        <svg class="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="328"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" vid="329"></path></svg>
+                        Intelligence Data (Scraped)
+                    </h3>
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="330"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" vid="331"></path></svg>
+                </div>
+                <div class="p-4 space-y-4" vid="332">
+                    <div vid="333">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wide mb-1" vid="334">VIN History Snippet</div>
+                        <div class="text-xs text-gray-300 bg-[#11100e] p-2 rounded border border-[#2a2825] font-mono" vid="335">
+                            Records found: 14<br vid="336">
+                            Owners: 2 (Rental, Personal)<br vid="337">
+                            Last reported miles: 84,202 (11/2023)
+                        </div>
+                    </div>
+                    <div vid="338">
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wide mb-1" vid="339">Seller Cross-Reference</div>
+                        <div class="text-xs text-gray-300 flex items-start gap-2" vid="340">
+                            <svg class="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="341"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" vid="342"></path></svg>
+                            <span vid="343">Phone number linked to 4 other current listings (Possible curbstoner/unlicensed dealer).</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="bg-red-950/20 border border-red-900/30 rounded-xl p-4" vid="344">
+                <h3 class="text-xs font-semibold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2" vid="345">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="346"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" vid="347"></path></svg>
+                    Identified Red Flags (3)
+                </h3>
+                <ul class="space-y-2" vid="348">
+                    <li class="flex items-start gap-2 text-sm text-red-200 bg-red-900/20 p-2 rounded border border-red-900/40" vid="349">
+                        <div class="mt-0.5 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" vid="350"></div>
+                        Description mentions "AC needs freon" (High probability of compressor failure, est. $1200 repair).
+                    </li>
+                    <li class="flex items-start gap-2 text-sm text-red-200 bg-red-900/20 p-2 rounded border border-red-900/40" vid="351">
+                        <div class="mt-0.5 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" vid="352"></div>
+                        Photos show mismatched tires on front/rear.
+                    </li>
+                    <li class="flex items-start gap-2 text-sm text-red-200 bg-red-900/20 p-2 rounded border border-red-900/40" vid="353">
+                        <div class="mt-0.5 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500" vid="354"></div>
+                        First owner was corporate rental fleet.
+                    </li>
+                </ul>
+            </div>
+
+            
+            <div class="bg-[#1a1816] border border-[#2a2825] rounded-xl p-4" vid="355">
+                <h3 class="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-3 flex items-center gap-2" vid="356">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="357"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" vid="358"></path></svg>
+                    Rideshare / ROI Projections
+                </h3>
+                <div class="grid grid-cols-2 gap-3" vid="359">
+                    <div class="bg-[#11100e] border border-[#2a2825] rounded p-3" vid="360">
+                        <div class="text-[10px] text-gray-500 uppercase" vid="361">Qualifies For</div>
+                        <div class="text-sm font-medium text-gray-200 mt-1" vid="362">UberX, Comfort</div>
+                    </div>
+                    <div class="bg-[#11100e] border border-[#2a2825] rounded p-3" vid="363">
+                        <div class="text-[10px] text-gray-500 uppercase" vid="364">Est. Monthly Net</div>
+                        <div class="text-sm font-medium text-green-400 mt-1" vid="365">+$1,450 / mo</div>
+                    </div>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-2" vid="366">*Based on 35hrs/wk in primary market, deducting est. mpg &amp; maintenance.</p>
+            </div>
+
+            
+            <div class="grid grid-cols-2 gap-3" vid="367">
+                <button class="bg-[#1e1c19] hover:bg-[#2a2825] border border-[#3a3730] text-gray-200 p-3 rounded-lg flex flex-col items-center justify-center gap-2 transition-colors group" vid="368">
+                    <svg class="w-6 h-6 text-cyan-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="369"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" vid="370"></path></svg>
+                    <span class="text-xs font-medium" vid="371">Negotiation Script</span>
+                </button>
+                <button class="bg-[#1e1c19] hover:bg-[#2a2825] border border-[#3a3730] text-gray-200 p-3 rounded-lg flex flex-col items-center justify-center gap-2 transition-colors group" vid="372">
+                    <svg class="w-6 h-6 text-cyan-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="373"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" vid="374"></path></svg>
+                    <span class="text-xs font-medium" vid="375">Full Intel Report</span>
+                </button>
+            </div>
+
+        </div>
+
+        
+        <div class="h-64 border-t border-[#262420] bg-[#0a0905] flex flex-col flex-shrink-0 relative" vid="376">
+            <div class="px-4 py-2 border-b border-[#262420] bg-[#11100e] flex justify-between items-center" vid="377">
+                <span class="text-xs font-semibold text-cyan-500" vid="378">Ask VERA</span>
+                <button class="text-gray-500 hover:text-white" vid="379"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="380"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" vid="381"></path></svg></button>
+            </div>
+            
+            
+            <div class="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide text-sm" vid="382">
+                
+                <div class="flex gap-3" vid="383">
+                    <div class="w-6 h-6 rounded bg-cyan-900/50 flex items-center justify-center flex-shrink-0 border border-cyan-800" vid="384">
+                        <span class="text-[10px] text-cyan-400 font-bold" vid="385">V</span>
+                    </div>
+                    <div class="text-gray-300 bg-[#161513] p-2 rounded-lg rounded-tl-none border border-[#2a2825] text-xs" vid="386">
+                        I've analyzed the listing. The AC issue mentioned in the description is a significant leverage point. Would you like me to draft a text message offering $19,500 based on this?
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 flex-row-reverse" vid="387">
+                    <div class="w-6 h-6 rounded bg-[#2a2825] flex items-center justify-center flex-shrink-0 text-xs font-medium" vid="388">
+                        JS
+                    </div>
+                    <div class="text-gray-200 bg-cyan-900/40 p-2 rounded-lg rounded-tr-none border border-cyan-800/50 text-xs" vid="389">
+                        Yes, keep it polite but firm.
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="p-3 border-t border-[#262420] bg-[#11100e]" vid="390">
+                <div class="relative" vid="391">
+                    <input type="text" placeholder="Command VERA..." class="w-full bg-[#050403] border border-[#3a3730] rounded-full pl-4 pr-10 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600" vid="392">
+                    <button class="absolute right-1 top-1 bottom-1 w-8 bg-cyan-600 hover:bg-cyan-500 rounded-full flex items-center justify-center text-white transition-colors" vid="393">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" vid="394"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" vid="395"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </aside>
+
+
+</body></html>

@@ -37,6 +37,25 @@ const HistoryItem = ({ name, price, time, verdict, active }: { name: string; pri
   );
 };
 
+const CircleScore = ({ score, colorClass }: { score: number; colorClass: string }) => (
+  <div className="relative w-12 h-12 flex items-center justify-center">
+    <svg className="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 36 36">
+      <path
+        className="text-[#2a2825]"
+        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+        fill="none" stroke="currentColor" strokeWidth="3"
+      />
+      <path
+        className={colorClass}
+        strokeDasharray={`${score}, 100`}
+        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+        fill="none" stroke="currentColor" strokeWidth="3"
+      />
+    </svg>
+    <span className="text-xs font-black text-white">{score}</span>
+  </div>
+);
+
 const Sidebar = () => {
   const history = [
     { name: '2019 Toyota RAV4', price: '$22,500', time: '2 hrs ago', verdict: 'Good', active: true },

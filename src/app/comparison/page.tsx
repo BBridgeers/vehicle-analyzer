@@ -60,7 +60,7 @@ const tierBadgeBase = {
   letterSpacing: '0.05em',
 };
 
-const Header = ({ activeNav, setActiveNav }: { activeNav: string; setActiveNav: (id: string) => void }) => {
+const Header = ({ activeNav }: { activeNav: string; setActiveNav?: (id: string) => void }) => {
   return (
     <header className="h-20 bg-[#0d0c0a] border-b border-[#262420] flex items-center justify-between px-8 shrink-0 z-50">
       <div className="flex items-center gap-10">
@@ -74,34 +74,34 @@ const Header = ({ activeNav, setActiveNav }: { activeNav: string; setActiveNav: 
         </div>
 
         <nav className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveNav('new')}
+          <Link
+            href="/"
             className={`px-5 py-2 text-sm font-semibold transition-all flex items-center gap-2 ${activeNav === 'new' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
             New Evaluation
-          </button>
-          <button
-            onClick={() => setActiveNav('fleet')}
+          </Link>
+          <Link
+            href="/fleet"
             className={`px-5 py-2 text-sm font-semibold transition-all flex items-center gap-2 ${activeNav === 'fleet' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
             Fleet Dashboard
-          </button>
-          <button
-            onClick={() => setActiveNav('matrix')}
+          </Link>
+          <Link
+            href="/comparison"
             className={`px-5 py-2 rounded-lg text-sm font-black flex items-center gap-2 ${activeNav === 'matrix' ? 'bg-cyan-900/20 text-cyan-400 border border-cyan-800/30' : 'text-gray-400 hover:text-white'}`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
             Comparison Matrix
-          </button>
-          <button
-            onClick={() => setActiveNav('analytics')}
+          </Link>
+          <Link
+            href="/analytics"
             className={`px-5 py-2 text-sm font-semibold transition-all flex items-center gap-2 ${activeNav === 'analytics' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
             Market Analytics
-          </button>
+          </Link>
         </nav>
       </div>
 

@@ -40,13 +40,23 @@ const CheckboxControl = ({ checked, onChange }: { checked: boolean; onChange: ()
   </label>
 );
 
-const VehicleCard = ({ vehicle, checked, onToggle }: { vehicle: any; checked: boolean; onToggle: () => void }) => (
+const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; checked: boolean; onToggle: () => void; onDelete: (e: React.MouseEvent) => void }) => (
   <div
     className="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative"
     onClick={onToggle}
   >
-    <div className="absolute top-3 left-3 z-10">
+    <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
       <CheckboxControl checked={checked} onChange={onToggle} />
+    </div>
+    <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+      <button 
+        onClick={onDelete}
+        className="p-1.5 bg-red-950/30 text-red-500 hover:bg-red-900/50 rounded-md border border-red-900/30 transition-colors"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
     </div>
     <div className="p-5 border-b border-[#262420] relative">
       <div className="flex justify-between items-start mb-4 pl-8">
@@ -155,9 +165,48 @@ const initialVehicles = [
   },
 ];
 
+import { useRouter } from 'next/navigation';
+
 const FleetDashboard = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('Active');
-  const [selected, setSelected] = useState<Record<number, boolean>>({ 1: true, 2: true });
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Record<number, boolean>>({});
+
+  const fetchFleet = async () => {
+    try {
+      const res = await fetch('/api/fleet');
+      if (res.ok) {
+        const data = await res.json();
+        setVehicles(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch fleet:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFleet();
+  }, []);
+
+  const handleDelete = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this evaluation?')) return;
+    
+    try {
+      await fetch('/api/fleet', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      setVehicles(prev => prev.filter(v => v.id !== id));
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
 
   const toggleSelect = (id: number) => {
     setSelected(prev => ({ ...prev, [id]: !prev[id] }));
@@ -166,6 +215,12 @@ const FleetDashboard = () => {
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   const clearSelection = () => setSelected({});
+
+  const handleCompare = () => {
+    const selectedIds = Object.keys(selected).filter(id => selected[Number(id)]);
+    localStorage.setItem('vera_comparison_ids', JSON.stringify(selectedIds));
+    router.push('/comparison');
+  };
 
   return (
     <div className="bg-[#0a0905] text-gray-200 h-screen w-full flex overflow-hidden font-sans" style={{ fontFamily: 'sans-serif' }}>
@@ -185,12 +240,12 @@ const FleetDashboard = () => {
             </svg>
             New Evaluation
           </Link>
-          <Link href="/comparison" className="flex items-center gap-3 px-3 py-2 bg-cyan-950/30 text-cyan-400 rounded-md text-sm font-medium transition-colors border border-cyan-900/30">
+          <button className="w-full flex items-center gap-3 px-3 py-2 bg-cyan-950/30 text-cyan-400 rounded-md text-sm font-medium transition-colors border border-cyan-900/30">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
             Fleet Dashboard
-          </Link>
+          </button>
           <Link href="/comparison" className="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#1a1816] rounded-md text-sm font-medium transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -199,7 +254,7 @@ const FleetDashboard = () => {
           </Link>
           <Link href="/analytics" className="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#1a1816] rounded-md text-sm font-medium transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
             </svg>
             Market Analytics
           </Link>
@@ -208,18 +263,14 @@ const FleetDashboard = () => {
         <div className="flex-1 overflow-y-auto p-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Analysis History</h3>
           <div className="space-y-3">
-            <div className="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors">
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-sm font-medium text-gray-300">2019 Honda Civic</span>
-                <span className="text-xs text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">Strong</span>
+            {vehicles.slice(0, 3).map(v => (
+              <div key={v.id} className="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors">
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-sm font-medium text-gray-300 truncate pr-2">{v.name}</span>
+                  <span className={`text-[10px] ${v.scoreColor} bg-white/5 px-1.5 py-0.5 rounded font-black`}>{v.score}</span>
+                </div>
               </div>
-            </div>
-            <div className="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors">
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-sm font-medium text-gray-300">2019 Toyota RAV4</span>
-                <span className="text-xs text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">Good</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -237,13 +288,16 @@ const FleetDashboard = () => {
         <header className="h-16 flex items-center justify-between px-8 border-b border-[#262420] flex-shrink-0 bg-[#0a0905]/90 backdrop-blur z-30">
           <div className="flex flex-col">
             <h1 className="text-xl font-semibold text-gray-100">Fleet Dashboard</h1>
-            <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Monitoring 14 Active Units</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Monitoring {vehicles.length} Units</p>
           </div>
           <div className="flex items-center gap-3">
             {selectedCount > 0 && (
-              <div className="flex items-center gap-3 bg-cyan-950/30 border border-cyan-800/50 rounded-lg px-3 py-1.5">
+              <div className="flex items-center gap-3 bg-cyan-950/30 border border-cyan-800/50 rounded-lg px-3 py-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
                 <span className="text-xs text-cyan-400 font-medium">{selectedCount} selected</span>
-                <button className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1.5">
+                <button 
+                  onClick={handleCompare}
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1.5 shadow-lg shadow-cyan-900/20"
+                >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
@@ -263,27 +317,52 @@ const FleetDashboard = () => {
                 </button>
               ))}
             </div>
-            <button className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-md text-sm font-bold transition-colors flex items-center gap-2">
+            <Link href="/" className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-md text-sm font-bold transition-colors flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
               </svg>
               New Analysis
-            </button>
+            </Link>
           </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {initialVehicles.map(vehicle => (
-              <VehicleCard
-                key={vehicle.id}
-                vehicle={vehicle}
-                checked={!!selected[vehicle.id]}
-                onToggle={() => toggleSelect(vehicle.id)}
-              />
-            ))}
-            <AddCard />
-          </div>
+          {loading ? (
+            <div className="h-64 flex flex-col items-center justify-center space-y-4">
+              <div className="w-12 h-12 border-4 border-cyan-800 border-t-cyan-400 rounded-full animate-spin"></div>
+              <p className="text-gray-500 font-medium tracking-wide">Syncing with Cloud Intelligence...</p>
+            </div>
+          ) : vehicles.length === 0 ? (
+            <div className="h-64 flex flex-col items-center justify-center space-y-6">
+              <div className="p-6 bg-[#11100e] border border-[#262420] rounded-2xl flex flex-col items-center text-center max-w-sm">
+                <div className="w-16 h-16 bg-cyan-950/30 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-gray-200">No Fleet Units Detected</h3>
+                <p className="text-sm text-gray-500 mt-2">Start by capturing a listing or decoding a VIN to build your evaluation matrix.</p>
+                <Link href="/" className="mt-6 bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg font-bold transition-all shadow-lg shadow-cyan-900/20">
+                  Begin First Scan
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {vehicles.map(vehicle => (
+                <VehicleCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  checked={!!selected[vehicle.id]}
+                  onToggle={() => toggleSelect(vehicle.id)}
+                  onDelete={(e) => handleDelete(vehicle.id, e)}
+                />
+              ))}
+              <Link href="/">
+                <AddCard />
+              </Link>
+            </div>
+          )}
         </div>
       </main>
     </div>

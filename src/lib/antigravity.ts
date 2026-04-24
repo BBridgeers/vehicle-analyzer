@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { VisionManager } from './vision-engine';
 
 // Note: Upstash Redis automatically uses KV_REST_API_URL and KV_REST_API_TOKEN from env
 let redis: Redis | null = null;
@@ -218,15 +219,21 @@ export class AntigravityEngine {
     }
 
     async processVisionInput(dataUrl: string) {
-        // For now, return empty results - full vision processing requires API key configuration
-        // This is a placeholder until VERA Groq API is configured
+        const manager = new VisionManager({
+            groqKey: process.env.GROQ_API_KEY,
+            ollamaHost: process.env.OLLAMA_HOST
+        });
+
+        const prompt = `Extract vehicle details from this listing screenshot. Return JSON with: vin, year, make, model, price, mileage.`;
+        const result = await manager.extract(dataUrl, prompt);
+
         return {
-            vin: null,
-            year: null,
-            make: null,
-            model: null,
-            price: null,
-            mileage: null,
+            vin: result?.vin || null,
+            year: result?.year || null,
+            make: result?.make || null,
+            model: result?.model || null,
+            price: result?.price || null,
+            mileage: result?.mileage || null,
         };
     }
 

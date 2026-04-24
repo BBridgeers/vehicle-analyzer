@@ -54,7 +54,7 @@ CRITICAL RULES:
 export async function POST(request: Request) {
     // ── Rate Limiting ──
     const ip = getClientIp(request);
-    const rl = rateLimit(`extract:${ip}`, EXTRACT_LIMIT.max, EXTRACT_LIMIT.windowMs);
+    const rl = await rateLimit(`extract:${ip}`, EXTRACT_LIMIT.max, EXTRACT_LIMIT.windowSec);
     if (!rl.allowed) {
         return NextResponse.json(
             { error: `Rate limit exceeded. You can analyze ${EXTRACT_LIMIT.max} listings per hour. Resets at ${new Date(rl.resetAt).toLocaleTimeString()}.` },
@@ -83,7 +83,6 @@ export async function POST(request: Request) {
 
         const { VisionManager } = require('@/lib/vision-engine');
         const manager = new VisionManager({
-            geminiKey: process.env.GEMINI_API_KEY || process.env.GeminiKey,
             groqKey: process.env.GROQ_API_KEY,
             ollamaHost: process.env.OLLAMA_HOST
         });

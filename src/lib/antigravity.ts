@@ -1,7 +1,7 @@
 import { Redis } from '@upstash/redis';
 import { VisionManager } from './vision-engine';
 
-// Note: Upstash Redis automatically uses KV_REST_API_URL and KV_REST_API_TOKEN from env
+// Upstash Redis automatically uses KV_REST_API_URL and KV_REST_API_TOKEN from env
 let redis: Redis | null = null;
 try {
     redis = Redis.fromEnv();

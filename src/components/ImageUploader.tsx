@@ -4,10 +4,12 @@ import { useState, useCallback } from "react";
 import { Upload, X, ImageIcon } from "lucide-react";
 
 interface Props {
-    onImagesChange: (files: File[]) => void;
+    onImagesChange?: (files: File[]) => void;
+    onUpload?: (data: any) => void;
+    isLoading?: boolean;
 }
 
-export default function ImageUploader({ onImagesChange }: Props) {
+export default function ImageUploader({ onImagesChange, onUpload, isLoading }: Props) {
     const [images, setImages] = useState<{ file: File; preview: string }[]>([]);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -27,7 +29,7 @@ export default function ImageUploader({ onImagesChange }: Props) {
 
             const updated = [...images, ...newImages];
             setImages(updated);
-            onImagesChange(updated.map((i) => i.file));
+            if (onImagesChange) onImagesChange(updated.map((i) => i.file));
         },
         [images, onImagesChange]
     );
@@ -47,7 +49,7 @@ export default function ImageUploader({ onImagesChange }: Props) {
         URL.revokeObjectURL(images[index].preview);
         const updated = images.filter((_, i) => i !== index);
         setImages(updated);
-        onImagesChange(updated.map((i) => i.file));
+        if (onImagesChange) onImagesChange(updated.map((i) => i.file));
     };
 
     return (

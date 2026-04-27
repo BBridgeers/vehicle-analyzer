@@ -1,7 +1,7 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import ListingCapture from '@/components/ListingCapture';
+import ImageUploader from '@/components/ImageUploader';
 
 const customStyles: Record<string, React.CSSProperties> = {
   scrollbarHide: {
@@ -113,33 +113,449 @@ const Sidebar = () => {
   );
 };
 
-const QuickImportSection = ({ form, setForm, isAnalyzing }: { form: any; setForm: React.Dispatch<React.SetStateAction<any>>; isAnalyzing: boolean }) => (
-  <section className="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm">
-    <div className="px-5 py-4 border-b border-[#2a2825] flex justify-between items-center bg-[#161513]">
-      <h2 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-        <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-        V.E.R.A. Intelligence Capture
-      </h2>
-      <span className="text-xs text-gray-500 tracking-tight">AI Vision Engine (Gemini / Groq / Llama)</span>
-    </div>
-    <div className="p-5">
-      <ListingCapture 
-        isLoading={isAnalyzing}
-        onExtracted={(data: any) => {
-          setForm((f: any) => ({
-            ...f,
-            ...data,
-            // Ensure numbers are converted as needed if the form expects strings
-            price: data.price ? String(data.price) : f.price,
-            mileage: data.mileage ? String(data.mileage) : f.mileage,
-            year: data.year ? String(data.year) : f.year,
-          }));
-        }} 
-        onUrlUpdate={(url) => setForm((f: any) => ({ ...f, listingUrl: url }))}
-      />
-    </div>
-  </section>
-);
+// ─── Quick Import & Auto-Fill ─────────────────────────────────────────────────
+const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult }: {
+  form: any;
+  setForm: React.Dispatch<React.SetStateAction<any>>;
+  isAnalyzing: boolean;
+  onCarfaxResult?: (result: any) => void;
+}) => {
+  // ── Listing URL + Scrape ──
+  const [listingUrl, setListingUrl] = useState(form.listingUrl || '');
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeError, setScrapeError] = useState('');
+
+  const handleScrape = async () => {
+    const url = listingUrl.trim();
+    if (!url) return;
+    setIsScraping(true);
+    setScrapeError('');
+    try {
+      const res = await fetch('/api/import-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Scrape failed');
+      const v = data.vehicle;
+      setForm((f: any) => ({
+        ...f,
+        listingUrl: url,
+        year: v.year ? String(v.year) : f.year,
+        make: v.make || f.make,
+        model: v.model || f.model,
+        price: v.price ? String(v.price) : f.price,
+        mileage: v.mileage ? String(v.mileage) : f.mileage,
+        vin: v.vin || f.vin,
+        location: v.location || f.location,
+        exteriorColor: v.exteriorColor || f.exteriorColor,
+        transmission: v.transmission || f.transmission,
+        fuelType: v.fuelType || f.fuelType,
+      }));
+    } catch (e: any) {
+      setScrapeError(e.message);
+    } finally {
+      setIsScraping(false);
+    }
+  };
+
+  // ── Screenshot Paste/Drop ──
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [screenshotStatus, setScreenshotStatus] = useState<'idle'|'extracting'|'done'|'error'>('idle');
+  const [screenshotError, setScreenshotError] = useState('');
+  const [isDraggingShot, setIsDraggingShot] = useState(false);
+  const shotDragCounter = useRef(0);
+  const screenshotInputRef = useRef<HTMLInputElement>(null);
+
+  const processScreenshot = useCallback(async (file: File) => {
+    const previewUrl = URL.createObjectURL(file);
+    setScreenshotPreview(previewUrl);
+    setScreenshotStatus('extracting');
+    setScreenshotError('');
+    try {
+      const buffer = await file.arrayBuffer();
+      const base64 = btoa(new Uint8Array(buffer).reduce((d, b) => d + String.fromCharCode(b), ''));
+      const res = await fetch('/api/extract-listing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, mimeType: file.type, manualUrl: listingUrl.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Extraction failed');
+      const v = data.vehicle;
+      setForm((f: any) => ({
+        ...f,
+        ...v,
+        price: v.price ? String(v.price) : f.price,
+        mileage: v.mileage ? String(v.mileage) : f.mileage,
+        year: v.year ? String(v.year) : f.year,
+      }));
+      setScreenshotStatus('done');
+    } catch (e: any) {
+      setScreenshotError(e.message);
+      setScreenshotStatus('error');
+    }
+  }, [listingUrl, setForm]);
+
+  // Global paste handler for screenshots
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (screenshotStatus === 'extracting') return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) processScreenshot(file);
+          return;
+        }
+      }
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [screenshotStatus, processScreenshot]);
+
+  const clearScreenshot = () => {
+    if (screenshotPreview) URL.revokeObjectURL(screenshotPreview);
+    setScreenshotPreview(null);
+    setScreenshotStatus('idle');
+    setScreenshotError('');
+  };
+
+  // ── Vehicle Photos (multi-file) ──
+  const [photos, setPhotos] = useState<{file: File; preview: string}[]>([]);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
+  const photoDragCounter = useRef(0);
+
+  const addPhotos = (files: FileList | File[]) => {
+    const valid = ['image/jpeg','image/png','image/webp'];
+    const newPhotos: {file: File; preview: string}[] = [];
+    Array.from(files).forEach(f => {
+      if (valid.includes(f.type) && photos.length + newPhotos.length < 10)
+        newPhotos.push({ file: f, preview: URL.createObjectURL(f) });
+    });
+    setPhotos(p => [...p, ...newPhotos]);
+  };
+
+  const removePhoto = (i: number) => {
+    URL.revokeObjectURL(photos[i].preview);
+    setPhotos(p => p.filter((_, idx) => idx !== i));
+  };
+
+  // ── CARFAX Report Upload ──
+  const [carfaxFile, setCarfaxFile] = useState<File | null>(null);
+  const [carfaxStatus, setCarfaxStatus] = useState<'idle'|'parsing'|'done'|'error'>('idle');
+  const [carfaxError, setCarfaxError] = useState('');
+  const [carfaxResult, setCarfaxResult] = useState<any>(null);
+  const [isDraggingCarfax, setIsDraggingCarfax] = useState(false);
+  const carfaxDragCounter = useRef(0);
+  const carfaxInputRef = useRef<HTMLInputElement>(null);
+
+  const processCarfax = async (file: File) => {
+    setCarfaxFile(file);
+    setCarfaxStatus('parsing');
+    setCarfaxError('');
+    setCarfaxResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('pdf', file);
+      const res = await fetch('/api/analyze-carfax', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Analysis failed');
+      setCarfaxResult(data);
+      setCarfaxStatus('done');
+      if (onCarfaxResult) onCarfaxResult(data);
+      // Auto-fill title status if CARFAX reveals it
+      if (data.titleStatus) setForm((f: any) => ({ ...f, titleStatus: data.titleStatus }));
+    } catch (e: any) {
+      setCarfaxError(e.message);
+      setCarfaxStatus('error');
+    }
+  };
+
+  const clearCarfax = () => { setCarfaxFile(null); setCarfaxStatus('idle'); setCarfaxError(''); setCarfaxResult(null); };
+
+  return (
+    <section className="mb-6">
+      <div className="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm">
+        {/* Header */}
+        <div className="px-5 py-3 border-b border-[#2a2825] bg-[#161513] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            <h2 className="text-sm font-semibold text-gray-200">Quick Import &amp; Auto-Fill</h2>
+          </div>
+          <span className="text-[10px] text-gray-500">AI extracts data from screenshots &amp; URLs</span>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Row 1: Listing URL + Scrape | Quick Reference URL */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Listing URL */}
+            <div>
+              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-1.5">
+                Listing URL
+                <span className="ml-1.5 text-cyan-500 normal-case font-normal">Auto-detects platform</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="listing-url-input"
+                  type="url"
+                  value={listingUrl}
+                  onChange={e => { setListingUrl(e.target.value); setForm((f: any) => ({ ...f, listingUrl: e.target.value })); setScrapeError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && handleScrape()}
+                  placeholder="https://www.facebook.com/marketplace/item/..."
+                  className="flex-1 min-w-0 bg-[#050403] border border-[#3a3730] rounded-l-md px-3 py-2 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
+                />
+                <button
+                  onClick={handleScrape}
+                  disabled={!listingUrl.trim() || isScraping}
+                  className="bg-cyan-700 hover:bg-cyan-600 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-r-md text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                  id="scrape-btn"
+                >
+                  {isScraping ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  )}
+                  {isScraping ? 'Scraping...' : 'Scrape'}
+                </button>
+              </div>
+              {scrapeError && <p className="mt-1 text-[10px] text-red-400">{scrapeError}</p>}
+            </div>
+
+            {/* Quick Reference URL */}
+            <div>
+              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-1.5">Quick Reference URL</label>
+              <input
+                id="reference-url-input"
+                type="url"
+                value={form.referenceUrl || ''}
+                onChange={e => setForm((f: any) => ({ ...f, referenceUrl: e.target.value }))}
+                placeholder="Comparison URL..."
+                className="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#3a3730] focus:ring-1 focus:ring-gray-700"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Screenshot Dropzone | Vehicle Photos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Listing Screenshot */}
+            <div>
+              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-1.5">
+                Listing Screenshot
+                <span className="ml-1.5 text-cyan-500 normal-case font-normal">Ctrl+V paste enabled</span>
+              </label>
+              <div
+                onDragEnter={e => { e.preventDefault(); shotDragCounter.current += 1; setIsDraggingShot(true); }}
+                onDragLeave={e => { e.preventDefault(); shotDragCounter.current -= 1; if (shotDragCounter.current === 0) setIsDraggingShot(false); }}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); shotDragCounter.current = 0; setIsDraggingShot(false); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) processScreenshot(f); }}
+                onClick={() => screenshotStatus === 'idle' && screenshotInputRef.current?.click()}
+                className={`relative rounded-lg border-2 border-dashed transition-all cursor-pointer overflow-hidden
+                  ${ isDraggingShot ? 'border-cyan-500 bg-cyan-500/5' : screenshotStatus === 'idle' ? 'border-[#3a3730] hover:border-cyan-700 hover:bg-[#1a1816]' : 'border-transparent' }`}
+                style={{ minHeight: '90px' }}
+              >
+                <input ref={screenshotInputRef} type="file" accept="image/*" className="hidden" id="screenshot-input" title="Upload listing screenshot" onChange={e => { const f = e.target.files?.[0]; if (f) processScreenshot(f); }} />
+
+                {screenshotStatus === 'idle' && (
+                  <div className="flex flex-col items-center justify-center gap-1.5 p-5 text-center">
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <p className="text-xs text-gray-500">Drop, paste or <span className="text-cyan-500 underline">browse</span> listing screenshot</p>
+                  </div>
+                )}
+
+                {screenshotPreview && screenshotStatus !== 'idle' && (
+                  <div className="relative">
+                    <img src={screenshotPreview} alt="Listing" className={`w-full max-h-[110px] object-cover transition-all ${ screenshotStatus === 'extracting' ? 'opacity-40 blur-[1px]' : '' }`} />
+                    {screenshotStatus === 'extracting' && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                        <svg className="w-6 h-6 text-cyan-400 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                        <span className="ml-2 text-white text-xs">Extracting...</span>
+                      </div>
+                    )}
+                    {screenshotStatus === 'done' && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                        <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                        <span className="ml-2 text-emerald-300 text-xs font-semibold">Fields extracted!</span>
+                      </div>
+                    )}
+                    {screenshotStatus === 'error' && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                        <span className="text-red-300 text-xs px-2 text-center">{screenshotError}</span>
+                      </div>
+                    )}
+                    {screenshotStatus !== 'extracting' && (
+                      <button onClick={e => { e.stopPropagation(); clearScreenshot(); }} className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black text-xs" title="Clear">
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Vehicle Photos - Multi-file */}
+            <div>
+              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-1.5">
+                Vehicle Photos <span className="text-gray-500 normal-case font-normal">Multi-file</span>
+              </label>
+              <div
+                onDragEnter={e => { e.preventDefault(); photoDragCounter.current += 1; setIsDraggingPhoto(true); }}
+                onDragLeave={e => { e.preventDefault(); photoDragCounter.current -= 1; if (photoDragCounter.current === 0) setIsDraggingPhoto(false); }}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); photoDragCounter.current = 0; setIsDraggingPhoto(false); if (e.dataTransfer.files.length) addPhotos(e.dataTransfer.files); }}
+                onClick={() => photoInputRef.current?.click()}
+                className={`rounded-lg border-2 border-dashed transition-all cursor-pointer overflow-hidden
+                  ${ isDraggingPhoto ? 'border-cyan-500 bg-cyan-500/5' : 'border-[#3a3730] hover:border-cyan-700 hover:bg-[#1a1816]' }`}
+                style={{ minHeight: '90px' }}
+              >
+                <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" id="vehicle-photos-input" title="Upload vehicle photos" onChange={e => { if (e.target.files) addPhotos(e.target.files); e.target.value = ''; }} />
+
+                {photos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-1.5 p-5 text-center">
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4" /></svg>
+                    <p className="text-xs text-gray-500">+ Add vehicle photos</p>
+                    <p className="text-[10px] text-gray-600">JPEG, PNG, WEBP</p>
+                  </div>
+                ) : (
+                  <div className="p-2">
+                    <div className="grid grid-cols-5 gap-1 mb-1.5">
+                      {photos.map((ph, i) => (
+                        <div key={i} className="relative group aspect-square rounded overflow-hidden border border-[#3a3730]">
+                          <img src={ph.preview} alt={`Photo ${i+1}`} className="w-full h-full object-cover" />
+                          <button onClick={e => { e.stopPropagation(); removePhoto(i); }} className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[9px]" title="Remove">✕</button>
+                        </div>
+                      ))}
+                      {photos.length < 10 && (
+                        <div className="aspect-square rounded border-2 border-dashed border-[#3a3730] flex items-center justify-center text-gray-600 hover:border-cyan-700">
+                          <span className="text-lg">+</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-500 text-center">{photos.length}/10 photos</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: CARFAX Report Upload */}
+          <div>
+            <label className="block text-[10px] font-medium text-amber-400 uppercase tracking-widest mb-1.5">
+              CARFAX Report
+              <span className="ml-1.5 text-gray-500 normal-case font-normal">Upload PDF — AI generates full buying recommendation</span>
+            </label>
+            <div
+              onDragEnter={e => { e.preventDefault(); e.stopPropagation(); carfaxDragCounter.current += 1; setIsDraggingCarfax(true); }}
+              onDragLeave={e => { e.preventDefault(); e.stopPropagation(); carfaxDragCounter.current -= 1; if (carfaxDragCounter.current === 0) setIsDraggingCarfax(false); }}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={e => {
+                e.preventDefault(); e.stopPropagation();
+                carfaxDragCounter.current = 0; setIsDraggingCarfax(false);
+                const f = e.dataTransfer.files[0];
+                // Windows Explorer drag often gives empty type — accept by extension too
+                const isPdf = f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+                if (isPdf) processCarfax(f);
+                else if (f) setCarfaxError('Please drop a PDF file. Got: ' + (f.name || 'unknown'));
+              }}
+              onClick={() => carfaxInputRef.current?.click()}
+              className={`rounded-lg border-2 border-dashed transition-all overflow-hidden
+                ${ isDraggingCarfax ? 'border-amber-500 bg-amber-500/5 cursor-copy'
+                  : carfaxStatus === 'idle' ? 'border-[#3a3730] hover:border-amber-700 hover:bg-[#1c1810] cursor-pointer'
+                  : carfaxStatus === 'done' ? 'border-emerald-800/50 cursor-pointer'
+                  : 'border-transparent cursor-default' }`}
+              id="carfax-dropzone"
+            >
+              <input ref={carfaxInputRef} type="file" accept="application/pdf" className="hidden" id="carfax-input" title="Upload CARFAX Report PDF" onChange={e => { const f = e.target.files?.[0]; if (f) processCarfax(f); e.target.value = ''; }} />
+
+              {carfaxStatus === 'idle' && (
+                <div className="flex items-center gap-4 p-4">
+                  <div className="w-10 h-10 rounded-lg bg-amber-900/20 border border-amber-800/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-amber-300">Drop CARFAX PDF here or click to browse</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">Includes rebuilt title analysis, accident severity, owner history &amp; buy/skip recommendation</p>
+                  </div>
+                </div>
+              )}
+
+              {carfaxStatus === 'parsing' && (
+                <div className="flex items-center gap-3 p-4">
+                  <svg className="w-5 h-5 text-amber-400 animate-spin flex-shrink-0" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                  <div>
+                    <p className="text-xs font-medium text-amber-300">{carfaxFile?.name}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Groq AI is reading the report...</p>
+                  </div>
+                </div>
+              )}
+
+              {carfaxStatus === 'error' && (
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <p className="text-xs text-red-300">{carfaxError}</p>
+                  </div>
+                  <button onClick={clearCarfax} className="text-[10px] text-gray-500 hover:text-white underline ml-4">Try again</button>
+                </div>
+              )}
+
+              {carfaxStatus === 'done' && carfaxResult && (
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                      <span className="text-xs font-semibold text-emerald-300">CARFAX Analyzed: {carfaxFile?.name}</span>
+                    </div>
+                    <button onClick={clearCarfax} className="text-[10px] text-gray-500 hover:text-white">✕ Clear</button>
+                  </div>
+
+                  {/* Verdict badge */}
+                  <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border
+                    ${ carfaxResult.verdict === 'BUY' ? 'bg-emerald-900/30 border-emerald-700/50 text-emerald-300'
+                      : carfaxResult.verdict === 'SKIP' ? 'bg-red-900/30 border-red-700/50 text-red-300'
+                      : 'bg-amber-900/30 border-amber-700/50 text-amber-300' }`}>
+                    { carfaxResult.verdict === 'BUY' ? '✅' : carfaxResult.verdict === 'SKIP' ? '🚫' : '⚠️' }
+                    {carfaxResult.verdict} — {carfaxResult.verdictReason}
+                  </div>
+
+                  {/* Key facts grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
+                    {carfaxResult.owners && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Owners</div><div className="text-gray-200 font-semibold">{carfaxResult.owners}</div></div>}
+                    {carfaxResult.accidents && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Accidents</div><div className="text-amber-300 font-semibold">{carfaxResult.accidents}</div></div>}
+                    {carfaxResult.titleStatus && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Title</div><div className={`font-semibold ${ carfaxResult.titleStatus === 'Clean' ? 'text-emerald-300' : 'text-orange-300' }`}>{carfaxResult.titleStatus}</div></div>}
+                    {carfaxResult.serviceRecords && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Service Recs</div><div className="text-gray-200 font-semibold">{carfaxResult.serviceRecords}</div></div>}
+                  </div>
+
+                  {/* Summary */}
+                  {carfaxResult.summary && (
+                    <p className="text-[10px] text-gray-400 leading-relaxed border-t border-[#2a2825] pt-2">{carfaxResult.summary}</p>
+                  )}
+
+                  {/* Red flags */}
+                  {carfaxResult.redFlags?.length > 0 && (
+                    <div className="space-y-1">
+                      {carfaxResult.redFlags.map((flag: string, i: number) => (
+                        <div key={i} className="flex items-start gap-1.5 text-[10px] text-red-300">
+                          <span className="mt-0.5 text-red-500">▸</span>{flag}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
 
 const CoreIdentitySection = ({ form, setForm }) => (
   <section className="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm">
@@ -432,15 +848,26 @@ const ConditionSection = ({ form, setForm }) => (
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Mechanical Condition</label>
+          <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Mechanical / Issues</label>
           <textarea
             rows={3}
-            placeholder="Engine sounds, transmission, leaks, warning lights..."
+            placeholder="Engine noises, warning lights, maintenance history, tire tread..."
             value={form.mechanicalCondition}
             onChange={e => setForm(f => ({ ...f, mechanicalCondition: e.target.value }))}
             className="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 resize-none"
           />
         </div>
+      </div>
+      
+      <div className="mt-8 pt-8 border-t border-[#2a2825]">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-200">Additional Photos & Visual Evidence</h3>
+            <p className="text-xs text-gray-500">Upload listing photos for interior/exterior condition and red flag analysis</p>
+          </div>
+          <span className="text-[10px] bg-cyan-900/30 text-cyan-400 px-2 py-0.5 rounded border border-cyan-800/50 uppercase tracking-widest font-mono">Vision AI Scan</span>
+        </div>
+        <ImageUploader onUpload={(data) => setForm((f: any) => ({ ...f, ...data }))} isLoading={false} />
       </div>
     </div>
   </section>

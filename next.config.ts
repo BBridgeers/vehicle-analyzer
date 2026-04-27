@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
     images: {
         unoptimized: true,
     },
-    serverExternalPackages: ['playwright-core', '@sparticuz/chromium', 'playwright-extra', 'puppeteer-extra-plugin-stealth'],
+    serverExternalPackages: ['playwright-core', '@sparticuz/chromium', 'playwright-extra', 'puppeteer-extra-plugin-stealth', 'pdfjs-dist'],
 };
 
 export default nextConfig;

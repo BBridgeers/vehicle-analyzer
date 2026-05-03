@@ -353,6 +353,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await pdfFile.arrayBuffer());
     let pdfText = '';
     let strategyUsed = '';
+    const errors: string[] = []; // diagnostic — see what fails
 
     // ── Strategy A: pdfjs text extraction ──────────────────────────────────
     try {
@@ -367,12 +368,14 @@ export async function POST(request: Request) {
         console.log(
           `[Carfax] Strategy A pulled ${text.length} chars but failed content validation — likely image-based PDF`
         );
+        errors.push(`Strategy A: extracted ${text.length} chars but failed content validation`);
       }
     } catch (e: any) {
       console.warn('[Carfax] Strategy A (pdfjs) failed:', e.message);
+      errors.push(`Strategy A (pdfjs): ${e.message}`);
     }
 
-    // ── Strategy B: pdf-parse alternative extraction ──────────────────────
+    // ── Strategy B: pdf-parse v2 alternative extraction ──────────────────
     if (!pdfText) {
       try {
         const text = await tryPdfParseExtract(buffer);
@@ -386,9 +389,11 @@ export async function POST(request: Request) {
           console.log(
             `[Carfax] Strategy B pulled ${text.length} chars but failed validation`
           );
+          errors.push(`Strategy B (pdf-parse): extracted ${text.length} chars but failed content validation`);
         }
       } catch (e: any) {
         console.warn('[Carfax] Strategy B (pdf-parse) failed:', e.message);
+        errors.push(`Strategy B (pdf-parse): ${e.message}`);
       }
     }
 
@@ -412,6 +417,7 @@ export async function POST(request: Request) {
         }
       } catch (e: any) {
         console.warn('[Carfax] Strategy C (canvas+vision) failed:', e.message);
+        errors.push(`Strategy C (canvas+vision): ${e.message}`);
       }
     }
 
@@ -421,6 +427,7 @@ export async function POST(request: Request) {
         {
           error:
             'Could not extract text from this PDF. Try downloading the CARFAX report fresh from carfax.com — make sure "Save as PDF" is used, not a screenshot or printed scan. If the issue persists, the PDF may be an image-based scan that requires a different export method.',
+          diagnostics: errors,
         },
         { status: 422 }
       );

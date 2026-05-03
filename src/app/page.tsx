@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import ImageUploader from '@/components/ImageUploader';
+import type { Vehicle } from '@/lib/types';
 
 const customStyles: Record<string, React.CSSProperties> = {
   scrollbarHide: {
@@ -120,11 +121,12 @@ const Sidebar = () => {
 };
 
 // ─── Quick Import & Auto-Fill ─────────────────────────────────────────────────
-const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult }: {
+const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunAnalysis }: {
   form: any;
   setForm: React.Dispatch<React.SetStateAction<any>>;
   isAnalyzing: boolean;
   onCarfaxResult?: (result: any) => void;
+  onRunAnalysis?: () => void;
 }) => {
   // ── Listing URL + Scrape ──
   const [listingUrl, setListingUrl] = useState(form.listingUrl || '');
@@ -159,6 +161,8 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult }: {
         transmission: v.transmission || f.transmission,
         fuelType: v.fuelType || f.fuelType,
       }));
+      // Auto-trigger AI analysis after URL scrape completes
+      setTimeout(() => onRunAnalysis?.(), 400);
     } catch (e: any) {
       setScrapeError(e.message);
     } finally {
@@ -198,6 +202,8 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult }: {
         year: v.year ? String(v.year) : f.year,
       }));
       setScreenshotStatus('done');
+      // Auto-trigger AI analysis after fields are extracted
+      setTimeout(() => onRunAnalysis?.(), 400);
     } catch (e: any) {
       setScreenshotError(e.message);
       setScreenshotStatus('error');
@@ -1097,7 +1103,7 @@ const MainContent = ({ form, setForm, activeMode, setActiveMode, onClearForm, on
 
     <div className="flex-1 overflow-y-auto p-8" style={customStyles.scrollbarHide}>
       <div className="max-w-4xl mx-auto space-y-8 pb-12">
-        <QuickImportSection form={form} setForm={setForm} isAnalyzing={isAnalyzing} />
+        <QuickImportSection form={form} setForm={setForm} isAnalyzing={isAnalyzing} onRunAnalysis={onRunAnalysis} />
         <CoreIdentitySection form={form} setForm={setForm} />
         <SpecificationsSection form={form} setForm={setForm} />
         <ListingContextSection form={form} setForm={setForm} />
@@ -1364,37 +1370,149 @@ const App = () => {
     ]);
 
     try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                query: `Analyze this vehicle for ${activeMode} use: ${JSON.stringify(form)}`,
-                context: form
-            }),
-        });
-        
-        if (response.ok) {
-            // In a real scenario, we'd parse structured output here.
-            // For now, let's simulate a calculated score based on price vs market.
-            const score = Math.floor(Math.random() * 20) + 75; // Real logic would be here
-            const equity = Math.floor(Math.random() * 3000);
-            
-            setAnalysisResult({
-                score,
-                equity: `+$${equity.toLocaleString()}`,
-                opex: `$${(Math.random() * 300 + 300).toFixed(0)}`,
-                badge: score > 85 ? 'Strong Buy' : 'Fair Deal',
-                badgeClass: score > 85 ? 'bg-emerald-500 text-[#0a0905]' : 'bg-cyan-600 text-white',
-                scoreColor: score > 85 ? 'text-emerald-500' : 'text-cyan-400',
+        // ── Build Vehicle object from form state ──
+        const vehicle: Vehicle = {
+            year: parseInt(form.year) || new Date().getFullYear(),
+            make: form.make,
+            model: form.model,
+            price: parseFloat(form.price) || 0,
+            mileage: parseFloat(form.mileage) || 0,
+            vin: form.vin || undefined,
+            location: form.location || undefined,
+            titleStatus: form.titleStatus || undefined,
+            seats: parseInt(form.seats) || undefined,
+            exteriorColor: form.exteriorColor || undefined,
+            interiorColor: form.interiorColor || undefined,
+            transmission: form.transmission || undefined,
+            fuelType: form.fuelType || undefined,
+            listingUrl: form.listingUrl || undefined,
+            description: form.sellerDescription || undefined,
+            postedDate: form.postedDate || undefined,
+            conditionExterior: form.exteriorCondition || undefined,
+            conditionInterior: form.interiorCondition || undefined,
+            conditionMechanical: form.mechanicalCondition || undefined,
+            sellerResponsiveness: (form.communication as any) || undefined,
+            sellerTransparency: (form.transparency as any) || undefined,
+            sellerRedFlags: form.redFlags || undefined,
+            sellerQuotes: form.sellerQuotes || undefined,
+        };
+
+        // ── Dynamic import to avoid SSR issues ──
+        const { analyzeVehicle } = await import('@/lib/analyze');
+        const result = analyzeVehicle(vehicle);
+
+        // ── Map to UI format ──
+        const score = result.verdictScore;
+        const equity = result.instantEquity;
+        const badgeMap: Record<string, string> = {
+            '🔥 STRONG BUY': 'Strong Buy',
+            '✅ RECOMMENDED': 'Recommended',
+            '⚠️ PROCEED WITH CAUTION': 'Fair Deal',
+            '🚫 AVOID': 'Risky',
+        };
+        const scoreColorMap: Record<string, string> = {
+            '🔥 STRONG BUY': 'text-emerald-500',
+            '✅ RECOMMENDED': 'text-emerald-400',
+            '⚠️ PROCEED WITH CAUTION': 'text-yellow-400',
+            '🚫 AVOID': 'text-red-500',
+        };
+        const badgeClassMap: Record<string, string> = {
+            '🔥 STRONG BUY': 'bg-emerald-500 text-[#0a0905]',
+            '✅ RECOMMENDED': 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30',
+            '⚠️ PROCEED WITH CAUTION': 'bg-yellow-600/20 text-yellow-300 border border-yellow-500/30',
+            '🚫 AVOID': 'bg-red-600/30 text-red-300 border border-red-500/30',
+        };
+
+        const analysisResult = {
+            // Core display
+            score,
+            equity: equity >= 0 ? `+$${equity.toLocaleString()}` : `-$${Math.abs(equity).toLocaleString()}`,
+            opex: `$${(result.operationalCosts?.totalMonthly ?? 0).toFixed(0)}`,
+            badge: badgeMap[result.verdict] || 'Fair Deal',
+            badgeClass: badgeClassMap[result.verdict] || 'bg-cyan-600 text-white',
+            scoreColor: scoreColorMap[result.verdict] || 'text-cyan-400',
+            // Full analysis data for reports/exports/history
+            fullAnalysis: result,
+            marketValues: result.marketValues,
+            criticalIssues: result.criticalIssues,
+            rideshare: result.rideshare,
+            insurance: result.insurance,
+            verdict: result.verdict,
+            instantEquity: result.instantEquity,
+            verdictScore: result.verdictScore,
+            scenarios: result.scenarios,
+            breakEven: result.breakEven,
+            operationalCosts: result.operationalCosts,
+            initialInvestment: result.initialInvestment,
+            paybackWeeks: result.paybackWeeks,
+            actionPlan: result.actionPlan,
+            negotiation: result.negotiation,
+            structuredVerdict: result.structuredVerdict,
+            conditionAssessment: result.conditionAssessment,
+            sellerVerification: result.sellerVerification,
+            scoringBreakdown: result.scoringBreakdown,
+        };
+
+        setAnalysisResult(analysisResult);
+
+        // ── Also try AI-powered insight via chat API ──
+        try {
+            const chatRes = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: [{ role: 'user', parts: [{ text: `You just analyzed: ${vehicle.year} ${vehicle.make} ${vehicle.model} | Price: $${vehicle.price.toLocaleString()} | Mileage: ${vehicle.mileage.toLocaleString()} | VERA Score: ${score}/100 | Verdict: ${result.verdict} | Equity: ${equity >= 0 ? '+' : ''}$${equity.toLocaleString()}. Give a brief, insightful AI summary in 2-3 sentences.` }] }],
+                    systemPrompt: 'You are VERA, an AI vehicle analyst. Summarize key findings concisely.' 
+                }),
             });
-            
+            if (chatRes.ok) {
+                const reader = chatRes.body?.getReader();
+                const decoder = new TextDecoder();
+                let fullChatResponse = '';
+                if (reader) {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        for (const line of lines) {
+                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    if (data.text) fullChatResponse += data.text;
+                                } catch {}
+                            }
+                        }
+                    }
+                }
+                if (fullChatResponse) {
+                    setChatMessages(prev => [
+                        ...prev,
+                        { sender: 'vera', text: `Analysis complete. VERA Score: ${score}/100. ${fullChatResponse}` }
+                    ]);
+                } else {
+                    throw new Error('Empty response');
+                }
+            } else {
+                throw new Error('Chat API failed');
+            }
+        } catch {
+            // Fallback if chat API fails — still have real analysis
+            const verdictMsg = score >= 90 ? 'strong buy — excellent equity position and low risk' :
+                              score >= 70 ? 'solid deal — good equity with manageable risk' :
+                              score >= 45 ? 'proceed with caution — check critical issues before committing' :
+                              'high-risk — consider walking away';
             setChatMessages(prev => [
                 ...prev,
-                { sender: 'vera', text: `Analysis complete. VERA Score: ${score}/100. This looks like a ${score > 85 ? 'strong' : 'solid'} acquisition target.` }
+                { sender: 'vera', text: `Analysis complete. VERA Score: ${score}/100. Verdict: ${result.verdict}. This is a ${verdictMsg}.` }
             ]);
         }
     } catch (err) {
         console.error('Analysis failed:', err);
+        setChatMessages(prev => [
+            ...prev,
+            { sender: 'vera', text: '⚠️ Analysis engine encountered an error. Please check all fields and try again.' }
+        ]);
     } finally {
         setIsAnalyzing(false);
     }
@@ -1407,10 +1525,26 @@ const App = () => {
     setChatInput('');
     
     try {
+      // Build messages in Gemini-compatible format that /api/chat expects
+      const apiMessages = [
+        ...chatMessages.map(m => ({
+          role: m.sender === 'vera' ? 'model' as const : 'user' as const,
+          parts: [{ text: m.text }]
+        })),
+        { role: 'user' as const, parts: [{ text: userMsg }] }
+      ];
+
+      const systemPrompt = `You are VERA, an AI vehicle analyst assistant. The user is evaluating a vehicle purchase. Current vehicle: ${form.year} ${form.make} ${form.model}, Price: $${form.price || '0'}, Mileage: ${form.mileage || '0'} mi. Analysis context: ${JSON.stringify(analysisResult?.fullAnalysis ? {
+        verdict: analysisResult.verdict,
+        score: analysisResult.verdictScore,
+        equity: analysisResult.instantEquity,
+        criticalIssues: analysisResult.criticalIssues?.map((i: any) => i.title)
+      } : 'No analysis run')}. Be concise, helpful, and specific.`;
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userMsg, context: { ...form, analysis: analysisResult } }),
+        body: JSON.stringify({ messages: apiMessages, systemPrompt }),
       });
       
       if (!response.body) throw new Error('No response body');

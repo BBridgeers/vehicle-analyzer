@@ -69,13 +69,13 @@ export async function buildSystemPrompt(vehicle: Vehicle, analysis: AnalysisResu
     const leveragePoints = a.negotiation.leveragePoints.join("; ");
     const buyIf = a.structuredVerdict.buyIf.slice(0, 3).join("; ");
 
-    const expectedRepairs = a.repairCosts.repairs
-        .map((r: any) => `  - ${r.name}: $${r.cost} (${r.category})`)
-        .join("\n");
-    const totalRepairs = a.repairCosts.repairs.reduce((sum: number, r: any) => sum + r.cost, 0);
-    const totalCost = a.rideshare.earnings.baseline.totalCost;
+    const expectedRepairs = (a as any).repairCosts?.repairs
+        ?.map((r: any) => `  - ${r.name}: $${r.cost} (${r.category})`)
+        ?.join("\n") || "    • No repair cost data available";
+    const totalRepairs = (a as any).repairCosts?.repairs?.reduce((sum: number, r: any) => sum + r.cost, 0) || 0;
+    const totalCost = (a.rideshare.earnings.baseline as any).totalCost || 'N/A';
     const weeklyNet = a.rideshare.earnings.baseline.weeklyNet;
-    const weeklyGross = a.rideshare.earnings.baseline.weeklyGross;
+    const weeklyGross = (a.rideshare.earnings.baseline as any).weeklyGross || 'N/A';
     const paybackWeeks = a.paybackWeeks.baseline;
 
     const insurance = a.insurance.personalMonthly;
@@ -94,15 +94,15 @@ VIN: ${v.vin || "not provided"}
 Price: $${v.price.toLocaleString()}
 Mileage: ${v.mileage.toLocaleString()} mi
 Location: ${v.location || "unknown"}
-Listing URL: ${v.url || "unknown"}
-Days Listed: ${v.daysListed || "unknown"}
+Listing URL: ${v.listingUrl || "unknown"}
+Days Listed: ${(v as any).daysListed || "unknown"}
 
 ══ ANALYSIS RESULTS ══
 Verdict: ${a.verdict}
 Verdict Score: ${a.verdictScore}/100
 Instant Equity: ${eq}
 Market Values:${marketValues}
-Confidence Score: ${a.confidenceScore || "N/A"}%
+Confidence Score: ${a.structuredVerdict?.confidence || "N/A"}%
 
 ══ REPAIR COSTS ══
 Expected Repairs:
@@ -115,14 +115,14 @@ Leverage Points: ${leveragePoints}
 Buy If: ${buyIf}
 
 ══ RIDESHARE ECONOMICS ══
-Weekly Gross: $${weeklyGross.toLocaleString()}
+Weekly Gross: ${typeof weeklyGross === 'number' ? weeklyGross.toLocaleString() : weeklyGross}
 Weekly Net: $${weeklyNet.toLocaleString()}
-Total First-Year Cost: $${totalCost.toLocaleString()}
+Total First-Year Cost: ${typeof totalCost === 'number' ? totalCost.toLocaleString() : totalCost}
 Payback Period: ${paybackWeeks} weeks
 Insurance (Monthly): $${insurance.toLocaleString()}
 
 ══ SAFETY & RECALLS ══
-Open Recalls: ${recallCount}${a.vinAnalysis?.safety.recalls?.length ? " — " + a.vinAnalysis.safety.recalls.map((r: any) => r.description).join("; ") : ""}
+Open Recalls: ${recallCount}${a.vinAnalysis?.safety.recalls?.length ? " — " + (a.vinAnalysis.safety.recalls.map((r: any) => r.Summary || r.description || '').join("; ")) : ""}
 Maintenance Records: ${maintCount}
 
 ══ NEGOTIATION STRATEGY ══
@@ -201,4 +201,12 @@ export function parseFollowUps(text: string): { clean: string; followUps: string
     } catch {
         return { clean: text.trim(), followUps: [] };
     }
+}
+
+// ── Vehicle ID generator for KV session keys ──
+export function makeVehicleId(vehicle: Vehicle): string {
+    const year = vehicle.year || 'unknown';
+    const make = (vehicle.make || 'unknown').replace(/\s+/g, '-');
+    const model = (vehicle.model || 'unknown').replace(/\s+/g, '-');
+    return `${year}-${make}-${model}`.toLowerCase();
 }

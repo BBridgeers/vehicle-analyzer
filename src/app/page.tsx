@@ -260,6 +260,43 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult }: {
   const carfaxDragCounter = useRef(0);
   const carfaxInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Client-side PDF page renderer (no server deps needed) ────────────────
+  const renderPdfPagesToJpeg = async (file: File): Promise<string[]> => {
+    // Load pdf.js from CDN if not already loaded
+    if (!(window as any).pdfjsLib) {
+      await new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load PDF renderer'));
+        document.head.appendChild(script);
+      });
+      (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    const pdfjsLib = (window as any).pdfjsLib;
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    const pages: string[] = [];
+    const maxPages = Math.min(pdf.numPages, 12);
+    const canvas = document.createElement('canvas');
+
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2.0 });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d')!;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      // Strip data: prefix — backend expects raw base64
+      pages.push(canvas.toDataURL('image/jpeg', 0.75).split(',')[1]);
+    }
+
+    return pages;
+  };
+
   const processCarfax = async (file: File) => {
     setCarfaxFile(file);
     setCarfaxStatus('parsing');
@@ -270,6 +307,24 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult }: {
       formData.append('pdf', file);
       const res = await fetch('/api/analyze-carfax', { method: 'POST', body: formData });
       const data = await res.json();
+
+      // If text extraction failed (image-based PDF), render pages client-side
+      if (!res.ok && data.needsVision) {
+        setCarfaxError('Image-based PDF — rendering pages for AI vision...');
+        const pages = await renderPdfPagesToJpeg(file);
+        const visionFormData = new FormData();
+        visionFormData.append('pages', JSON.stringify(pages));
+        visionFormData.append('filename', file.name);
+        const visionRes = await fetch('/api/analyze-carfax', { method: 'POST', body: visionFormData });
+        const visionData = await visionRes.json();
+        if (!visionRes.ok) throw new Error(visionData.error || 'Vision analysis failed');
+        setCarfaxResult(visionData);
+        setCarfaxStatus('done');
+        if (onCarfaxResult) onCarfaxResult(visionData);
+        if (visionData.titleStatus) setForm((f: any) => ({ ...f, titleStatus: visionData.titleStatus }));
+        return;
+      }
+
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
       setCarfaxResult(data);
       setCarfaxStatus('done');

@@ -57,15 +57,13 @@ const CircleScore = ({ score, colorClass }: { score: number; colorClass: string 
   </div>
 );
 
-const Sidebar = () => {
+const Sidebar = ({ history: sidebarHistory }: { history?: Array<{name:string; price:string; time:string; verdict:string; active:boolean}> }) => {
   const [activeHistory, setActiveHistory] = useState(0);
 
-  const history = [
+  const displayHistory = sidebarHistory && sidebarHistory.length > 0 ? sidebarHistory : [
     { name: '2019 Toyota RAV4', price: '$22,500', time: '2 hrs ago', verdict: 'Good', active: true },
     { name: '2016 Honda Civic', price: '$14,200', time: 'Yesterday', verdict: 'Risk', active: false },
     { name: '2021 Tesla Model 3', price: '$31,000', time: 'Oct 24', verdict: 'Fair', active: false },
-    { name: '2015 Ford F-150', price: '$19,800', time: 'Oct 22', verdict: 'Good', active: false },
-    { name: '2020 Hyundai Sonata', price: '$17,500', time: 'Oct 20', verdict: 'Risk', active: false },
   ];
 
   return (
@@ -103,7 +101,7 @@ const Sidebar = () => {
       <div className="flex-1 overflow-y-auto p-4" style={customStyles.scrollbarHide}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Analysis History</h3>
         <div className="space-y-3">
-          {history.map((item, i) => (
+          {displayHistory.map((item, i) => (
             <HistoryItem key={i} {...item} active={i === activeHistory} onClick={() => setActiveHistory(i)} />
           ))}
         </div>
@@ -1259,45 +1257,190 @@ const AIPanel = ({ chatInput, setChatInput, chatMessages, onSendChat, onSaveToFl
           </button>
         </div>
 
-        {/* Intel Data */}
+        {/* Intel Data — real analysis sections */}
+        {analysisResult ? (
+        <>
         <div className="bg-[#1a1816] border border-[#2a2825] rounded-xl overflow-hidden">
-          <div
-            className="px-4 py-3 border-b border-[#2a2825] bg-[#1e1c19] flex justify-between items-center cursor-pointer"
-            onClick={() => setIntelExpanded(v => !v)}
-          >
-            <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-              <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-              Intelligence Data (Scraped)
-            </h3>
-            <svg className={`w-4 h-4 text-gray-500 transition-transform ${intelExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+          <div className="px-4 py-3 border-b border-[#2a2825] bg-[#1e1c19]">
+            <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Market Values</h3>
           </div>
-          {intelExpanded && (
-            <div className="p-4 space-y-4">
-              <div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">VIN History Snippet</div>
-                <div className="text-xs text-gray-300 bg-[#11100e] p-2 rounded border border-[#2a2825] font-mono whitespace-pre">{`Records found: 14\nOwners: 2 (Rental, Personal)\nLast reported miles: 84,202`}</div>
-              </div>
-            </div>
-          )}
+          <div className="p-4 space-y-2">
+            {analysisResult.marketValues ? (
+              <>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Trade-In</span><span className="text-gray-200 font-medium">${(analysisResult.marketValues.tradeIn || 0).toLocaleString()}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Private Party</span><span className="text-gray-200 font-medium">${(analysisResult.marketValues.privateParty || 0).toLocaleString()}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Dealer Retail</span><span className="text-gray-200 font-medium">${(analysisResult.marketValues.dealerRetail || 0).toLocaleString()}</span></div>
+                <div className="flex justify-between text-xs border-t border-[#262420] pt-2 mt-1">
+                  <span className="text-gray-500">Instant Equity</span>
+                  <span className={`font-bold ${(analysisResult.instantEquity ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {(analysisResult.instantEquity ?? 0) >= 0 ? '+' : ''}${Math.abs(analysisResult.instantEquity ?? 0).toLocaleString()}
+                  </span>
+                </div>
+              </>
+            ) : <p className="text-xs text-gray-600">Run analysis to see market values</p>}
+          </div>
         </div>
 
-        {/* Red Flags - truncated for brevity in demo */}
+        {analysisResult.rideshare && (
+        <div className="bg-[#1a1816] border border-[#2a2825] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#2a2825] bg-[#1e1c19]">
+            <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Rideshare Earnings</h3>
+          </div>
+          <div className="p-4 space-y-2">
+            {analysisResult.rideshare.uberXL?.eligible && <div className="text-[10px] text-cyan-400 font-bold mb-1">✓ UBER XL ELIGIBLE</div>}
+            {analysisResult.rideshare.uberComfort?.eligible && !analysisResult.rideshare.uberXL?.eligible && <div className="text-[10px] text-cyan-400 font-bold mb-1">✓ UBER COMFORT ELIGIBLE</div>}
+            {analysisResult.rideshare.weeklyGross ? (
+              <>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Weekly Gross</span><span className="text-emerald-400 font-bold">${analysisResult.rideshare.weeklyGross.toLocaleString()}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Weekly Net</span><span className="text-gray-200">${(analysisResult.rideshare.weeklyNet || 0).toLocaleString()}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Monthly Net</span><span className="text-gray-200 font-bold">${((analysisResult.rideshare.weeklyNet || 0) * 4.33).toFixed(0)}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Annual Net</span><span className="text-gray-200">${((analysisResult.rideshare.weeklyNet || 0) * 52).toLocaleString()}</span></div>
+              </>
+            ) : <p className="text-xs text-gray-600">Vehicle may not qualify for rideshare</p>}
+          </div>
+        </div>
+        )}
+
+        <div className="bg-[#1a1816] border border-[#2a2825] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#2a2825] bg-[#1e1c19]">
+            <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Operational Costs &amp; Break-Even</h3>
+          </div>
+          <div className="p-4 space-y-2">
+            {analysisResult.operationalCosts ? (
+              <>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Fuel/Mo</span><span className="text-gray-200">${(analysisResult.operationalCosts.fuelMonthly || 0).toFixed(0)}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Maintenance/Mo</span><span className="text-gray-200">${(analysisResult.operationalCosts.maintenanceMonthly || 0).toFixed(0)}</span></div>
+                {analysisResult.insurance?.monthly ? <div className="flex justify-between text-xs"><span className="text-gray-500">Insurance/Mo</span><span className="text-gray-200">${analysisResult.insurance.monthly.toFixed(0)}</span></div> : null}
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Depreciation/Mo</span><span className="text-gray-200">${(analysisResult.operationalCosts.depreciationMonthly || 0).toFixed(0)}</span></div>
+                <div className="flex justify-between text-xs border-t border-[#262420] pt-2 mt-1">
+                  <span className="text-gray-400 font-bold">Total Monthly OpEx</span>
+                  <span className="text-gray-100 font-bold">${(analysisResult.operationalCosts.totalMonthly || 0).toFixed(0)}</span>
+                </div>
+                {analysisResult.breakEven ? (
+                  <div className="flex justify-between text-xs border-t border-[#262420] pt-2 mt-1">
+                    <span className="text-gray-500">Break-Even</span>
+                    <span className="text-cyan-400 font-bold">{analysisResult.breakEven.weeks || analysisResult.breakEven} weeks</span>
+                  </div>
+                ) : null}
+                {analysisResult.paybackWeeks ? (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">ROI Payback</span>
+                    <span className="text-emerald-400 font-bold">{analysisResult.paybackWeeks} weeks</span>
+                  </div>
+                ) : null}
+              </>
+            ) : <p className="text-xs text-gray-600">Run analysis to see costs</p>}
+          </div>
+        </div>
+
+        {analysisResult.initialInvestment && (
+        <div className="bg-[#1a1816] border border-[#2a2825] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#2a2825] bg-[#1e1c19]">
+            <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Initial Investment</h3>
+          </div>
+          <div className="p-4 space-y-2">
+            <div className="flex justify-between text-xs"><span className="text-gray-500">Down Payment</span><span className="text-gray-200">${(analysisResult.initialInvestment.downPayment || 0).toLocaleString()}</span></div>
+            <div className="flex justify-between text-xs"><span className="text-gray-500">Tax &amp; Title</span><span className="text-gray-200">${(analysisResult.initialInvestment.taxTitleFees || 0).toLocaleString()}</span></div>
+            <div className="flex justify-between text-xs"><span className="text-gray-500">Warranty</span><span className="text-gray-200">${(analysisResult.initialInvestment.warranty || 0).toLocaleString()}</span></div>
+            <div className="flex justify-between text-xs border-t border-[#262420] pt-2 mt-1">
+              <span className="text-gray-400 font-bold">Total OTD</span>
+              <span className="text-gray-100 font-bold">${(analysisResult.initialInvestment.totalOTD || 0).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+        )}
+
+        {analysisResult.scenarios && Object.keys(analysisResult.scenarios).length > 0 && (
+        <div className="bg-[#1a1816] border border-[#2a2825] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#2a2825] bg-[#1e1c19]">
+            <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Scenarios (12-Month)</h3>
+          </div>
+          <div className="p-4 space-y-3">
+            {analysisResult.scenarios.best && (
+              <div className="bg-emerald-950/20 border border-emerald-900/30 rounded-lg p-3">
+                <div className="text-[10px] text-emerald-400 font-bold mb-1">BEST CASE</div>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Net Income</span><span className="text-emerald-300">${(analysisResult.scenarios.best.netIncome || 0).toLocaleString()}</span></div>
+              </div>
+            )}
+            {analysisResult.scenarios.expected && (
+              <div className="bg-cyan-950/20 border border-cyan-900/30 rounded-lg p-3">
+                <div className="text-[10px] text-cyan-400 font-bold mb-1">EXPECTED</div>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Net Income</span><span className="text-cyan-300">${(analysisResult.scenarios.expected.netIncome || 0).toLocaleString()}</span></div>
+              </div>
+            )}
+            {analysisResult.scenarios.worst && (
+              <div className="bg-red-950/20 border border-red-900/30 rounded-lg p-3">
+                <div className="text-[10px] text-red-400 font-bold mb-1">WORST CASE</div>
+                <div className="flex justify-between text-xs"><span className="text-gray-500">Net Income</span><span className="text-red-300">${(analysisResult.scenarios.worst.netIncome || 0).toLocaleString()}</span></div>
+              </div>
+            )}
+          </div>
+        </div>
+        )}
+        </>
+        ) : (
+        <div className="bg-[#1a1816] border border-[#2a2825] rounded-xl overflow-hidden">
+          <div className="p-5 text-center">
+            <p className="text-xs text-gray-500">No analysis data yet.</p>
+            <p className="text-[10px] text-gray-600 mt-1">Click "Run AI Analysis" or "Generate VERA Intelligence Report" to begin</p>
+          </div>
+        </div>
+        )}
+
+        {/* Red Flags — from real data */}
+        {analysisResult?.criticalIssues && analysisResult.criticalIssues.length > 0 && (
         <div className="bg-red-950/20 border border-red-900/30 rounded-xl p-4">
           <h3 className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            Identified Red Flags (3)
+            Critical Issues ({analysisResult.criticalIssues.length})
           </h3>
           <ul className="space-y-2">
-            <li className="flex items-start gap-2 text-xs text-red-200">
-              <div className="mt-1 flex-shrink-0 w-1 h-1 rounded-full bg-red-500"></div>
-              <span>Description mentions "AC needs freon"</span>
-            </li>
-            <li className="flex items-start gap-2 text-xs text-red-200">
-              <div className="mt-1 flex-shrink-0 w-1 h-1 rounded-full bg-red-500"></div>
-              <span>Photos show mismatched tires</span>
-            </li>
+            {analysisResult.criticalIssues.map((issue: any, i: number) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-red-200">
+                <div className="mt-1 flex-shrink-0 w-1 h-1 rounded-full bg-red-500"></div>
+                <span>{typeof issue === 'string' ? issue : (issue.title || issue.concern || issue.description || issue)}</span>
+              </li>
+            ))}
           </ul>
         </div>
+        )}
+
+        {/* VIN Snippet — keep for quick glance */}
+        {form.vin && (
+        <div className="bg-[#1a1816] border border-[#2a2825] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#2a2825] bg-[#1e1c19]">
+            <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">VIN Decode</h3>
+          </div>
+          <div className="p-4">
+            <div className="text-xs text-gray-300 bg-[#11100e] p-2 rounded border border-[#2a2825] font-mono">
+              <div className="text-cyan-400">{form.vin}</div>
+              {form.year && form.make && form.model && <div className="mt-1 text-gray-500">{form.year} {form.make} {form.model} {form.trim}</div>}
+            </div>
+          </div>
+        </div>
+        )}
+
+        {/* Action Plan */}
+        {analysisResult?.actionPlan && analysisResult.actionPlan.length > 0 && (
+        <div className="bg-[#1a1816] border border-[#2a2825] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#2a2825] bg-[#1e1c19]">
+            <h3 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+              Action Plan
+            </h3>
+          </div>
+          <div className="p-4">
+            <ul className="space-y-2">
+              {analysisResult.actionPlan.map((step: any, i: number) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-gray-300">
+                  <div className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-emerald-900/50 border border-emerald-800 text-[9px] text-emerald-400 flex items-center justify-center font-bold">{i + 1}</div>
+                  <span>{typeof step === 'string' ? step : (step.action || step.step || step)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        )}
       </div>
 
       {/* Chat */}
@@ -1381,6 +1524,25 @@ const App = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(true);
+  const [history, setHistory] = useState<Array<{name:string; price:string; time:string; verdict:string; active:boolean}>>([]);
+
+  // Update analysis history whenever a new result comes in
+  useEffect(() => {
+    if (!analysisResult) return;
+    const entry = {
+      name: `${form.year || '?'} ${form.make || '?'} ${form.model || 'Vehicles'}`,
+      price: `$${Number(form.price || 0).toLocaleString()}`,
+      time: 'Just now',
+      verdict: analysisResult.badge || 'Fair',
+      active: true,
+    };
+    setHistory(prev => {
+      // Deduplicate by name + price
+      const exists = prev.some(h => h.name === entry.name && h.price === entry.price);
+      if (exists) return prev;
+      return [entry, ...prev.map(h => ({...h, active: false}))].slice(0, 20);
+    });
+  }, [analysisResult, form.make, form.model, form.price, form.year]);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -1813,7 +1975,7 @@ Generated by V.E.R.A. Vehicle Analyzer
 
   return (
     <div className="flex h-screen w-full bg-[#0a0905] text-gray-200 overflow-hidden font-sans">
-      <Sidebar />
+      <Sidebar history={history} />
       <MainContent 
         form={form} 
         setForm={setForm} 

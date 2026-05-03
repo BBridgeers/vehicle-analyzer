@@ -147,8 +147,10 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Scrape failed');
       const v = data.vehicle;
+      const detectedPlatform = detectPlatform(url);
       setForm((f: any) => ({
         ...f,
+        ...v,
         listingUrl: url,
         year: v.year ? String(v.year) : f.year,
         make: v.make || f.make,
@@ -160,6 +162,13 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
         exteriorColor: v.exteriorColor || f.exteriorColor,
         transmission: v.transmission || f.transmission,
         fuelType: v.fuelType || f.fuelType,
+        // Remap API field names → form field names
+        sellerDescription: v.description || v.sellerDescription || f.sellerDescription,
+        platform: detectedPlatform || f.platform,
+        seats: v.seatCount ? String(v.seatCount) : (v.seats ? String(v.seats) : f.seats),
+        exteriorCondition: v.conditionExterior || v.exteriorCondition || f.exteriorCondition,
+        interiorCondition: v.conditionInterior || v.interiorCondition || f.interiorCondition,
+        postedDate: v.postedDate || f.postedDate,
       }));
       // Auto-trigger AI analysis after URL scrape completes
       // Use ref to get the latest onRunAnalysis with fresh form state
@@ -183,6 +192,24 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
   const onRunAnalysisRef = useRef(onRunAnalysis);
   onRunAnalysisRef.current = onRunAnalysis;
 
+  // Auto-detect platform name from listing URL
+  const detectPlatform = (url: string): string => {
+    if (!url) return '';
+    const u = url.toLowerCase();
+    if (u.includes('facebook.com') || u.includes('fb.com')) return 'Facebook Marketplace';
+    if (u.includes('craigslist.org') || u.includes('craigslist.com')) return 'Craigslist';
+    if (u.includes('autotempest.com')) return 'AutoTempest';
+    if (u.includes('cars.com')) return 'Cars.com';
+    if (u.includes('cargurus.com')) return 'CarGurus';
+    if (u.includes('autotrader.com')) return 'Autotrader';
+    if (u.includes('offerup.com')) return 'OfferUp';
+    if (u.includes('carvana.com')) return 'Carvana';
+    if (u.includes('carmax.com')) return 'CarMax';
+    if (u.includes('truecar.com')) return 'TrueCar';
+    if (u.includes('ebay.com')) return 'eBay Motors';
+    return 'Other';
+  };
+
   const processScreenshot = useCallback(async (file: File) => {
     const previewUrl = URL.createObjectURL(file);
     setScreenshotPreview(previewUrl);
@@ -199,12 +226,21 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Extraction failed');
       const v = data.vehicle;
+      // Detect platform from extracted URL
+      const detectedPlatform = detectPlatform(v.listingUrl || listingUrl);
       setForm((f: any) => ({
         ...f,
         ...v,
         price: v.price ? String(v.price) : f.price,
         mileage: v.mileage ? String(v.mileage) : f.mileage,
         year: v.year ? String(v.year) : f.year,
+        // Remap API field names → form field names
+        sellerDescription: v.description || v.sellerDescription || f.sellerDescription,
+        platform: detectedPlatform || v.platform || f.platform,
+        seats: v.seatCount ? String(v.seatCount) : (v.seats ? String(v.seats) : f.seats),
+        exteriorCondition: v.conditionExterior || v.exteriorCondition || f.exteriorCondition,
+        interiorCondition: v.conditionInterior || v.interiorCondition || f.interiorCondition,
+        postedDate: v.postedDate || f.postedDate,
       }));
       setScreenshotStatus('done');
       // Auto-trigger AI analysis after fields are extracted

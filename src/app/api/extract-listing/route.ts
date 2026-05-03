@@ -34,6 +34,7 @@ Return ONLY valid JSON with this exact structure:
   "cylinders": <number>,
   "mpg": "<string, e.g. 17 city / 23 hwy / 19 combined>",
   "safetyRating": "<string, e.g. 5/5 overall NHTSA>",
+  "seatCount": <number - total number of seats, e.g. 5 for most sedans, 7 for SUVs with 3rd row>,
   "numOwners": <number>,
   "paidOff": <boolean - true if listing says vehicle is paid off>,
   "sellerName": "<string>",

@@ -79,7 +79,7 @@ export class GeminiVisionEngine implements IVisionEngine {
             const base64Data = Buffer.isBuffer(image) ? image.toString('base64') : image.replace(/^data:image\/\w+;base64,/, '');
             
             const response = await this.ai.models.generateContent({
-                model: 'gemini-3-pro-preview',
+                model: 'gemini-2.0-flash',
                 contents: [
                     {
                         inlineData: {
@@ -114,7 +114,7 @@ export class GroqVisionEngine implements IVisionEngine {
             const base64Data = Buffer.isBuffer(image) ? image.toString('base64') : image.replace(/^data:image\/\w+;base64,/, '');
             
             const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-                model: 'llama-3.2-11b-vision-preview',
+                model: 'meta-llama/llama-4-scout-17b-16e-instruct',
                 messages: [
                     {
                         role: 'user',
@@ -176,6 +176,7 @@ export class VisionManager {
 
     constructor(configs: { groqKey?: string; ollamaHost?: string }) {
         this.engines = [];
+        // Priority order: Groq (primary, fast) → Ollama (local fallback)
         if (configs.groqKey) this.engines.push(new GroqVisionEngine(configs.groqKey));
         this.engines.push(new OllamaVisionEngine(configs.ollamaHost));
     }

@@ -221,46 +221,89 @@ export async function POST(request: Request) {
         if (!pdfFile) {
             return NextResponse.json({ error: 'No PDF file uploaded.' }, { status: 400 });
         }
-        if (pdfFile.type !== 'application/pdf') {
+        const isPdf = pdfFile.type === 'application/pdf' || pdfFile.name.toLowerCase().endsWith('.pdf');
+        if (!isPdf) {
             return NextResponse.json({ error: 'File must be a PDF.' }, { status: 400 });
         }
         if (pdfFile.size > 25 * 1024 * 1024) {
             return NextResponse.json({ error: 'PDF too large (max 25MB).' }, { status: 400 });
         }
 
-        // ── Extract text ──
+        // ── Extract text from PDF (text-layer) ──────────────────────────────────
+        const buffer = Buffer.from(await pdfFile.arrayBuffer());
         let pdfText = '';
+        let isImagePdf = false;
         try {
-            const buffer = Buffer.from(await pdfFile.arrayBuffer());
             pdfText = await extractPdfText(buffer);
         } catch (pdfErr: any) {
             console.error('[Carfax] PDF parse error:', pdfErr?.message || pdfErr);
-            return NextResponse.json(
-                { error: `Could not read PDF text: ${pdfErr?.message || 'unknown error'}. Make sure this is a text-based CARFAX PDF (not a scanned image).` },
-                { status: 422 }
-            );
+            isImagePdf = true;
         }
 
         if (!pdfText || pdfText.length < 80) {
-            return NextResponse.json(
-                { error: 'PDF appears empty or is image-only. CARFAX reports must have selectable text — try downloading the report fresh from carfax.com.' },
-                { status: 422 }
-            );
+            isImagePdf = true;
         }
-
-        // Trim to ~65k chars (well within llama-3.3-70b 128k context)
-        const trimmedText = pdfText.length > 65000
-            ? pdfText.slice(0, 65000) + '\n\n[... truncated ...]'
-            : pdfText;
-
-        console.log(`[Carfax] Extracted ${pdfText.length} chars from "${pdfFile.name}"`);
 
         const groqKey = process.env.GROQ_API_KEY;
         if (!groqKey) {
             return NextResponse.json({ error: 'Groq API key not configured on server.' }, { status: 500 });
         }
 
+        // ── Image-PDF fallback: OCR via Groq vision ──────────────────────────────
+        if (isImagePdf) {
+            console.log('[Carfax] Image-based PDF detected — attempting Groq vision OCR fallback...');
+            try {
+                const pdfBase64 = buffer.toString('base64');
+                const visionRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+                        temperature: 0.05,
+                        max_tokens: 4096,
+                        messages: [{
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: 'This is a CARFAX Vehicle History Report PDF rendered as an image. Extract ALL text content you can see — every field, every entry in the ownership history table, every service record, every accident or damage event. Output the raw extracted text only, no commentary.',
+                                },
+                                {
+                                    type: 'image_url',
+                                    image_url: { url: `data:application/pdf;base64,${pdfBase64}` },
+                                }
+                            ]
+                        }]
+                    })
+                });
+
+                if (visionRes.ok) {
+                    const visionData = await visionRes.json();
+                    const ocrText = visionData.choices?.[0]?.message?.content?.trim() || '';
+                    if (ocrText && ocrText.length > 80) {
+                        pdfText = ocrText;
+                        isImagePdf = false;
+                        console.log(`[Carfax] Vision OCR extracted ${ocrText.length} chars.`);
+                    }
+                }
+            } catch (visionErr: any) {
+                console.error('[Carfax] Vision OCR fallback failed:', visionErr.message);
+            }
+        }
+
+        if (isImagePdf || !pdfText || pdfText.length < 80) {
+            return NextResponse.json(
+                { error: 'Could not extract text from this PDF. Try downloading the CARFAX report fresh from carfax.com (make sure "Save as PDF" is used, not a screenshot or printed scan).' },
+                { status: 422 }
+            );
+        }
+
         // ── Call Groq ──
+        const trimmedText = pdfText.length > 65000
+            ? pdfText.slice(0, 65000) + '\n\n[... truncated ...]'
+            : pdfText;
+        console.log(`[Carfax] Sending ${trimmedText.length} chars to Groq from "${pdfFile.name}"`);
+
         const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {

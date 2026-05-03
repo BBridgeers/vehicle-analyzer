@@ -472,9 +472,10 @@ export async function POST(request: Request) {
     );
 
     if (!groqRes.ok) {
-      console.error('[Carfax] Groq analysis error:', await groqRes.text());
+      const groqErr = await groqRes.text();
+      console.error('[Carfax] Groq analysis error:', groqErr);
       return NextResponse.json(
-        { error: 'AI analysis failed. Please try again.' },
+        { error: 'AI analysis failed. Please try again.', groqError: groqErr },
         { status: 502 }
       );
     }

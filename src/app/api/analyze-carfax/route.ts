@@ -221,13 +221,12 @@ async function tryPdfjsExtract(buffer: Buffer): Promise<string> {
   return fullText.trim();
 }
 
-// ── Strategy B: pdf-parse (alternative text extraction) ──────────────────────
+// ── Strategy B: pdf-parse v2 (alternative text extraction) ──────────────────
 async function tryPdfParseExtract(buffer: Buffer): Promise<string> {
-  const pdfParse = await import('pdf-parse');
-  // pdf-parse v2 exports the function as default in CJS but not always in ESM
-  const parseFn = (pdfParse as any).default || pdfParse;
-  const data = await parseFn(buffer);
-  return data.text?.trim() || '';
+  const { PDFParse } = await import('pdf-parse');
+  const parser = new PDFParse({ data: buffer });
+  const result = await parser.getText();
+  return result.text?.trim() || '';
 }
 
 // ── Strategy C: Canvas render + Groq vision OCR ─────────────────────────────

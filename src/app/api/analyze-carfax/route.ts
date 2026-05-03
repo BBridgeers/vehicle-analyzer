@@ -184,32 +184,104 @@ Respond with ONLY valid JSON — no markdown fences, no text before or after.
   "skipReason": "<if verdict is SKIP, one clear sentence on exactly why — otherwise null>"
 }`;
 
-// ── Extract text from PDF using pdfjs-dist (legacy, no worker) ───────────────
-async function extractPdfText(buffer: Buffer): Promise<string> {
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs' as any);
+// ── PDF text extraction — fully automatic, 3-strategy cascade ────────────────
+// The user just drops any PDF. The system tries each strategy silently.
+// Strategy A: pdfjs  — works for standard digital PDFs (selectable text)
+// Strategy B: Puppeteer screenshot → Groq vision OCR — works for CARFAX's
+//             vector-drawn PDFs (which have no real PDF text objects)
+// Strategy C: Groq vision on raw base64 — last resort for simple/small PDFs
 
+// ── A: pdfjs text extraction ─────────────────────────────────────────────────
+async function tryPdfjsExtract(buffer: Buffer): Promise<string> {
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs' as any);
     const uint8 = new Uint8Array(buffer);
-    const loadingTask = pdfjsLib.getDocument({
+    const doc = await pdfjsLib.getDocument({
         data: uint8,
         useWorkerFetch: false,
         isEvalSupported: false,
         useSystemFonts: true,
-        verbosity: 0, // suppress pdfjs console noise
+        verbosity: 0,
+    }).promise;
+
+    let fullText = '';
+    for (let p = 1; p <= doc.numPages; p++) {
+        const page = await doc.getPage(p);
+        const content = await page.getTextContent();
+        fullText += content.items.map((i: any) => i.str || '').join(' ') + '\n';
+    }
+    return fullText.trim();
+}
+
+// ── B: Puppeteer PDF → page screenshots → Groq vision OCR ───────────────────
+// @sparticuz/chromium is purpose-built for Vercel serverless — no setup needed.
+async function tryPuppeteerVisionOcr(buffer: Buffer, groqKey: string): Promise<string> {
+    const chromium = (await import('@sparticuz/chromium')).default;
+    const puppeteer = (await import('puppeteer-core')).default;
+
+    const base64Pdf = buffer.toString('base64');
+    const pdfDataUrl = `data:application/pdf;base64,${base64Pdf}`;
+
+    const browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: { width: 1200, height: 1600 },
+        executablePath: await chromium.executablePath(),
+        headless: true,
     });
 
-    const doc = await loadingTask.promise;
-    let fullText = '';
+    const pageImages: string[] = [];
+    try {
+        const tab = await browser.newPage();
+        await tab.goto(pdfDataUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+        await new Promise(r => setTimeout(r, 2500)); // allow PDF viewer to fully render
 
-    for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
-        const page = await doc.getPage(pageNum);
-        const content = await page.getTextContent();
-        const pageText = content.items
-            .map((item: any) => ('str' in item ? item.str : ''))
-            .join(' ');
-        fullText += pageText + '\n';
+        // Capture up to 10 pages (CARFAX reports are typically 6-10 pages)
+        for (let pageNum = 1; pageNum <= 10; pageNum++) {
+            if (pageNum > 1) {
+                try {
+                    await tab.goto(`${pdfDataUrl}#page=${pageNum}`, { waitUntil: 'networkidle0', timeout: 12000 });
+                    await new Promise(r => setTimeout(r, 1500));
+                } catch { break; }
+            }
+            const shot = await tab.screenshot({ type: 'jpeg', quality: 75, encoding: 'base64' }) as string;
+            pageImages.push(shot);
+            console.log(`[Carfax] Puppeteer: captured page ${pageNum}`);
+        }
+    } finally {
+        await browser.close();
     }
 
-    return fullText.trim();
+    if (pageImages.length === 0) return '';
+
+    // Send all page images to Groq vision in a single request
+    const contentParts: any[] = [
+        {
+            type: 'text',
+            text: `This is a ${pageImages.length}-page CARFAX Vehicle History Report rendered as page screenshots. Extract ALL visible text from every page — VIN, ownership history, all service records, all accident/damage events, title status, odometer readings. Output the raw text only, no commentary.`,
+        },
+        ...pageImages.map(img => ({
+            type: 'image_url',
+            image_url: { url: `data:image/jpeg;base64,${img}` },
+        })),
+    ];
+
+    const visionRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+            temperature: 0.05,
+            max_tokens: 6000,
+            messages: [{ role: 'user', content: contentParts }],
+        }),
+    });
+
+    if (!visionRes.ok) {
+        const errBody = await visionRes.text();
+        throw new Error(`Groq vision HTTP ${visionRes.status}: ${errBody.slice(0, 200)}`);
+    }
+
+    const visionData = await visionRes.json();
+    return visionData.choices?.[0]?.message?.content?.trim() || '';
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
@@ -229,87 +301,57 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'PDF too large (max 25MB).' }, { status: 400 });
         }
 
-        // ── Extract text from PDF (text-layer) ──────────────────────────────────
-        const buffer = Buffer.from(await pdfFile.arrayBuffer());
-        let pdfText = '';
-        let isImagePdf = false;
-        try {
-            pdfText = await extractPdfText(buffer);
-        } catch (pdfErr: any) {
-            console.error('[Carfax] PDF parse error:', pdfErr?.message || pdfErr);
-            isImagePdf = true;
-        }
-
-        if (!pdfText || pdfText.length < 80) {
-            isImagePdf = true;
-        }
-
         const groqKey = process.env.GROQ_API_KEY;
         if (!groqKey) {
-            return NextResponse.json({ error: 'Groq API key not configured on server.' }, { status: 500 });
+            return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
         }
 
-        // ── Image-PDF fallback: OCR via Groq vision ──────────────────────────────
-        if (isImagePdf) {
-            console.log('[Carfax] Image-based PDF detected — attempting Groq vision OCR fallback...');
-            try {
-                const pdfBase64 = buffer.toString('base64');
-                const visionRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-                        temperature: 0.05,
-                        max_tokens: 4096,
-                        messages: [{
-                            role: 'user',
-                            content: [
-                                {
-                                    type: 'text',
-                                    text: 'This is a CARFAX Vehicle History Report PDF rendered as an image. Extract ALL text content you can see — every field, every entry in the ownership history table, every service record, every accident or damage event. Output the raw extracted text only, no commentary.',
-                                },
-                                {
-                                    type: 'image_url',
-                                    image_url: { url: `data:application/pdf;base64,${pdfBase64}` },
-                                }
-                            ]
-                        }]
-                    })
-                });
+        const buffer = Buffer.from(await pdfFile.arrayBuffer());
+        let pdfText = '';
 
-                if (visionRes.ok) {
-                    const visionData = await visionRes.json();
-                    const ocrText = visionData.choices?.[0]?.message?.content?.trim() || '';
-                    if (ocrText && ocrText.length > 80) {
-                        pdfText = ocrText;
-                        isImagePdf = false;
-                        console.log(`[Carfax] Vision OCR extracted ${ocrText.length} chars.`);
-                    }
+        // ── Strategy A: pdfjs (fast path for digital PDFs) ──────────────────────
+        try {
+            const text = await tryPdfjsExtract(buffer);
+            if (text.length >= 80) {
+                pdfText = text;
+                console.log(`[Carfax] ✅ Strategy A (pdfjs): ${text.length} chars from "${pdfFile.name}"`);
+            }
+        } catch (e: any) {
+            console.warn('[Carfax] Strategy A (pdfjs) failed:', e.message);
+        }
+
+        // ── Strategy B: Puppeteer screenshot → Groq vision (CARFAX vector PDFs) ─
+        if (!pdfText) {
+            console.log(`[Carfax] Strategy B: Puppeteer+vision OCR for "${pdfFile.name}"`);
+            try {
+                const text = await tryPuppeteerVisionOcr(buffer, groqKey);
+                if (text.length >= 80) {
+                    pdfText = text;
+                    console.log(`[Carfax] ✅ Strategy B (vision OCR): ${text.length} chars`);
                 }
-            } catch (visionErr: any) {
-                console.error('[Carfax] Vision OCR fallback failed:', visionErr.message);
+            } catch (e: any) {
+                console.warn('[Carfax] Strategy B (Puppeteer+vision) failed:', e.message);
             }
         }
 
-        if (isImagePdf || !pdfText || pdfText.length < 80) {
+        // ── No text extracted ────────────────────────────────────────────────────
+        if (!pdfText) {
+            // This should essentially never happen now, but handle gracefully
             return NextResponse.json(
-                { error: 'Could not extract text from this PDF. Try downloading the CARFAX report fresh from carfax.com (make sure "Save as PDF" is used, not a screenshot or printed scan).' },
+                { error: 'Could not read this PDF. Please make sure it\'s a valid CARFAX report and try again.' },
                 { status: 422 }
             );
         }
 
-        // ── Call Groq ──
+        // ── Final analysis: Groq llama-3.3-70b on extracted text ────────────────
         const trimmedText = pdfText.length > 65000
             ? pdfText.slice(0, 65000) + '\n\n[... truncated ...]'
             : pdfText;
-        console.log(`[Carfax] Sending ${trimmedText.length} chars to Groq from "${pdfFile.name}"`);
+        console.log(`[Carfax] Sending ${trimmedText.length} chars to Groq for analysis`);
 
         const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${groqKey}`,
-                'Content-Type': 'application/json',
-            },
+            headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: 'llama-3.3-70b-versatile',
                 temperature: 0.05,
@@ -317,44 +359,34 @@ export async function POST(request: Request) {
                 response_format: { type: 'json_object' },
                 messages: [
                     { role: 'system', content: CARFAX_SYSTEM_PROMPT },
-                    {
-                        role: 'user',
-                        content: `Analyze this CARFAX report text and return your JSON analysis:\n\n---\n${trimmedText}\n---`,
-                    },
+                    { role: 'user', content: `Analyze this CARFAX report and return your JSON analysis:\n\n---\n${trimmedText}\n---` },
                 ],
             }),
         });
 
         if (!groqRes.ok) {
-            const errText = await groqRes.text();
-            console.error('[Carfax] Groq error:', errText);
-            return NextResponse.json(
-                { error: `AI analysis failed (${groqRes.status}). Try again in a moment.` },
-                { status: 502 }
-            );
+            console.error('[Carfax] Groq analysis error:', await groqRes.text());
+            return NextResponse.json({ error: 'AI analysis failed. Please try again.' }, { status: 502 });
         }
 
         const groqData = await groqRes.json();
         const rawContent = groqData.choices?.[0]?.message?.content?.trim() || '';
-
-        // Strip any accidental markdown fences
         const jsonStr = rawContent.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim();
 
         let analysis: any;
         try {
             analysis = JSON.parse(jsonStr);
         } catch {
-            console.error('[Carfax] JSON parse failed. Raw (first 500):', rawContent.slice(0, 500));
+            console.error('[Carfax] JSON parse failed. Raw:', rawContent.slice(0, 500));
             return NextResponse.json(
-                { error: 'AI returned malformed data. Please try uploading the report again.' },
+                { error: 'Analysis returned malformed data. Please try again.' },
                 { status: 422 }
             );
         }
 
-        console.log('[Carfax] ✓ Analysis complete:', {
+        console.log('[Carfax] ✅ Analysis complete:', {
             vin: analysis.vin,
             verdict: analysis.verdict,
-            title: analysis.titleStatus,
             score: analysis.overallScore,
         });
 
@@ -368,3 +400,4 @@ export async function POST(request: Request) {
         );
     }
 }
+

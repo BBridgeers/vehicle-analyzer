@@ -290,9 +290,9 @@
 - **Seller Type:** Private Owner (No Dealers)
 - **Rules:** Any make/model allowed. MUST automatically filter out known "lemons" or vehicles with major mechanical reputation issues before presenting.
 
-- [x] **Facebook Marketplace (Priority 1):** Playwright + Stealth script with 50% magnification full-page screenshot Gemini analysis.
-- [ ] **Craigslist (Priority 2):** Create `scripts/cl_subagent.ts`. This script will use Cheerio + Fetch to hit the Dallas Craigslist search page (`/search/cta?max_price=7000&max_auto_miles=100000&auto_title_status=1&purveyor=owner`). It will extract the listing URLs, pass them to the existing `scrapeVehicle` factory for native HTML extraction (which is ultra-fast and cheap). Only the extracted `year, make, model, description` will be sent to the Gemini "Lemon Filter". Passed vehicles will be exported to `golden_vehicles.json`.
-- [ ] **AutoTempest (Priority 3):** Create `scripts/at_subagent.ts`. AutoTempest blocks basic fetches, so this MUST use the Playwright + Stealth engine. It will navigate to `autotempest.com/results...` and extract the outgoing referral links. Because AT aggregates external sites (Cars.com, TrueCar, etc.), we will use the same visual 50% Zoom + Gemini Vision AI technique used in the FB subagent on the final destination page, guaranteeing uniform data extraction regardless of the host site.
+- [x] **Facebook Marketplace (Priority 1):** Playwright + Stealth script with 50% magnification full-page screenshot sent to Vision Manager (Groq Vision → Ollama fallback).
+- [x] **Craigslist (Priority 2):** `scripts/cl_subagent.ts` — uses Cheerio + Fetch to hit the Dallas Craigslist search page, extracts listing URLs, passes them to the existing `scrapeVehicle` factory for native HTML extraction. Extracted `year, make, model, description` is sent to the Groq "Lemon Filter" (`llama-3.3-70b`). Passed vehicles exported to `cl_golden_vehicles.json`.
+- [x] **AutoTempest (Priority 3):** `scripts/at_subagent.ts` — uses Playwright + Stealth to navigate AutoTempest results, extracts external referral links. Uses the same Vision Manager (Groq → Ollama) technique as the FB subagent on destination pages, guaranteeing uniform data extraction regardless of the host site.
 
 ### Task 6.2 — The Automation Script (The Pipeline)
 - [ ] Create `scripts/run_automation.ts` designed to run in a scheduled environment.

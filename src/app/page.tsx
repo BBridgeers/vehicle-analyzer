@@ -527,9 +527,9 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult }: {
                   {/* Key facts grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
                     {carfaxResult.owners && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Owners</div><div className="text-gray-200 font-semibold">{carfaxResult.owners}</div></div>}
-                    {carfaxResult.accidents && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Accidents</div><div className="text-amber-300 font-semibold">{carfaxResult.accidents}</div></div>}
+                    {carfaxResult.incidents && carfaxResult.incidents.length > 0 && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Incidents</div><div className="text-amber-300 font-semibold">{carfaxResult.incidents.length}</div></div>}
                     {carfaxResult.titleStatus && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Title</div><div className={`font-semibold ${ carfaxResult.titleStatus === 'Clean' ? 'text-emerald-300' : 'text-orange-300' }`}>{carfaxResult.titleStatus}</div></div>}
-                    {carfaxResult.serviceRecords && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Service Recs</div><div className="text-gray-200 font-semibold">{carfaxResult.serviceRecords}</div></div>}
+                    {carfaxResult.serviceRecordCount != null && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Service Recs</div><div className="text-gray-200 font-semibold">{carfaxResult.serviceRecordCount}</div></div>}
                   </div>
 
                   {/* Summary */}
@@ -557,7 +557,47 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult }: {
   );
 };
 
-const CoreIdentitySection = ({ form, setForm }) => (
+const CoreIdentitySection = ({ form, setForm }) => {
+  const [vinDecoding, setVinDecoding] = useState(false);
+  const [vinError, setVinError] = useState('');
+  const [vinResult, setVinResult] = useState<any>(null);
+
+  const handleVinDecode = async () => {
+    const vin = form.vin?.trim();
+    if (!vin || vin.length < 11) {
+      setVinError('Enter a valid 17-character VIN');
+      return;
+    }
+    setVinDecoding(true);
+    setVinError('');
+    setVinResult(null);
+    try {
+      const res = await fetch('/api/vin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vin }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'VIN decode failed');
+      setVinResult(data);
+      // Auto-fill form fields from decode result
+      if (data.specs) {
+        setForm((f: any) => ({
+          ...f,
+          year: data.specs.year && data.specs.year !== 'Unknown' ? String(data.specs.year) : f.year,
+          make: data.specs.make && data.specs.make !== 'Unknown' ? data.specs.make : f.make,
+          model: data.specs.model && data.specs.model !== 'Unknown' ? data.specs.model : f.model,
+          trim: data.specs.trim || f.trim,
+        }));
+      }
+    } catch (e: any) {
+      setVinError(e.message);
+    } finally {
+      setVinDecoding(false);
+    }
+  };
+
+  return (
   <section className="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm">
     <div className="px-5 py-3 border-b border-[#2a2825] bg-[#161513]">
       <h2 className="text-sm font-semibold text-gray-200">Core Vehicle Identity</h2>
@@ -574,11 +614,27 @@ const CoreIdentitySection = ({ form, setForm }) => (
             onChange={e => setForm(f => ({ ...f, vin: e.target.value.toUpperCase() }))}
             className="flex-1 bg-[#050403] border border-[#3a3730] rounded-l-md px-3 py-2 text-sm text-gray-200 uppercase placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 font-mono"
           />
-          <button className="bg-[#1e1c19] hover:bg-[#2a2825] text-cyan-400 px-4 py-2 rounded-r-md text-sm font-medium border border-l-0 border-[#3a3730] transition-colors flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            Decode
+          <button
+            onClick={handleVinDecode}
+            disabled={vinDecoding || !form.vin}
+            className="bg-[#1e1c19] hover:bg-[#2a2825] disabled:opacity-40 disabled:cursor-not-allowed text-cyan-400 px-4 py-2 rounded-r-md text-sm font-medium border border-l-0 border-[#3a3730] transition-colors flex items-center gap-1"
+          >
+            {vinDecoding ? (
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            )}
+            {vinDecoding ? 'Decoding...' : 'Decode'}
           </button>
         </div>
+        {vinError && <p className="text-xs text-red-400 mt-1">{vinError}</p>}
+        {vinResult && !vinError && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {vinResult.specs?.year && vinResult.specs.year !== 'Unknown' && <span className="text-[10px] bg-emerald-900/30 border border-emerald-700/40 text-emerald-300 px-2 py-0.5 rounded">{vinResult.specs.year} {vinResult.specs.make} {vinResult.specs.model}</span>}
+            {vinResult.verdict && <span className={`text-[10px] px-2 py-0.5 rounded border ${vinResult.verdict.score >= 75 ? 'bg-emerald-900/30 border-emerald-700/40 text-emerald-300' : vinResult.verdict.score >= 50 ? 'bg-amber-900/30 border-amber-700/40 text-amber-300' : 'bg-red-900/30 border-red-700/40 text-red-300'}`}>Score: {vinResult.verdict.score} — {vinResult.verdict.recommendation}</span>}
+            {vinResult.safety?.recalls?.length > 0 && <span className="text-[10px] bg-red-900/30 border border-red-700/40 text-red-300 px-2 py-0.5 rounded">⚠ {vinResult.safety.recalls.length} recalls</span>}
+          </div>
+        )}
       </div>
 
       <div className="col-span-12 md:col-span-3">

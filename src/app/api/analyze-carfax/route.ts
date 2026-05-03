@@ -436,32 +436,51 @@ export async function POST(request: Request) {
       `[Carfax] Sending ${trimmedText.length} chars to Groq for analysis (via ${strategyUsed})`
     );
 
-    const groqRes = await fetch(
-      'https://api.groq.com/openai/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
+    const groqRequestBody = {
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.05,
+      max_tokens: 32768,
+      response_format: { type: 'json_object' } as const,
+      messages: [
+        { role: 'system' as const, content: CARFAX_SYSTEM_PROMPT },
+        {
+          role: 'user' as const,
+          content: `Analyze this CARFAX report and return your JSON analysis:\n\n---\n${trimmedText}\n---`,
         },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          temperature: 0.05,
-          max_tokens: 2048,
-          response_format: { type: 'json_object' },
-          messages: [
-            { role: 'system', content: CARFAX_SYSTEM_PROMPT },
-            {
-              role: 'user',
-              content: `Analyze this CARFAX report and return your JSON analysis:\n\n---\n${trimmedText}\n---`,
-            },
-          ],
-        }),
-      }
-    );
+      ],
+    };
 
-    if (!groqRes.ok) {
-      console.error('[Carfax] Groq analysis error:', await groqRes.text());
+    // Retry loop: 3 attempts with exponential backoff
+    let groqRes: Response | null = null;
+    let lastError = '';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) {
+        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
+        console.log(`[Carfax] Retry attempt ${attempt + 1}/3 after ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+      try {
+        groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${groqKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(groqRequestBody),
+        });
+        if (groqRes.ok) break; // Success — exit retry loop
+        lastError = await groqRes.text();
+        console.warn(`[Carfax] Groq attempt ${attempt + 1} failed (${groqRes.status}): ${lastError.slice(0, 200)}`);
+        // Don't retry auth errors
+        if (groqRes.status === 401 || groqRes.status === 403) break;
+      } catch (fetchError: any) {
+        lastError = fetchError.message;
+        console.warn(`[Carfax] Groq fetch error attempt ${attempt + 1}: ${lastError}`);
+      }
+    }
+
+    if (!groqRes || !groqRes.ok) {
+      console.error('[Carfax] Groq analysis failed after retries:', lastError);
       return NextResponse.json(
         { error: 'AI analysis failed. Please try again.' },
         { status: 502 }

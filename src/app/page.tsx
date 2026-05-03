@@ -162,7 +162,8 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
         fuelType: v.fuelType || f.fuelType,
       }));
       // Auto-trigger AI analysis after URL scrape completes
-      setTimeout(() => onRunAnalysis?.(), 400);
+      // Use ref to get the latest onRunAnalysis with fresh form state
+      setTimeout(() => onRunAnalysisRef.current?.(), 400);
     } catch (e: any) {
       setScrapeError(e.message);
     } finally {
@@ -177,6 +178,10 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
   const [isDraggingShot, setIsDraggingShot] = useState(false);
   const shotDragCounter = useRef(0);
   const screenshotInputRef = useRef<HTMLInputElement>(null);
+
+  // Ref to always hold latest onRunAnalysis, avoiding stale closures in timeouts
+  const onRunAnalysisRef = useRef(onRunAnalysis);
+  onRunAnalysisRef.current = onRunAnalysis;
 
   const processScreenshot = useCallback(async (file: File) => {
     const previewUrl = URL.createObjectURL(file);
@@ -203,7 +208,8 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
       }));
       setScreenshotStatus('done');
       // Auto-trigger AI analysis after fields are extracted
-      setTimeout(() => onRunAnalysis?.(), 400);
+      // Use ref to get the latest onRunAnalysis with fresh form state
+      setTimeout(() => onRunAnalysisRef.current?.(), 400);
     } catch (e: any) {
       setScreenshotError(e.message);
       setScreenshotStatus('error');

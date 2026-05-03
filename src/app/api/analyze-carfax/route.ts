@@ -200,6 +200,11 @@ function hasCarfaxContent(text: string): boolean {
 }
 
 // ── Strategy A: pdfjs text extraction ────────────────────────────────────────
+// Pre-load pdfjs worker onto globalThis so pdfjs skips the dynamic import
+// that fails on Vercel Lambda (webpackIgnore prevents bundling the worker chunk).
+import * as pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
+(globalThis as any).pdfjsWorker = pdfjsWorker;
+
 async function tryPdfjsExtract(buffer: Buffer): Promise<string> {
   const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
 

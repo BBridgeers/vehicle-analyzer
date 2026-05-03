@@ -2,7 +2,6 @@ import { chromium } from 'playwright-extra';
 const stealth = require('puppeteer-extra-plugin-stealth')();
 chromium.use(stealth);
 
-import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
@@ -17,13 +16,11 @@ if (fs.existsSync(envPath)) {
     });
 }
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.GeminiKey;
 const groqKey = process.env.GROQ_API_KEY;
 const ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434';
 
 import { VisionManager } from '../src/lib/vision-engine';
 const visionManager = new VisionManager({
-    geminiKey: apiKey,
     groqKey: groqKey,
     ollamaHost: ollamaHost
 });
@@ -160,8 +157,8 @@ async function run() {
             // Optionally save to disk for debugging
             // fs.writeFileSync(`screenshot_${i}.png`, screenshotBuffer);
 
-            // Send to Gemini
-            console.log("   🧠 Sending to Gemini Vision API (with Lemon Filter)...");
+            // Send to Vision Manager (Groq → Ollama fallback)
+            console.log("   🧠 Sending to Vision Manager (with Lemon Filter)...");
             const data = await extractListingData(screenshotBuffer);
 
             if (data) {

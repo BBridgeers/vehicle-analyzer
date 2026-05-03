@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import * as fs from 'fs';
 import * as path from 'path';
-import { GoogleGenAI } from '@google/genai';
+import axios from 'axios';
 import { fetchWithHeaders } from '../src/lib/scrapers/utils';
 import { scrapeVehicle } from '../src/lib/scrapers/index';
 
@@ -15,13 +15,11 @@ if (fs.existsSync(envPath)) {
     });
 }
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.GeminiKey;
-if (!apiKey) {
-    console.error('CRITICAL: GEMINI_API_KEY environment variable is missing.');
+const groqKey = process.env.GROQ_API_KEY;
+if (!groqKey) {
+    console.error('CRITICAL: GROQ_API_KEY environment variable is missing.');
     process.exit(1);
 }
-
-const ai = new GoogleGenAI({ apiKey });
 
 // ── CONSTANTS ──
 // DFW Metroplex, Max $7000, Max 100k miles, Title: Clean, By Owner, Min Year 2006
@@ -45,23 +43,26 @@ async function runLemonFilter(year: number | undefined, make: string | undefined
     const payload = `Vehicle: ${year || 'Unknown Year'} ${make} ${model}\nDescription: ${description.substring(0, 1000)}`;
     
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
-            contents: [
-                { text: LEMON_PROMPT },
-                { text: payload }
+        const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                { role: 'system', content: LEMON_PROMPT },
+                { role: 'user', content: payload }
             ],
-            config: { temperature: 0.1 }
+            temperature: 0.1,
+            response_format: { type: 'json_object' }
+        }, {
+            headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }
         });
 
-        const text = response.text || "{}";
-        let jsonStr = text.trim();
+        const content = response.data.choices[0].message.content;
+        let jsonStr = content.trim();
         if (jsonStr.startsWith('```')) {
             jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
         }
         return JSON.parse(jsonStr);
     } catch (e: any) {
-        console.error("   ⚠️ Gemini Lemon Filter Error (passed by default):", e.message);
+        console.error("   ⚠️ Groq Lemon Filter Error (passed by default):", e.response?.data || e.message);
         return { isLemon: false, reason: null };
     }
 }
@@ -106,7 +107,7 @@ async function run() {
                 console.log(`   ❌ AGE REJECTED: ${vehicle.year} is older than the 2006 minimum cutoff.`);
                 // skip to next
             } else {
-                // 3. Fast Text-Only AI Lemon Filter
+                // 3. Fast Text-Only AI Lemon Filter (Groq — free tier)
                 console.log("   🧠 Running AI Lemon Validation...");
                 const lemonStatus = await runLemonFilter(vehicle.year, vehicle.make, vehicle.model, vehicle.description || '');
 

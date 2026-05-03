@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
 import axios from 'axios';
 
 // ── TYPES & INTERFACES ──
@@ -62,43 +61,6 @@ function parseRobustJSON(text: string): any {
 }
 
 // ── ENGINES ──
-
-export class GeminiVisionEngine implements IVisionEngine {
-    name = "Gemini";
-    private ai: any;
-
-    constructor(apiKey?: string) {
-        if (apiKey) {
-            this.ai = new GoogleGenAI({ apiKey });
-        }
-    }
-
-    async extract(image: Buffer | string, prompt: string, mimeType: string = 'image/png'): Promise<VisionResult | null> {
-        if (!this.ai) return null;
-        try {
-            const base64Data = Buffer.isBuffer(image) ? image.toString('base64') : image.replace(/^data:image\/\w+;base64,/, '');
-            
-            const response = await this.ai.models.generateContent({
-                model: 'gemini-2.0-flash',
-                contents: [
-                    {
-                        inlineData: {
-                            mimeType,
-                            data: base64Data,
-                        },
-                    },
-                    { text: prompt }
-                ],
-                config: { temperature: 0.1 }
-            });
-            
-            return parseRobustJSON(response.text || "{}");
-        } catch (e: any) {
-            console.error("Gemini Error:", e.message);
-            return null;
-        }
-    }
-}
 
 export class GroqVisionEngine implements IVisionEngine {
     name = "Groq";

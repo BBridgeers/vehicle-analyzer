@@ -13,7 +13,6 @@ if (fs.existsSync(envPath)) {
 }
 
 const manager = new VisionManager({
-    geminiKey: process.env.GEMINI_API_KEY || process.env.GeminiKey,
     groqKey: process.env.GROQ_API_KEY,
     ollamaHost: process.env.OLLAMA_HOST
 });

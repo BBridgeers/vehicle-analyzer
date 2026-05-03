@@ -2,7 +2,6 @@ import { chromium } from 'playwright-extra';
 const stealth = require('puppeteer-extra-plugin-stealth')();
 chromium.use(stealth);
 
-import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -16,13 +15,14 @@ if (fs.existsSync(envPath)) {
     });
 }
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.GeminiKey;
-if (!apiKey) {
-    console.error('CRITICAL: GEMINI_API_KEY environment variable is missing.');
-    process.exit(1);
-}
+const groqKey = process.env.GROQ_API_KEY;
+const ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434';
 
-const ai = new GoogleGenAI({ apiKey });
+import { VisionManager } from '../src/lib/vision-engine';
+const visionManager = new VisionManager({
+    groqKey: groqKey,
+    ollamaHost: ollamaHost
+});
 
 // ── CONSTANTS ──
 // AutoTempest: Dallas ZIP (75201), 50mi Radius, Max $7k, Max 100k miles, Clean Title, Min Year 2006
@@ -53,32 +53,7 @@ Return ONLY valid JSON:
 }`;
 
 async function extractListingData(imageBuffer: Buffer) {
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
-            contents: [
-                {
-                    inlineData: {
-                        mimeType: 'image/png',
-                        data: imageBuffer.toString('base64'),
-                    },
-                },
-                { text: EXTRACTION_PROMPT }
-            ],
-            config: { temperature: 0.1 }
-        });
-
-        const text = response.text || "{}";
-        let jsonStr = text.trim();
-        if (jsonStr.startsWith('```')) {
-            jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
-        }
-
-        return JSON.parse(jsonStr);
-    } catch (e: any) {
-        console.error("   ⚠️ Gemini Extraction Error:", e.message);
-        return null;
-    }
+    return await visionManager.extract(imageBuffer, EXTRACTION_PROMPT);
 }
 
 async function run() {
@@ -136,8 +111,8 @@ async function run() {
             console.log("   📸 Capturing Universal Listing Screenshot...");
             const screenshotBuffer = await page.screenshot({ fullPage: true });
 
-            // Send to Gemini
-            console.log("   🧠 Sending to Universal AI Extractor (with Lemon Filter)...");
+            // Send to Vision Manager (Groq → Ollama fallback)
+            console.log("   🧠 Sending to Vision Manager (with Lemon Filter)...");
             const data = await extractListingData(screenshotBuffer);
 
             if (data) {

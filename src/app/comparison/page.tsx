@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const customStyles: Record<string, React.CSSProperties> = {
   body: {
@@ -113,7 +114,7 @@ const Header = ({ activeNav }: { activeNav: string; setActiveNav?: (id: string) 
           </div>
           <div className="w-10 h-10 rounded-full bg-cyan-900/40 border border-cyan-700/50 flex items-center justify-center font-black text-cyan-100 text-xs">JS</div>
         </div>
-        <button className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-white transition-colors">
+        <button onClick={() => {}} disabled className="w-10 h-10 flex items-center justify-center text-gray-700 cursor-not-allowed transition-colors" title="Settings coming in next update">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -125,6 +126,31 @@ const Header = ({ activeNav }: { activeNav: string; setActiveNav?: (id: string) 
 };
 
 const SubHeader = ({ engineMode, setEngineMode }: { engineMode: string; setEngineMode: (mode: string) => void }) => {
+  const router = useRouter();
+
+  const handleExportCSV = () => {
+    const headers = ['Metric', '2019 Honda Civic Sport', '2019 Toyota RAV4 Hybrid', '2018 Mazda CX-9 XL'];
+    const rows = [
+      ['I-Score', '87', '74', '68'],
+      ['Rideshare Tier', 'Uber X (1.0x)', 'Comfort (1.2x)', 'Uber XL (1.5x)'],
+      ['Asking Price', '$18,500', '$24,200', '$21,800'],
+      ['Est. Negotiated', '$16,200', '$22,800', '$21,100'],
+      ['Equity Surplus', '+$2,950', '+$1,450', '+$820'],
+      ['Insurance (Liability)', '$142/mo', '$168/mo', '$212/mo'],
+      ['Insurance (+Rideshare)', '$38/mo', '$45/mo', '$62/mo'],
+      ['Mileage', '42,000', '102,400', '128,100'],
+      ['Pre-Flight Repair Cost', '$240', '$850', '$2,450'],
+    ];
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'comparison-matrix.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="h-16 bg-[#0a0905]/80 backdrop-blur-xl border-b border-[#262420] flex items-center justify-between px-8 sticky top-0 z-40 shrink-0">
       <div className="flex items-center gap-8">
@@ -167,17 +193,17 @@ const SubHeader = ({ engineMode, setEngineMode }: { engineMode: string; setEngin
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
               <span className="text-[10px] font-bold text-white uppercase tracking-tight">CX-9</span>
             </div>
-            <button className="w-6 h-6 rounded border border-dashed border-[#262420] flex items-center justify-center text-gray-500 hover:text-white hover:border-gray-500 transition-all text-sm">+</button>
+            <button onClick={() => router.push('/')} className="w-6 h-6 rounded border border-dashed border-[#262420] flex items-center justify-center text-gray-500 hover:text-white hover:border-gray-500 transition-all text-sm">+</button>
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-cyan-900/20">
+        <button onClick={() => router.push('/')} className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-cyan-900/20">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
           Add Vehicle
         </button>
-        <button className="bg-[#141311] border border-[#262420] text-gray-400 hover:text-white hover:border-gray-600 px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all">
+        <button onClick={handleExportCSV} className="bg-[#141311] border border-[#262420] text-gray-400 hover:text-white hover:border-gray-600 px-5 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all">
           Export Matrix
         </button>
       </div>

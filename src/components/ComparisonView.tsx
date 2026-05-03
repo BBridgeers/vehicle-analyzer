@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowUpDown, X, Trophy } from "lucide-react";
 import type { HistoryEntry } from "@/lib/types";
 import { getHistory } from "@/lib/history";
@@ -13,11 +13,21 @@ interface ComparisonViewProps {
 type SortKey = "equity" | "verdictScore" | "price" | "mileage" | "payback";
 
 export default function ComparisonView({ onClose, initialSelection }: ComparisonViewProps) {
-    const [entries] = useState<HistoryEntry[]>(() => getHistory());
+    const [entries, setEntries] = useState<HistoryEntry[]>([]);
+    const [loaded, setLoaded] = useState(false);
     const [selected, setSelected] = useState<Set<string>>(
         new Set(initialSelection || [])
     );
     const [sortBy, setSortBy] = useState<SortKey>("equity");
+
+    useEffect(() => {
+        getHistory().then((data) => {
+            setEntries(data);
+            setLoaded(true);
+        });
+    }, []);
+
+    if (!loaded) return null;
 
     const toggleSelect = (id: string) => {
         setSelected((prev) => {

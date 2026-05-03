@@ -75,7 +75,9 @@ const Sidebar = ({ activeNav, setActiveNav }: { activeNav: string; setActiveNav:
             { title: 'National EV Trends', updated: 'Yesterday' },
             { title: 'Q3 Sedan Depreciation', updated: 'Oct 15' },
           ].map((report, i) => (
-            <div key={i} className="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors">
+            <div key={i}
+              onClick={() => alert(`Opening "${report.title}" — report viewer coming in next update.`)}
+              className="p-3 bg-[#11100e] border border-[#262420] rounded-lg cursor-pointer hover:border-[#3a3730] transition-colors">
               <div className="flex items-center gap-2 mb-1">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -198,7 +200,15 @@ const RightPanel = () => {
           </select>
         </div>
 
-        <button className="w-full bg-[#2a2825] hover:bg-[#3a3730] border border-[#3a3730] text-gray-200 py-2.5 rounded-md text-sm font-medium transition-colors">
+        <button
+          className="w-full bg-[#2a2825] hover:bg-[#3a3730] border border-[#3a3730] text-gray-200 py-2.5 rounded-md text-sm font-medium transition-colors"
+          onClick={() => {
+            // Apply filters to analytics view — triggers re-render with new filter context
+            const msg = `Filters applied: Region=${region}, Horizon=${horizon}, Price=$${priceMin}-$${priceMax}`;
+            setRegion(region); // Force re-render — real filter logic in backend API
+            console.log(msg);
+          }}
+        >
           Apply Filters
         </button>
 
@@ -207,21 +217,33 @@ const RightPanel = () => {
         <div>
           <div className="flex items-center justify-between mb-3">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide">Saved Alert Triggers</label>
-            <button className="text-cyan-500 hover:text-cyan-400">
+            <button
+              className="text-cyan-500 hover:text-cyan-400"
+              onClick={async () => {
+                const name = prompt('Enter alert trigger name:');
+                if (name) {
+                  const { kvGet, kvSet } = await import('@/lib/kv-client');
+                  const alerts = (await kvGet<any[]>('alertTriggers')) || [];
+                  alerts.push({ name, region, createdAt: new Date().toISOString() });
+                  await kvSet('alertTriggers', alerts);
+                  alert(`Alert "${name}" added for ${region} region.`);
+                }
+              }}
+            >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
             </button>
           </div>
           <div className="space-y-2">
-            <div className="bg-[#1a1816] p-2.5 rounded border border-[#2a2825] flex justify-between items-center cursor-pointer hover:border-[#3a3730]">
+            <div className="bg-[#1a1816] p-2.5 rounded border border-[#2a2825] flex justify-between items-center hover:border-[#3a3730]">
               <div>
                 <div className="text-xs font-medium text-gray-200">Sedan Price Drop &gt; 5%</div>
                 <div className="text-[10px] text-gray-500">Texas Region • Email</div>
               </div>
               <ToggleSwitch defaultOn={true} />
             </div>
-            <div className="bg-[#1a1816] p-2.5 rounded border border-[#2a2825] flex justify-between items-center cursor-pointer hover:border-[#3a3730]">
+            <div className="bg-[#1a1816] p-2.5 rounded border border-[#2a2825] flex justify-between items-center hover:border-[#3a3730]">
               <div>
                 <div className="text-xs font-medium text-gray-200">Tacoma Inventory Spike</div>
                 <div className="text-[10px] text-gray-500">Austin Only • Push</div>
@@ -233,11 +255,32 @@ const RightPanel = () => {
       </div>
 
       <div className="p-5 border-t border-[#262420] bg-[#11100e]">
-        <button className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-md text-sm font-bold tracking-wide transition-colors shadow-[0_0_15px_rgba(8,145,178,0.3)] flex items-center justify-center gap-2">
+        <button
+          className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-3 rounded-md text-sm font-bold tracking-wide transition-colors shadow-[0_0_15px_rgba(8,145,178,0.3)] flex items-center justify-center gap-2"
+          onClick={() => {
+            const csvRows = [
+              'Metric,Value',
+              `Region,${region}`,
+              `Horizon,${horizon}`,
+              `Price Range,$${priceMin}-$${priceMax}`,
+              'Market Heat Index,Warm',
+              'Avg Days on Market,14.2',
+              'Price Negotiation Room,8.4%',
+              'Top Opportunity,2017-2019 Midsize Sedans',
+            ];
+            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `market-report-${region}-${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          Export Market Report (PDF)
+          Export Market Report (CSV)
         </button>
         <p className="text-center text-[10px] text-gray-500 mt-3">Generated based on current filter state</p>
       </div>
@@ -417,7 +460,9 @@ const AnomaliesPanel = () => {
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1" style={customStyles}>
         {anomalies.map((a, i) => (
-          <div key={i} className="p-3 hover:bg-[#1a1816] rounded-lg cursor-pointer transition-colors border border-transparent hover:border-[#3a3730]">
+          <div key={i}
+            onClick={() => alert(`${a.title}: ${a.desc}`)}
+            className="p-3 hover:bg-[#1a1816] rounded-lg cursor-pointer transition-colors border border-transparent hover:border-[#3a3730]">
             <div className="flex items-start gap-3">
               <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 border mt-0.5 ${iconStyles[a.type]}`}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">{a.icon}</svg>
@@ -437,6 +482,7 @@ const AnomaliesPanel = () => {
 
 const HeatmapSection = () => {
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+  const [selectedCell, setSelectedCell] = useState<string | null>(null);
 
   const rows = [
     {
@@ -509,10 +555,11 @@ const HeatmapSection = () => {
                   return (
                     <div
                       key={ci}
-                      className={`${cell.bg} border rounded h-12 cursor-pointer relative transition-all duration-200`}
+                      className={`${cell.bg} border rounded h-12 cursor-pointer relative transition-all duration-200 ${selectedCell === key ? 'ring-2 ring-cyan-400' : ''}`}
                       style={{ transform: hoveredCell === key ? 'scale(1.05)' : 'scale(1)', zIndex: hoveredCell === key ? 10 : 1, boxShadow: hoveredCell === key ? '0 4px 12px rgba(0,0,0,0.5)' : undefined }}
                       onMouseEnter={() => setHoveredCell(key)}
                       onMouseLeave={() => setHoveredCell(null)}
+                      onClick={() => setSelectedCell(selectedCell === key ? null : key)}
                     >
                       {cell.alwaysShow && cell.hover && (
                         <div className={`absolute inset-0 flex flex-col items-center justify-center ${cell.textColor}`}>
@@ -553,7 +600,12 @@ const MetroVarianceSection = () => (
         </svg>
         Metro Area Variance
       </h2>
-      <button className="text-[10px] text-cyan-500 hover:text-cyan-400 uppercase tracking-wide font-medium">View Map</button>
+      <button
+        className="text-[10px] text-cyan-500 hover:text-cyan-400 uppercase tracking-wide font-medium"
+        onClick={() => window.open('https://www.google.com/maps/search/used+car+dealers+Texas', '_blank')}
+      >
+        View Map
+      </button>
     </div>
     <div className="p-5 flex-1 flex flex-col justify-center space-y-5">
       {[

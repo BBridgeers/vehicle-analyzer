@@ -16,12 +16,11 @@ export default function HistoryPanel({ onClose, onLoad, onCompare }: HistoryPane
     const [selected, setSelected] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        setEntries(getHistory());
+        getHistory().then(setEntries);
     }, []);
 
     const handleDelete = (id: string) => {
-        deleteFromHistory(id);
-        setEntries(getHistory());
+        deleteFromHistory(id).then(() => getHistory().then(setEntries));
         if (selected.has(id)) {
             const next = new Set(selected);
             next.delete(id);
@@ -43,8 +42,7 @@ export default function HistoryPanel({ onClose, onLoad, onCompare }: HistoryPane
 
     const handleClear = () => {
         if (confirm("Clear all history? This cannot be undone.")) {
-            clearHistory();
-            setEntries([]);
+            clearHistory().then(() => setEntries([]));
         }
     };
 

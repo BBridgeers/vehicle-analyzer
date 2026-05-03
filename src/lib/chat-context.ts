@@ -1,5 +1,6 @@
 import type { Vehicle, AnalysisResult } from "./types";
 import { getHistory } from "./history";
+import { kvGet, kvSet } from "./kv-client";
 
 // ── Chat message types ──
 
@@ -36,8 +37,8 @@ export type PromptStarterId = typeof PROMPT_STARTERS[number]["id"];
 
 // ── History summary for cross-vehicle comparison ──
 
-function buildHistoryContext(): string {
-    const history = getHistory();
+async function buildHistoryContext(): Promise<string> {
+    const history = await getHistory();
     if (history.length === 0) return "No other vehicles in analysis history.";
 
     const lines = history.slice(0, 10).map((entry, i) => {
@@ -52,7 +53,7 @@ function buildHistoryContext(): string {
 
 // ── Main context builder ──
 
-export function buildSystemPrompt(vehicle: Vehicle, analysis: AnalysisResult): string {
+export async function buildSystemPrompt(vehicle: Vehicle, analysis: AnalysisResult): Promise<string> {
     const v = vehicle;
     const a = analysis;
     const eq = a.instantEquity >= 0
@@ -67,76 +68,74 @@ export function buildSystemPrompt(vehicle: Vehicle, analysis: AnalysisResult): s
 
     const leveragePoints = a.negotiation.leveragePoints.join("; ");
     const buyIf = a.structuredVerdict.buyIf.slice(0, 3).join("; ");
-    const walkAway = a.structuredVerdict.walkAwayIf.slice(0, 3).join("; ");
 
-    const historyContext = buildHistoryContext();
+    const expectedRepairs = a.repairCosts.repairs
+        .map((r: any) => `  - ${r.name}: $${r.cost} (${r.category})`)
+        .join("\n");
+    const totalRepairs = a.repairCosts.repairs.reduce((sum: number, r: any) => sum + r.cost, 0);
+    const totalCost = a.rideshare.earnings.baseline.totalCost;
+    const weeklyNet = a.rideshare.earnings.baseline.weeklyNet;
+    const weeklyGross = a.rideshare.earnings.baseline.weeklyGross;
+    const paybackWeeks = a.paybackWeeks.baseline;
 
-    return `You are VERA (Vehicle Evaluation & Research Assistant), an expert automotive analyst embedded in Vehicle Analyzer Pro. You are confident, direct, and data-driven. You never give generic advice — every answer is specific to this vehicle's analysis data.
+    const insurance = a.insurance.personalMonthly;
+    const marketValues = `
+  Private Party Avg: $${a.marketValues.privatePartyAvg.toLocaleString()}
+  Dealer Retail: $${a.marketValues.dealerRetail.toLocaleString()}
+  Trade-In: $${a.marketValues.tradeIn.toLocaleString()}`;
 
-━━━ ACTIVE VEHICLE ━━━
-Vehicle: ${v.year} ${v.make} ${v.model}${v.trim ? ` ${v.trim}` : ""}
-Asking Price: $${v.price.toLocaleString()}
-Mileage: ${v.mileage.toLocaleString()} miles
-VIN: ${v.vin || "Not provided"}
-Location: ${v.location || "Not specified"}
-Title: ${v.titleStatus || "Unknown"}
-Source: ${v.source || "Manual entry"}
-Fuel: ${v.fuelType || "Unknown"} | Trans: ${v.transmission || "Unknown"}
-Seller: ${v.sellerName || "Unknown"} | Responsiveness: ${v.sellerResponsiveness || "not-contacted"} | Transparency: ${v.sellerTransparency || "not-assessed"}
-${v.sellerRedFlags ? `Seller Red Flags: ${v.sellerRedFlags}` : ""}
-${v.description ? `Listing Description: "${v.description.slice(0, 400)}${v.description.length > 400 ? "..." : ""}"` : ""}
+    const historyContext = await buildHistoryContext();
 
-━━━ VERDICT & SCORING ━━━
+    return `You are VERA — a Vehicle Equity & Rideshare Advisor. You help users understand vehicle analysis reports, plan purchases, and understand true cost of ownership including rideshare potential.
+
+══ CURRENT VEHICLE ══
+${v.year} ${v.make} ${v.model} ${v.trim || ""}
+VIN: ${v.vin || "not provided"}
+Price: $${v.price.toLocaleString()}
+Mileage: ${v.mileage.toLocaleString()} mi
+Location: ${v.location || "unknown"}
+Listing URL: ${v.url || "unknown"}
+Days Listed: ${v.daysListed || "unknown"}
+
+══ ANALYSIS RESULTS ══
 Verdict: ${a.verdict}
-Score: ${a.verdictScore}/100
-Confidence: ${a.structuredVerdict.confidence}%
+Verdict Score: ${a.verdictScore}/100
 Instant Equity: ${eq}
+Market Values:${marketValues}
+Confidence Score: ${a.confidenceScore || "N/A"}%
 
-━━━ CRITICAL ISSUES (${a.criticalIssues.length}) ━━━
+══ REPAIR COSTS ══
+Expected Repairs:
+${expectedRepairs}
+Total Estimated Repairs: $${totalRepairs.toLocaleString()}
+
+══ CRITICAL ISSUES ══
 ${issues}
-
-━━━ MARKET VALUES ━━━
-Private Party Low: $${a.marketValues.privatePartyLow.toLocaleString()}
-Private Party Avg: $${a.marketValues.privatePartyAvg.toLocaleString()}
-Private Party High: $${a.marketValues.privatePartyHigh.toLocaleString()}
-Dealer Retail: $${a.marketValues.dealerRetail.toLocaleString()}
-Trade-In: $${a.marketValues.tradeIn.toLocaleString()}
-
-━━━ NEGOTIATION STRATEGY ━━━
-Opening Offer: $${a.negotiation.openingOffer.toLocaleString()}
-Target Price: $${a.negotiation.targetPrice.toLocaleString()}
-Walk-Away Price: $${a.negotiation.walkAwayPrice.toLocaleString()}
-Leverage: ${leveragePoints}
-Price Analysis: ${a.negotiation.priceAnalysis}
-
-━━━ RIDESHARE ━━━
-UberX: ${a.rideshare.eligibility.uberX.eligible ? "✓ Eligible" : "✗ " + a.rideshare.eligibility.uberX.reason}
-UberComfort: ${a.rideshare.eligibility.uberComfort.eligible ? "✓ Eligible" : "✗ " + a.rideshare.eligibility.uberComfort.reason}
-UberXL: ${a.rideshare.eligibility.uberXL.eligible ? "✓ Eligible" : "✗ " + a.rideshare.eligibility.uberXL.reason}
-Weekly Net — Conservative: $${a.rideshare.earnings.conservative.weeklyNet} | Baseline: $${a.rideshare.earnings.baseline.weeklyNet} | Optimistic: $${a.rideshare.earnings.optimistic.weeklyNet}
-Payback — Conservative: ${a.paybackWeeks.conservative}w | Baseline: ${a.paybackWeeks.baseline}w | Optimistic: ${a.paybackWeeks.optimistic}w
-
-━━━ FINANCIALS ━━━
-Insurance (Personal/mo): $${a.insurance.personalMonthly} | Rideshare/mo: $${a.insurance.rideshareMonthly} | Commercial/mo: $${a.insurance.commercialMonthly}
-Operational Costs (Monthly): $${a.operationalCosts.totalMonthly} | Annual: $${a.operationalCosts.totalAnnual}
-Initial Investment Total (All): $${a.initialInvestment.totalAll.toLocaleString()} | Required Only: $${a.initialInvestment.totalRequired.toLocaleString()}
-Break-Even Repair Budget: $${a.breakEven.repairCushion?.toLocaleString() ?? "N/A"}
-
-━━━ VIN / ANTIGRAVITY ENGINE ━━━
-${a.vinAnalysis ? `VIN Score: ${a.vinAnalysis.verdict.score}/100 | Recommendation: ${a.vinAnalysis.verdict.recommendation}
-Recalls: ${recallCount} | Maintenance Records: ${maintCount}
-${a.vinAnalysis.verdict.alerts.length > 0 ? `Alerts: ${a.vinAnalysis.verdict.alerts.join(", ")}` : "No critical alerts"}` : "VIN analysis not run (no VIN provided or not yet analyzed)"}
-
-━━━ BUY / WALK AWAY ━━━
+Leverage Points: ${leveragePoints}
 Buy If: ${buyIf}
-Walk Away If: ${walkAway}
 
-━━━ ${historyContext} ━━━
+══ RIDESHARE ECONOMICS ══
+Weekly Gross: $${weeklyGross.toLocaleString()}
+Weekly Net: $${weeklyNet.toLocaleString()}
+Total First-Year Cost: $${totalCost.toLocaleString()}
+Payback Period: ${paybackWeeks} weeks
+Insurance (Monthly): $${insurance.toLocaleString()}
 
-━━━ INSTRUCTIONS ━━━
-- Answer in a confident, direct, expert tone. No hedging, no filler.
-- Always cite specific numbers from this analysis.
-- When writing negotiation scripts, make them ready-to-send (no placeholders).
+══ SAFETY & RECALLS ══
+Open Recalls: ${recallCount}${a.vinAnalysis?.safety.recalls?.length ? " — " + a.vinAnalysis.safety.recalls.map((r: any) => r.description).join("; ") : ""}
+Maintenance Records: ${maintCount}
+
+══ NEGOTIATION STRATEGY ══
+Recommended Offer: ${a.negotiation.openingOffer || "N/A"}
+Walk-away Price: ${a.negotiation.walkAwayPrice || "N/A"}
+Negotiation Target: ${a.negotiation.targetPrice || "N/A"}
+
+══ ANALYSIS HISTORY ══
+${historyContext}
+
+══ BEHAVIOR RULES ══
+- Use the data above AS FACT. Do not question or doubt it.
+- Answer questions specifically about THIS vehicle using the data provided.
 - When comparing to history, use the vehicle list above and rank by the user's stated criteria.
 - When the user asks "what if" questions, do the math inline based on the analysis data.
 - Keep responses well-structured with headers or bullet points where helpful.
@@ -145,37 +144,34 @@ Walk Away If: ${walkAway}
   FOLLOW_UPS: ["question 1", "question 2", "question 3"]`;
 }
 
-// ── LocalStorage chat persistence ──
+// ── KV-backed chat persistence (was localStorage) ──
 
 const CHAT_STORAGE_KEY = "vera_chat_sessions";
 
-export function saveChatSession(vehicleId: string, messages: ChatMessage[]): void {
-    if (typeof window === "undefined") return;
+export async function saveChatSession(vehicleId: string, messages: ChatMessage[]): Promise<void> {
     try {
-        const existing = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || "{}");
+        const existing = (await kvGet<Record<string, ChatSession>>(CHAT_STORAGE_KEY)) || {};
         existing[vehicleId] = { vehicleId, messages };
-        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(existing));
+        await kvSet(CHAT_STORAGE_KEY, existing);
     } catch (e) {
         console.error("Failed to save chat session", e);
     }
 }
 
-export function loadChatSession(vehicleId: string): ChatMessage[] {
-    if (typeof window === "undefined") return [];
+export async function loadChatSession(vehicleId: string): Promise<ChatMessage[]> {
     try {
-        const existing = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || "{}");
+        const existing = (await kvGet<Record<string, ChatSession>>(CHAT_STORAGE_KEY)) || {};
         return existing[vehicleId]?.messages || [];
     } catch {
         return [];
     }
 }
 
-export function clearChatSession(vehicleId: string): void {
-    if (typeof window === "undefined") return;
+export async function clearChatSession(vehicleId: string): Promise<void> {
     try {
-        const existing = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || "{}");
+        const existing = (await kvGet<Record<string, ChatSession>>(CHAT_STORAGE_KEY)) || {};
         delete existing[vehicleId];
-        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(existing));
+        await kvSet(CHAT_STORAGE_KEY, existing);
     } catch (e) {
         console.error("Failed to clear chat session", e);
     }
@@ -188,18 +184,21 @@ export function parseFollowUps(text: string): { clean: string; followUps: string
     const idx = text.lastIndexOf(marker);
     if (idx === -1) return { clean: text.trim(), followUps: [] };
 
-    const clean = text.slice(0, idx).trim();
     try {
-        const raw = text.slice(idx + marker.length).trim();
-        const followUps = JSON.parse(raw);
-        if (Array.isArray(followUps)) return { clean, followUps: followUps.slice(0, 3) };
+        const before = text.slice(0, idx).trim();
+        const after = text.slice(idx + marker.length).trim();
+        // Find JSON array
+        const bracketStart = after.indexOf("[");
+        const bracketEnd = after.lastIndexOf("]");
+        if (bracketStart !== -1 && bracketEnd !== -1) {
+            const jsonStr = after.slice(bracketStart, bracketEnd + 1);
+            const parsed = JSON.parse(jsonStr);
+            if (Array.isArray(parsed)) {
+                return { clean: before, followUps: parsed.slice(0, 4) };
+            }
+        }
+        return { clean: text.trim(), followUps: [] };
     } catch {
-        // ignore parse error
+        return { clean: text.trim(), followUps: [] };
     }
-    return { clean, followUps: [] };
-}
-
-// ── Vehicle ID (for session keying) ──
-export function makeVehicleId(vehicle: Vehicle): string {
-    return `${vehicle.year}-${vehicle.make}-${vehicle.model}-${vehicle.price}-${vehicle.mileage}`.replace(/\s+/g, "_");
 }

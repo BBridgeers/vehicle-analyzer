@@ -17,14 +17,14 @@ const customStyles: Record<string, React.CSSProperties> = {
   },
 };
 
-const HistoryItem = ({ name, price, time, verdict, active }: { name: string; price: string; time: string; verdict: string; active: boolean }) => {
+const HistoryItem = ({ name, price, time, verdict, active, onClick }: { name: string; price: string; time: string; verdict: string; active: boolean; onClick?: () => void }) => {
   const verdictColors: Record<string, string> = {
     Good: 'text-green-400 bg-green-400/10',
     Risk: 'text-red-400 bg-red-400/10',
     Fair: 'text-yellow-400 bg-yellow-400/10',
   };
   return (
-    <div className={`p-3 ${active ? 'bg-[#1e1c19] border-cyan-800' : 'bg-[#11100e] border-[#262420]'} border rounded-lg cursor-pointer hover:border-cyan-800 transition-colors`}>
+    <div onClick={onClick} className={`p-3 ${active ? 'bg-[#1e1c19] border-cyan-800' : 'bg-[#11100e] border-[#262420]'} border rounded-lg cursor-pointer hover:border-cyan-800 transition-colors`}>
       <div className="flex justify-between items-start mb-1">
         <span className="text-sm font-medium text-gray-200">{name}</span>
         <span className={`text-xs px-1.5 py-0.5 rounded ${verdictColors[verdict]}`}>{verdict}</span>
@@ -57,6 +57,8 @@ const CircleScore = ({ score, colorClass }: { score: number; colorClass: string 
 );
 
 const Sidebar = () => {
+  const [activeHistory, setActiveHistory] = useState(0);
+
   const history = [
     { name: '2019 Toyota RAV4', price: '$22,500', time: '2 hrs ago', verdict: 'Good', active: true },
     { name: '2016 Honda Civic', price: '$14,200', time: 'Yesterday', verdict: 'Risk', active: false },
@@ -91,13 +93,17 @@ const Sidebar = () => {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
           Market Analytics
         </Link>
+        <Link href="/sweeps" className="flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-gray-200 hover:bg-[#1a1816] rounded-md text-sm font-medium transition-colors">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          Market Sweep
+        </Link>
       </nav>
 
       <div className="flex-1 overflow-y-auto p-4" style={customStyles.scrollbarHide}>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Analysis History</h3>
         <div className="space-y-3">
           {history.map((item, i) => (
-            <HistoryItem key={i} {...item} />
+            <HistoryItem key={i} {...item} active={i === activeHistory} onClick={() => setActiveHistory(i)} />
           ))}
         </div>
       </div>
@@ -712,6 +718,7 @@ const CoreIdentitySection = ({ form, setForm }) => {
     </div>
   </section>
 );
+};
 
 const SpecificationsSection = ({ form, setForm }) => (
   <section className="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden shadow-sm">
@@ -1057,7 +1064,7 @@ const MainContent = ({ form, setForm, activeMode, setActiveMode, onClearForm, on
   </main>
 );
 
-const AIPanel = ({ chatInput, setChatInput, chatMessages, onSendChat, onSaveToFleet, isSaved, analysisResult, form }: any) => {
+const AIPanel = ({ chatInput, setChatInput, chatMessages, onSendChat, onSaveToFleet, isSaved, analysisResult, form, chatExpanded, onNegotiationScript, onFullIntelReport, onToggleChat }: any) => {
   const [intelExpanded, setIntelExpanded] = useState(true);
 
   return (
@@ -1139,11 +1146,11 @@ const AIPanel = ({ chatInput, setChatInput, chatMessages, onSendChat, onSaveToFl
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-3 pb-4">
-          <button className="bg-[#1e1c19] hover:bg-[#2a2825] border border-[#3a3730] text-gray-200 p-3 rounded-lg flex flex-col items-center justify-center gap-2 transition-colors group">
+          <button onClick={onNegotiationScript} className="bg-[#1e1c19] hover:bg-[#2a2825] border border-[#3a3730] text-gray-200 p-3 rounded-lg flex flex-col items-center justify-center gap-2 transition-colors group">
             <svg className="w-6 h-6 text-cyan-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
             <span className="text-xs font-medium">Negotiation Script</span>
           </button>
-          <button className="bg-[#1e1c19] hover:bg-[#2a2825] border border-[#3a3730] text-gray-200 p-3 rounded-lg flex flex-col items-center justify-center gap-2 transition-colors group">
+          <button onClick={onFullIntelReport} className="bg-[#1e1c19] hover:bg-[#2a2825] border border-[#3a3730] text-gray-200 p-3 rounded-lg flex flex-col items-center justify-center gap-2 transition-colors group">
             <svg className="w-6 h-6 text-cyan-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             <span className="text-xs font-medium">Full Intel Report</span>
           </button>
@@ -1194,11 +1201,13 @@ const AIPanel = ({ chatInput, setChatInput, chatMessages, onSendChat, onSaveToFl
       <div className="h-64 border-t border-[#262420] bg-[#0a0905] flex flex-col flex-shrink-0 relative">
         <div className="px-4 py-2 border-b border-[#262420] bg-[#11100e] flex justify-between items-center">
           <span className="text-xs font-semibold text-cyan-500">Ask VERA</span>
-          <button className="text-gray-500 hover:text-white">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+          <button onClick={onToggleChat} className="text-gray-500 hover:text-white">
+            <svg className={`w-4 h-4 transition-transform ${chatExpanded ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
           </button>
         </div>
 
+        {chatExpanded && (
+        <>
         <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm" style={customStyles.scrollbarHide}>
           {chatMessages.map((msg, i) => (
             msg.sender === 'vera' ? (
@@ -1239,6 +1248,8 @@ const AIPanel = ({ chatInput, setChatInput, chatMessages, onSendChat, onSaveToFl
             </button>
           </div>
         </div>
+        </>
+        )}
       </div>
     </aside>
   );
@@ -1266,6 +1277,7 @@ const App = () => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [chatExpanded, setChatExpanded] = useState(true);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -1411,6 +1423,69 @@ const App = () => {
     }
   };
 
+  const handleNegotiationScript = () => {
+    const script = `NEGOTIATION SCRIPT — ${form.year} ${form.make} ${form.model}
+============================================================
+
+PRE-NEGOTIATION PREP
+- Target Price: $${form.price || '___'}
+- Market Range: Based on current comps
+- Identified Issues: ${form.redFlags || 'None noted'}
+
+OPENING
+"Hi, I saw your listing for the ${form.year} ${form.make} ${form.model}. Is it still available?"
+
+DISCOVERY QUESTIONS
+1. How long have you owned the vehicle?
+2. Any recent repairs or maintenance done?
+3. Is there any wiggle room on the price?
+
+LEVERAGE POINTS
+${form.redFlags ? '- ' + form.redFlags : '- Research comparable listings for negotiation leverage'}
+${form.sellerDescription ? '- Seller noted: ' + form.sellerDescription.slice(0, 100) : ''}
+
+OFFER STRATEGY
+- Opening Offer: 15-20% below asking price
+- Target Settlement: 8-12% below asking
+- Walk-Away Point: 90% of asking (if issues present)
+
+CLOSING
+"Based on the market research I've done, I can offer $___. I can close today if this works for you."
+
+---
+Generated by V.E.R.A. Vehicle Analyzer
+`;
+
+    const blob = new Blob([script], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `negotiation-script-${form.make}-${form.model}`.replace(/\s+/g, '-').toLowerCase() + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleFullIntelReport = () => {
+    const report = {
+      generated: new Date().toISOString(),
+      vehicle: { ...form },
+      analysis: analysisResult || { status: 'No analysis run yet' },
+      mode: activeMode,
+      chatHistory: chatMessages.map(m => ({ role: m.sender === 'vera' ? 'assistant' : 'user', content: m.text })),
+    };
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `intel-report-${form.make}-${form.model}`.replace(/\s+/g, '-').toLowerCase() + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleToggleChat = () => {
+    setChatExpanded(v => !v);
+  };
+
   return (
     <div className="flex h-screen w-full bg-[#0a0905] text-gray-200 overflow-hidden font-sans">
       <Sidebar />
@@ -1433,6 +1508,10 @@ const App = () => {
         isSaved={isSaved}
         analysisResult={analysisResult}
         form={form}
+        chatExpanded={chatExpanded}
+        onNegotiationScript={handleNegotiationScript}
+        onFullIntelReport={handleFullIntelReport}
+        onToggleChat={handleToggleChat}
       />
     </div>
   );

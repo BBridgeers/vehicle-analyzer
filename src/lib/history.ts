@@ -1,15 +1,16 @@
 import type { HistoryEntry, Vehicle, AnalysisResult } from "./types";
+import { kvGet, kvSet } from "./kv-client";
 
 const STORAGE_KEY = "vehicle-analyzer-history";
 const MAX_ENTRIES = 50;
 
 /**
- * Save an analysis to localStorage history
+ * Save an analysis to KV (Upstash Redis) with localStorage fallback
  */
-export function saveToHistory(
+export async function saveToHistory(
     vehicle: Vehicle,
     analysis: AnalysisResult
-): HistoryEntry {
+): Promise<HistoryEntry> {
     const entry: HistoryEntry = {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
@@ -17,7 +18,7 @@ export function saveToHistory(
         analysis,
     };
 
-    const history = getHistory();
+    const history = await getHistory();
     history.unshift(entry);
 
     // Keep only the most recent entries
@@ -25,22 +26,17 @@ export function saveToHistory(
         history.length = MAX_ENTRIES;
     }
 
-    if (typeof window !== "undefined") {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-    }
-
+    await kvSet(STORAGE_KEY, history);
     return entry;
 }
 
 /**
- * Get analysis history from localStorage
+ * Get analysis history from KV (Upstash Redis)
  */
-export function getHistory(): HistoryEntry[] {
-    if (typeof window === "undefined") return [];
-
+export async function getHistory(): Promise<HistoryEntry[]> {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const data = await kvGet<HistoryEntry[]>(STORAGE_KEY);
+        return data ?? [];
     } catch {
         return [];
     }
@@ -49,18 +45,14 @@ export function getHistory(): HistoryEntry[] {
 /**
  * Delete a single history entry
  */
-export function deleteFromHistory(id: string): void {
-    const history = getHistory().filter((entry) => entry.id !== id);
-    if (typeof window !== "undefined") {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-    }
+export async function deleteFromHistory(id: string): Promise<void> {
+    const history = (await getHistory()).filter((entry) => entry.id !== id);
+    await kvSet(STORAGE_KEY, history);
 }
 
 /**
  * Clear all history
  */
-export function clearHistory(): void {
-    if (typeof window !== "undefined") {
-        localStorage.removeItem(STORAGE_KEY);
-    }
+export async function clearHistory(): Promise<void> {
+    await kvSet(STORAGE_KEY, []);
 }

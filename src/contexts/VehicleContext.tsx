@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { Vehicle, AnalysisResult } from "@/lib/types";
+import { kvGet, kvSet } from "@/lib/kv-client";
 
 interface VehicleContextProps {
   vehicle: Vehicle | null;
@@ -20,37 +21,38 @@ export function VehicleProvider({ children }: { children: React.ReactNode }) {
   const [historyKey, setHistoryKey] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from LocalStorage on mount
+  // Load from KV (Upstash Redis) on mount — then persist to localStorage
   useEffect(() => {
-    try {
-      const storedVehicle = localStorage.getItem("activeVehicle");
-      const storedAnalysis = localStorage.getItem("activeAnalysis");
-      if (storedVehicle) setVehicleState(JSON.parse(storedVehicle));
-      if (storedAnalysis) setAnalysisState(JSON.parse(storedAnalysis));
-    } catch (e) {
-      console.error("Failed to load vehicle data from LocalStorage:", e);
+    async function load() {
+      try {
+        const storedVehicle = await kvGet<Vehicle>("activeVehicle");
+        const storedAnalysis = await kvGet<AnalysisResult>("activeAnalysis");
+        if (storedVehicle) setVehicleState(storedVehicle);
+        if (storedAnalysis) setAnalysisState(storedAnalysis);
+      } catch (e) {
+        console.error("Failed to load vehicle data from KV:", e);
+      }
+      setIsLoaded(true);
     }
-    setIsLoaded(true);
+    load();
   }, []);
 
-  // Save to LocalStorage on change
+  // Save to KV + localStorage on change
   const setVehicle = (v: Vehicle | null) => {
     setVehicleState(v);
-    if (v) localStorage.setItem("activeVehicle", JSON.stringify(v));
-    else localStorage.removeItem("activeVehicle");
+    kvSet("activeVehicle", v);
   };
 
   const setAnalysis = (a: AnalysisResult | null) => {
     setAnalysisState(a);
-    if (a) localStorage.setItem("activeAnalysis", JSON.stringify(a));
-    else localStorage.removeItem("activeAnalysis");
+    kvSet("activeAnalysis", a);
   };
 
   const triggerHistoryRefresh = () => {
     setHistoryKey((prev) => prev + 1);
   };
 
-  // Prevent hydration mismatch by rendering children only after loading from localStorage on client.
+  // Prevent hydration mismatch by rendering children only after loading on client.
   if (!isLoaded) return null;
 
   return (

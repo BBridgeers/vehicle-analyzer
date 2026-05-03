@@ -145,20 +145,22 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
     const vehicleId = vehicle ? makeVehicleId(vehicle) : null;
     const hasContext = !!(vehicle && analysis);
 
-    // ── Load chat from localStorage when vehicle changes ──
+    // ── Load chat from KV when vehicle changes ──
     useEffect(() => {
         if (!vehicleId) return;
-        const saved = loadChatSession(vehicleId);
-        if (saved.length > 0) {
-            setMessages(saved);
-            setShowStarters(false);
-        } else {
-            setMessages([]);
-            setShowStarters(true);
-        }
+        (async () => {
+          const saved = await loadChatSession(vehicleId);
+          if (saved.length > 0) {
+              setMessages(saved);
+              setShowStarters(false);
+          } else {
+              setMessages([]);
+              setShowStarters(true);
+          }
+        })();
     }, [vehicleId]);
 
-    // ── Persist chat ──
+    // ── Persist chat to KV ──
     useEffect(() => {
         if (!vehicleId || messages.length === 0) return;
         saveChatSession(vehicleId, messages);
@@ -225,7 +227,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
         abortRef.current = new AbortController();
 
         try {
-            const systemPrompt = buildSystemPrompt(vehicle!, analysis!);
+            const systemPrompt = await buildSystemPrompt(vehicle!, analysis!);
             if (postPurchaseMode) {
                 // Inject post-purchase context into system prompt
                 const ppNote = "\n\nIMPORTANT: The user has PURCHASED this vehicle. Switch to POST-PURCHASE ownership mode. Focus on: immediate next steps, recall repairs, maintenance milestones, rideshare onboarding, first-week checklist. Do NOT warn them about whether to buy — they already own it.";

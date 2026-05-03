@@ -33,205 +33,113 @@ const customStyles = {
   `
 };
 
-const vehicles = [
-  {
-    id: 1,
-    name: '2019 Honda Civic',
-    sub: 'Sport Sedan 4D',
-    topColor: 'bg-green-500',
-    bgCard: 'bg-[#161513]',
-    borderCard: 'border-[#3a3730]',
-    verdictBg: 'bg-green-900/20',
-    verdictBorder: 'border-green-800/50',
-    verdictDot: 'bg-green-500',
+// Transform fleet API data into comparison-table format
+function transformFleetToCompare(fleetVehicle: any, index: number): any {
+  const score = fleetVehicle.score || 50;
+  const scoreColor = fleetVehicle.scoreColor || 'text-gray-400';
+  const badge = fleetVehicle.badge || 'Unknown';
+  const name = fleetVehicle.name || 'Unknown Vehicle';
+  
+  // Determine score-based styling
+  const isHigh = score >= 80;
+  const isLow = score < 50;
+  const topColor = isHigh ? 'bg-green-500' : isLow ? 'bg-red-500' : 'bg-yellow-500';
+  const verdictLabel = isHigh ? 'Recommended' : isLow ? 'Avoid' : 'Proceed w/ Caution';
+  const verdictLabelColor = isHigh ? 'text-green-400' : isLow ? 'text-red-400' : 'text-yellow-400';
+  const verdictDot = isHigh ? 'bg-green-500' : isLow ? 'bg-red-500' : 'bg-yellow-500';
+  const bgCard = 'bg-[#161513]';
+  const borderCard = 'border-[#3a3730]';
+  const verdictBg = isHigh ? 'bg-green-900/20' : isLow ? 'bg-red-900/20' : 'bg-yellow-900/20';
+  const verdictBorder = isHigh ? 'border-green-800/50' : isLow ? 'border-red-800/50' : 'border-yellow-800/50';
+  const verdictScoreColor = isHigh ? 'text-green-200' : isLow ? 'text-red-200' : 'text-yellow-200';
+  const verdictScoreBorder = isHigh ? 'border-green-800/50' : isLow ? 'border-red-800/50' : 'border-yellow-800/50';
+  const equityColor = fleetVehicle.equityColor || (score > 70 ? 'text-green-400' : 'text-gray-400');
+  const rowBg = isLow ? 'bg-red-950/10' : '';
+  const actionBtns = isLow ? 'avoid' : 'standard';
+  const isAvoid = isLow;
+
+  return {
+    id: fleetVehicle.id || index,
+    name,
+    sub: '',
+    topColor,
+    bgCard,
+    borderCard,
+    verdictBg,
+    verdictBorder,
+    verdictDot,
     verdictDotAnimate: false,
-    verdictLabel: 'Recommended',
-    verdictLabelColor: 'text-green-400',
-    verdictScore: 87,
-    verdictScoreColor: 'text-green-200',
-    verdictScoreBorder: 'border-green-800/50',
-    price: '$18,500',
-    marketValue: '$19,200',
-    equity: '+$700',
-    equityColor: 'text-green-400',
-    mileage: '65,000 mi',
-    title: 'Clean',
+    verdictLabel,
+    verdictLabelColor,
+    verdictScore: score,
+    verdictScoreColor,
+    verdictScoreBorder,
+    price: 'N/A',
+    marketValue: 'N/A',
+    equity: fleetVehicle.equity || 'N/A',
+    equityColor,
+    mileage: fleetVehicle.miles || 'N/A',
+    title: badge,
     titleBg: 'bg-gray-800 text-gray-300',
-    issues: <span className="text-green-400 flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> None Detected</span>,
-    rideshare: [
-      <span key="u" className="bg-cyan-900/30 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-xs">UberX</span>,
-      <span key="l" className="bg-cyan-900/30 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-xs">Lyft</span>
-    ],
-    monthlyNet: '$1,450',
+    issues: <span className="text-gray-400">No data</span>,
+    rideshare: [],
+    monthlyNet: fleetVehicle.opex || 'N/A',
     monthlyNetColor: 'text-gray-200',
-    monthlyExtra: null,
-    payback: '12.8 months',
-    paybackColor: 'text-gray-200',
-    sellerDot: 'bg-green-500',
-    sellerType: 'Responsive Private',
-    sellerLoc: 'Austin, TX • Listed 2d ago',
-    isAvoid: false,
-    rowBg: '',
-    actionBtns: 'standard',
-  },
-  {
-    id: 2,
-    name: '2018 Toyota Camry',
-    sub: 'SE Sedan 4D',
-    topColor: 'bg-emerald-400',
-    bgCard: 'bg-[#161513]',
-    borderCard: 'border-[#3a3730]',
-    verdictBg: 'bg-emerald-900/30',
-    verdictBorder: 'border-emerald-500/30',
-    verdictDot: 'bg-emerald-400',
-    verdictDotAnimate: true,
-    verdictLabel: 'Strong Buy',
-    verdictLabelColor: 'text-emerald-400',
-    verdictScore: 92,
-    verdictScoreColor: 'text-emerald-200',
-    verdictScoreBorder: 'border-emerald-800/50',
-    price: '$16,200',
-    marketValue: '$18,500',
-    equity: '+$2,300',
-    equityColor: 'text-emerald-400',
-    mileage: '82,400 mi',
-    title: 'Clean',
-    titleBg: 'bg-gray-800 text-gray-300',
-    issues: <span>1 <span className="text-yellow-400">Low</span> (Cosmetic)</span>,
-    rideshare: [
-      <span key="u" className="bg-cyan-900/30 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-xs">UberX</span>,
-      <span key="c" className="bg-purple-900/30 text-purple-400 border border-purple-800 px-2 py-0.5 rounded text-xs">Comfort</span>
-    ],
-    monthlyNet: '$1,680',
-    monthlyNetColor: 'text-green-400',
-    monthlyExtra: '(Comfort bonus)',
-    payback: '9.6 months',
-    paybackColor: 'text-green-400 font-medium',
-    sellerDot: 'bg-yellow-500',
-    sellerType: 'Small Dealer',
-    sellerLoc: 'Dallas, TX • Listed 14d ago',
-    isAvoid: false,
-    rowBg: '',
-    actionBtns: 'standard',
-  },
-  {
-    id: 3,
-    name: '2017 Mazda3',
-    sub: 'Touring Hatchback',
-    topColor: 'bg-amber-400',
-    bgCard: 'bg-[#161513]',
-    borderCard: 'border-[#3a3730]',
-    verdictBg: 'bg-amber-900/20',
-    verdictBorder: 'border-amber-800/50',
-    verdictDot: 'bg-amber-500',
-    verdictDotAnimate: false,
-    verdictLabel: 'Caution',
-    verdictLabelColor: 'text-amber-400',
-    verdictScore: 74,
-    verdictScoreColor: 'text-amber-200',
-    verdictScoreBorder: 'border-amber-800/50',
-    price: '$14,800',
-    marketValue: '$14,500',
-    equity: '-$300',
-    equityColor: 'text-red-400',
-    mileage: '95,100 mi',
-    title: 'Rebuilt',
-    titleBg: 'bg-orange-900/40 text-orange-400 border border-orange-800',
-    issues: <span>2 <span className="text-orange-400">Medium</span> (Tires, AC)</span>,
-    rideshare: [
-      <span key="d" className="bg-red-900/20 text-red-400 border border-red-800/50 px-2 py-0.5 rounded text-xs">Disqualified (Title)</span>
-    ],
-    monthlyNet: '--',
-    monthlyNetColor: 'text-gray-500',
     monthlyExtra: null,
     payback: 'N/A',
-    paybackColor: 'text-gray-500',
-    sellerDot: 'bg-red-500',
-    sellerType: 'Suspected Flipper',
-    sellerLoc: 'Houston, TX • Listed 5d ago',
-    isAvoid: false,
-    rowBg: '',
-    actionBtns: 'standard',
-  },
-  {
-    id: 4,
-    name: '2020 Hyundai Elantra',
-    sub: 'SEL Sedan 4D',
-    topColor: 'bg-red-500',
-    bgCard: 'bg-[#1a1313]',
-    borderCard: 'border-red-900/30',
-    verdictBg: 'bg-red-900/30',
-    verdictBorder: 'border-red-800/50',
-    verdictDot: null,
-    verdictDotAnimate: false,
-    verdictLabel: 'Avoid',
-    verdictLabelColor: 'text-red-400',
-    verdictScore: 61,
-    verdictScoreColor: 'text-red-200',
-    verdictScoreBorder: 'border-red-800/50',
-    price: '$17,900',
-    marketValue: '$16,000',
-    equity: '-$1,900',
-    equityColor: 'text-red-500',
-    mileage: '45,200 mi',
-    title: 'Clean',
-    titleBg: 'bg-gray-800 text-gray-300',
-    issues: <span><span className="text-red-400 font-medium">1 Critical</span> (Trans slip), 1 Med</span>,
-    rideshare: [
-      <span key="u" className="bg-cyan-900/30 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-xs">UberX</span>
-    ],
-    monthlyNet: '$1,350',
-    monthlyNetColor: 'text-gray-200',
-    monthlyExtra: null,
-    payback: '13.2 months',
     paybackColor: 'text-gray-200',
-    sellerDot: 'bg-yellow-500',
-    sellerType: 'Slow to Reply',
-    sellerLoc: 'San Antonio, TX • Listed 1d ago',
-    isAvoid: true,
-    rowBg: 'bg-red-950/10',
-    actionBtns: 'avoid',
-  },
-  {
-    id: 5,
-    name: '2019 Nissan Sentra',
-    sub: 'SR Sedan 4D',
-    topColor: 'bg-green-500',
-    bgCard: 'bg-[#161513]',
-    borderCard: 'border-[#3a3730]',
-    verdictBg: 'bg-green-900/20',
-    verdictBorder: 'border-green-800/50',
-    verdictDot: 'bg-green-500',
-    verdictDotAnimate: false,
-    verdictLabel: 'Recommended',
-    verdictLabelColor: 'text-green-400',
-    verdictScore: 85,
-    verdictScoreColor: 'text-green-200',
-    verdictScoreBorder: 'border-green-800/50',
-    price: '$15,500',
-    marketValue: '$16,800',
-    equity: '+$1,300',
-    equityColor: 'text-green-400',
-    mileage: '69,300 mi',
-    title: 'Clean',
-    titleBg: 'bg-gray-800 text-gray-300',
-    issues: <span>1 <span className="text-yellow-400">Low</span> (Brakes soon)</span>,
-    rideshare: [
-      <span key="u" className="bg-cyan-900/30 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded text-xs">UberX</span>
-    ],
-    monthlyNet: '$1,400',
-    monthlyNetColor: 'text-gray-200',
-    monthlyExtra: null,
-    payback: '11.0 months',
-    paybackColor: 'text-gray-200',
-    sellerDot: 'bg-green-500',
-    sellerType: 'Responsive Private',
-    sellerLoc: 'Austin, TX • Listed 8d ago',
-    isAvoid: false,
-    rowBg: '',
-    actionBtns: 'standard',
-  }
-];
+    sellerDot: 'bg-gray-500',
+    sellerType: fleetVehicle.location || 'Unknown',
+    sellerLoc: '',
+    isAvoid,
+    rowBg,
+    actionBtns,
+  };
+}
+
+
+// Helper: extract clean serializable data from a vehicle object (handles JSX fields)
+const getCleanVehicle = (v: any) => {
+  const extractText = (node: any): string => {
+    if (typeof node === 'string') return node;
+    if (typeof node === 'number') return String(node);
+    if (!node) return '';
+    if (Array.isArray(node)) return node.map(extractText).join('');
+    if (node.props && node.props.children) return extractText(node.props.children);
+    return '';
+  };
+  return {
+    id: v.id,
+    name: v.name,
+    sub: v.sub,
+    verdictLabel: v.verdictLabel,
+    verdictScore: v.verdictScore,
+    price: v.price,
+    marketValue: v.marketValue,
+    equity: v.equity,
+    mileage: v.mileage,
+    title: v.title,
+    issues: extractText(v.issues),
+    rideshareTiers: Array.isArray(v.rideshare) ? v.rideshare.map(extractText).join(', ') : '',
+    monthlyNet: v.monthlyNet,
+    payback: v.payback,
+    sellerType: v.sellerType,
+    sellerLoc: v.sellerLoc,
+  };
+};
+
+// Trigger a file download in the browser
+const triggerDownload = (content: string, filename: string, type: string = 'application/json') => {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
 
 const Sidebar = ({ activeNav, setActiveNav }: { activeNav: string; setActiveNav: (id: string) => void }) => {
   const navItems = [
@@ -294,6 +202,7 @@ const Sidebar = ({ activeNav, setActiveNav }: { activeNav: string; setActiveNav:
           {savedFleets.map((fleet) => (
             <div
               key={fleet.name}
+              onClick={() => alert(`Loading fleet "${fleet.name}" — fleet detail view coming soon.`)}
               className={`p-3 rounded-lg cursor-pointer transition-colors ${
                 fleet.active
                   ? 'bg-[#1e1c19] border border-cyan-800'
@@ -356,12 +265,12 @@ const VerdictCell = ({ vehicle }: { vehicle: any }) => (
   </td>
 );
 
-const ActionCell = ({ vehicle, onRemove }: { vehicle: any; onRemove: (id: number) => void }) => {
+const ActionCell = ({ vehicle, onRemove, onFullReport }: { vehicle: any; onRemove: (id: number) => void; onFullReport: (vehicle: any) => void }) => {
   if (vehicle.actionBtns === 'avoid') {
     return (
       <td className="p-4 border-l border-t border-red-900/30 bg-red-950/20">
         <div className="flex gap-2">
-          <button className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 rounded text-sm font-medium transition-colors border border-gray-700">Full Report</button>
+          <button onClick={() => onFullReport(vehicle)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 rounded text-sm font-medium transition-colors border border-gray-700">Full Report</button>
           <button
             onClick={() => onRemove(vehicle.id)}
             className="flex-1 flex items-center justify-center gap-1 bg-red-900/40 hover:bg-red-800 text-red-400 rounded border border-red-800 text-sm font-medium transition-colors"
@@ -378,7 +287,7 @@ const ActionCell = ({ vehicle, onRemove }: { vehicle: any; onRemove: (id: number
   return (
     <td className="p-4 border-l border-t border-[#3a3730]">
       <div className="flex gap-2">
-        <button className="flex-1 bg-cyan-900/40 hover:bg-cyan-800 text-cyan-400 py-2 rounded text-sm font-medium transition-colors border border-cyan-800">Full Report</button>
+        <button onClick={() => onFullReport(vehicle)} className="flex-1 bg-cyan-900/40 hover:bg-cyan-800 text-cyan-400 py-2 rounded text-sm font-medium transition-colors border border-cyan-800">Full Report</button>
         <button
           onClick={() => onRemove(vehicle.id)}
           className="w-10 flex items-center justify-center bg-[#1a1816] hover:bg-red-900/40 text-gray-500 hover:text-red-400 rounded border border-[#2a2825] hover:border-red-800 transition-colors"
@@ -394,7 +303,33 @@ const ActionCell = ({ vehicle, onRemove }: { vehicle: any; onRemove: (id: number
 };
 
 const FleetDashboard = () => {
-  const [activeVehicles, setActiveVehicles] = useState(vehicles.map(v => v.id));
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fleetLoaded, setFleetLoaded] = useState(false);
+
+  // Fetch fleet data and transform for comparison
+  useEffect(() => {
+    fetch('/api/fleet')
+      .then(res => res.json())
+      .then((fleetData: any[]) => {
+        if (Array.isArray(fleetData)) {
+          const transformed = fleetData.map((v, i) => transformFleetToCompare(v, i));
+          setVehicles(transformed);
+        }
+      })
+      .catch(err => console.error('Failed to fetch fleet:', err))
+      .finally(() => { setLoading(false); setFleetLoaded(true); });
+  }, []);
+
+  const [activeVehicles, setActiveVehicles] = useState<number[]>([]);
+  
+  // Auto-select all vehicles once loaded
+  useEffect(() => {
+    if (fleetLoaded && vehicles.length > 0) {
+      setActiveVehicles(vehicles.map(v => v.id));
+    }
+  }, [fleetLoaded, vehicles]);
+
   const [sortBy, setSortBy] = useState('Verdict Score (High-Low)');
   const [showAllRatings, setShowAllRatings] = useState(true);
   const [rideshareOnly, setRideshareOnly] = useState(false);
@@ -421,6 +356,29 @@ const FleetDashboard = () => {
       }, 0) / displayed.length)
     : 0;
 
+  const handleFullReport = (vehicle: any) => {
+    const data = getCleanVehicle(vehicle);
+    triggerDownload(JSON.stringify(data, null, 2), `${vehicle.name.replace(/\s+/g, '_')}_report.json`);
+  };
+
+  const handleDownloadAll = () => {
+    const allData = displayed.map(v => getCleanVehicle(v));
+    triggerDownload(JSON.stringify(allData, null, 2), 'fleet_reports.json');
+  };
+
+  const handleExportCSV = () => {
+    const clean = displayed.map(v => getCleanVehicle(v));
+    const headers = ['id', 'name', 'sub', 'verdictLabel', 'verdictScore', 'price', 'marketValue', 'equity', 'mileage', 'title', 'issues', 'rideshareTiers', 'monthlyNet', 'payback', 'sellerType', 'sellerLoc'];
+    const csvRows = [headers.join(',')];
+    for (const row of clean) {
+      csvRows.push(headers.map(h => {
+        const val = String((row as any)[h] ?? '');
+        return val.includes(',') || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
+      }).join(','));
+    }
+    triggerDownload(csvRows.join('\n'), 'fleet_comparison.csv', 'text/csv');
+  };
+
   return (
     <main className="flex-1 flex flex-col h-full bg-[#0a0905] overflow-hidden relative">
       <header className="h-16 flex items-center justify-between px-8 border-b border-[#262420] flex-shrink-0 z-20" style={{ backgroundColor: 'rgba(10,9,5,0.8)', backdropFilter: 'blur(8px)' }}>
@@ -441,13 +399,13 @@ const FleetDashboard = () => {
             Clear Selection
           </button>
           <div className="w-px h-6 bg-[#2a2825]"></div>
-          <button className="bg-[#1e1c19] hover:bg-[#2a2825] border border-[#3a3730] text-gray-200 px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2">
+          <button onClick={handleDownloadAll} className="bg-[#1e1c19] hover:bg-[#2a2825] border border-[#3a3730] text-gray-200 px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Download All Reports
           </button>
-          <button className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2" style={{ boxShadow: '0 0 15px rgba(8,145,178,0.3)' }}>
+          <button onClick={handleExportCSV} className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2" style={{ boxShadow: '0 0 15px rgba(8,145,178,0.3)' }}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
@@ -502,7 +460,12 @@ const FleetDashboard = () => {
       <div className="flex-1 overflow-auto bg-[#0a0905]">
         <div className="p-8 pb-12 inline-block min-w-full align-middle">
 
-          {displayed.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-24 text-gray-500">
+              <div className="w-12 h-12 border-4 border-cyan-800 border-t-cyan-400 rounded-full animate-spin mb-4"></div>
+              <p className="text-lg font-medium text-gray-600">Loading fleet data...</p>
+            </div>
+          ) : displayed.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-gray-500">
               <svg className="w-16 h-16 mb-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -627,7 +590,7 @@ const FleetDashboard = () => {
                   <tr className="bg-[#161513]">
                     <td className="sticky-col p-4 border-t border-[#3a3730]"></td>
                     {displayed.map(vehicle => (
-                      <ActionCell key={vehicle.id} vehicle={vehicle} onRemove={handleRemove} />
+                      <ActionCell key={vehicle.id} vehicle={vehicle} onRemove={handleRemove} onFullReport={handleFullReport} />
                     ))}
                   </tr>
                 </tbody>

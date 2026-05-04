@@ -27,7 +27,7 @@ export function analyzeVehicle(vehicle: Vehicle, vinData?: VinAnalysis): Analysi
     // ── 2. Critical issues ──
     let criticalIssues = detectIssues(vehicle, marketValues);
 
-    // ── 2a. Inject VIN-based issues ──
+        // ── 2a. Inject VIN-based issues (fueled by real data) ──
     if (vinData && vinData.safety.recalls.length > 0) {
         criticalIssues.push({
             title: `${vinData.safety.recalls.length} Open Recalls Detected`,

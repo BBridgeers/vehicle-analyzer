@@ -208,18 +208,49 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
     return 'Other';
   };
 
+  // Resize image client-side to avoid Vercel 4.5 MB body limit.
+  // Max dimension 1920px (more than enough for vision extraction),
+  // JPEG quality 0.75 — brings 8 MB PNGs down to ~300 KB.
+  const resizeImage = (file: File, maxDim: number = 1920): Promise<Blob> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxDim) { height *= maxDim / width; width = maxDim; }
+        } else {
+          if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          blob => blob ? resolve(blob) : reject(new Error('Canvas encode failed')),
+          'image/jpeg',
+          0.75
+        );
+      };
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.src = URL.createObjectURL(file);
+    });
+
   const processScreenshot = useCallback(async (file: File) => {
     const previewUrl = URL.createObjectURL(file);
     setScreenshotPreview(previewUrl);
     setScreenshotStatus('extracting');
     setScreenshotError('');
     try {
-      const buffer = await file.arrayBuffer();
-      const base64 = btoa(new Uint8Array(buffer).reduce((d, b) => d + String.fromCharCode(b), ''));
+      // Resize to reasonable dimensions for vision (saves bandwidth, avoids Vercel limits)
+      const blob = await resizeImage(file, 1920);
+      const formData = new FormData();
+      formData.append('image', blob, 'screenshot.jpg');
+      if (listingUrl.trim()) formData.append('manualUrl', listingUrl.trim());
       const res = await fetch('/api/extract-listing', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64, mimeType: file.type, manualUrl: listingUrl.trim() || undefined }),
+        // Content-Type set automatically by browser for FormData (multipart boundary)
+        body: formData,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Extraction failed');
@@ -245,7 +276,15 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
       // Use ref to get the latest onRunAnalysis with fresh form state
       setTimeout(() => onRunAnalysisRef.current?.(), 400);
     } catch (e: any) {
-      setScreenshotError(e.message);
+      const msg = e.message || 'Unknown error';
+      if (msg === 'Failed to fetch' || msg.includes('NetworkError'))
+        setScreenshotError('Network error — check your connection and try again.');
+      else if (msg.includes('Image load failed'))
+        setScreenshotError('Could not read the image from clipboard. Try saving the screenshot as a file and using Browse instead.');
+      else if (msg.includes('Canvas encode failed'))
+        setScreenshotError('Image processing failed. Try a different image format (PNG/JPG).');
+      else
+        setScreenshotError(msg);
       setScreenshotStatus('error');
     }
   }, [listingUrl, setForm]);

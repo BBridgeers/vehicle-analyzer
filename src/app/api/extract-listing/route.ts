@@ -72,15 +72,20 @@ export async function POST(request: Request) {
     }
 
     try {
-        const body = await request.json();
-        const { image, mimeType, manualUrl } = body;
+        const formData = await request.formData();
+        const imageFile = formData.get('image') as File | null;
+        const manualUrl = formData.get('manualUrl') as string | null;
 
-        if (!image) {
+        if (!imageFile) {
             return NextResponse.json(
                 { error: 'No image provided' },
                 { status: 400 }
             );
         }
+
+        // Convert File to Buffer for vision engines
+        const arrayBuffer = await imageFile.arrayBuffer();
+        const imageBuffer = Buffer.from(arrayBuffer);
 
         const { VisionManager } = require('@/lib/vision-engine');
         const manager = new VisionManager({
@@ -88,7 +93,7 @@ export async function POST(request: Request) {
             ollamaHost: process.env.OLLAMA_HOST
         });
 
-        const vehicle = await manager.extract(image, EXTRACTION_PROMPT, mimeType);
+        const vehicle = await manager.extract(imageBuffer, EXTRACTION_PROMPT, imageFile.type);
 
         if (!vehicle) {
             return NextResponse.json(

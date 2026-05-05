@@ -1394,7 +1394,7 @@ const AIPanel = ({ chatInput, setChatInput, chatMessages, onSendChat, onSaveToFl
                 {analysisResult.breakEven ? (
                   <div className="flex justify-between text-xs border-t border-[#262420] pt-2 mt-1">
                     <span className="text-gray-500">Break-Even</span>
-                    <span className="text-cyan-400 font-bold">{analysisResult.breakEven.weeks || analysisResult.breakEven} weeks</span>
+                    <span className="text-cyan-400 font-bold">${(analysisResult.breakEven.repairCushion || 0).toLocaleString()}</span>
                   </div>
                 ) : null}
                 {analysisResult.paybackWeeks ? (

@@ -83,21 +83,136 @@ export async function POST(request: Request) {
             );
         }
 
+        // Validate image size (max 5 MB after client resize)
+        if (imageFile.size > 5 * 1024 * 1024) {
+            return NextResponse.json(
+                { error: 'Image too large. Maximum is 5 MB.' },
+                { status: 413 }
+            );
+        }
+
         // Convert File to Buffer for vision engines
         const arrayBuffer = await imageFile.arrayBuffer();
         const imageBuffer = Buffer.from(arrayBuffer);
 
-        const { VisionManager } = require('@/lib/vision-engine');
-        const manager = new VisionManager({
-            groqKey: process.env.GROQ_API_KEY,
-            ollamaHost: process.env.OLLAMA_HOST
-        });
+        // ── STRATEGY A: Groq Vision (primary, fast) ──
+        const groqKey = process.env.GROQ_API_KEY;
+        let vehicle: any = null;
+        let lastError = '';
 
-        const vehicle = await manager.extract(imageBuffer, EXTRACTION_PROMPT, imageFile.type);
+        if (groqKey && !groqKey.includes('your_')) {
+            try {
+                const base64Data = imageBuffer.toString('base64');
+                const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${groqKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+                        messages: [{
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: EXTRACTION_PROMPT },
+                                { type: 'image_url', image_url: { url: `data:${imageFile.type || 'image/png'};base64,${base64Data}` } }
+                            ]
+                        }],
+                        temperature: 0.1,
+                        max_tokens: 2048,
+                    }),
+                });
+
+                if (groqRes.ok) {
+                    const data = await groqRes.json();
+                    const content = data.choices?.[0]?.message?.content;
+                    if (content) {
+                        const parsed = JSON.parse(content.replace(/```json\n?|```/g, '').trim());
+                        if (parsed && (parsed.make || parsed.year)) {
+                            vehicle = parsed;
+                            console.log('[Extract Listing] ✅ Groq succeeded:', vehicle.make, vehicle.model);
+                        }
+                    }
+                } else {
+                    const errBody = await groqRes.text();
+                    console.error('[Extract Listing] Groq API error:', groqRes.status, errBody.substring(0, 300));
+                    lastError = `Groq: ${groqRes.status} — ${errBody.substring(0, 100)}`;
+                }
+            } catch (e: any) {
+                console.error('[Extract Listing] Groq exception:', e.message);
+                lastError = `Groq: ${e.message}`;
+            }
+        }
+
+        // ── STRATEGY B: OpenRouter fallback (any vision-capable model) ──
+        const openRouterKey = process.env.OPENROUTER_API_KEY;
+        if (!vehicle && openRouterKey) {
+            try {
+                const base64Data = imageBuffer.toString('base64');
+                const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${openRouterKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': 'https://www.veracar.co',
+                        'X-Title': 'Vehicle Analyzer Pro',
+                    },
+                    body: JSON.stringify({
+                        model: 'google/gemini-2.5-flash-lite',
+                        messages: [{
+                            role: 'user',
+                            content: [
+                                { type: 'text', text: EXTRACTION_PROMPT },
+                                { type: 'image_url', image_url: { url: `data:${imageFile.type || 'image/png'};base64,${base64Data}` } }
+                            ]
+                        }],
+                        temperature: 0.1,
+                        max_tokens: 2048,
+                    }),
+                });
+
+                if (orRes.ok) {
+                    const data = await orRes.json();
+                    const content = data.choices?.[0]?.message?.content;
+                    if (content) {
+                        const parsed = JSON.parse(content.replace(/```json\n?|```/g, '').trim());
+                        if (parsed && (parsed.make || parsed.year)) {
+                            vehicle = parsed;
+                            console.log('[Extract Listing] ✅ OpenRouter succeeded:', vehicle.make, vehicle.model);
+                        }
+                    }
+                } else {
+                    const errBody = await orRes.text();
+                    console.error('[Extract Listing] OpenRouter error:', orRes.status, errBody.substring(0, 300));
+                    lastError += ` | OpenRouter: ${orRes.status}`;
+                }
+            } catch (e: any) {
+                console.error('[Extract Listing] OpenRouter exception:', e.message);
+                lastError += ` | OpenRouter: ${e.message}`;
+            }
+        }
+
+        // ── STRATEGY C: Ollama (local fallback) ──
+        if (!vehicle) {
+            try {
+                const { OllamaVisionEngine } = require('@/lib/vision-engine');
+                const ollama = new OllamaVisionEngine(process.env.OLLAMA_HOST);
+                vehicle = await ollama.extract(imageBuffer, EXTRACTION_PROMPT, imageFile.type);
+                if (vehicle && (vehicle.make || vehicle.year)) {
+                    console.log('[Extract Listing] ✅ Ollama succeeded:', vehicle.make, vehicle.model);
+                }
+            } catch (e: any) {
+                console.warn('[Extract Listing] Ollama not available:', e.message);
+                lastError += ' | Ollama: unavailable';
+            }
+        }
 
         if (!vehicle) {
+            const errorMsg = lastError
+                ? `Vision analysis failed across all providers. ${lastError}`
+                : 'Vision analysis failed across all providers. Check your API keys and verify GROQ_API_KEY or OPENROUTER_API_KEY is set.';
             return NextResponse.json(
-                { error: 'Vision analysis failed across all providers. Check API keys and hardware.' },
+                { error: errorMsg, detail: lastError },
                 { status: 500 }
             );
         }

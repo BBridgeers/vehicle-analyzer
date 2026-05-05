@@ -213,27 +213,63 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
   // JPEG quality 0.75 — brings 8 MB PNGs down to ~300 KB.
   const resizeImage = (file: File, maxDim: number = 1920): Promise<Blob> =>
     new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > height) {
-          if (width > maxDim) { height *= maxDim / width; width = maxDim; }
-        } else {
-          if (height > maxDim) { width *= maxDim / height; height = maxDim; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          blob => blob ? resolve(blob) : reject(new Error('Canvas encode failed')),
-          'image/jpeg',
-          0.75
-        );
-      };
-      img.onerror = () => reject(new Error('Image load failed'));
-      img.src = URL.createObjectURL(file);
+      try {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        
+        // Safety timeout — if image doesn't load in 10s, abort
+        const timeout = setTimeout(() => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Image load timed out (10s). The image may be too large or corrupt.'));
+        }, 10000);
+
+        img.onload = () => {
+          clearTimeout(timeout);
+          URL.revokeObjectURL(objectUrl);
+          try {
+            let { width, height } = img;
+            // Guard against zero-dimension images
+            if (width < 1 || height < 1) {
+              return reject(new Error('Invalid image dimensions'));
+            }
+            // Scale down if needed
+            if (width > height) {
+              if (width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+            } else {
+              if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return reject(new Error('Canvas context unavailable (browser may have restricted canvas access)'));
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              blob => {
+                if (blob && blob.size > 0) {
+                  resolve(blob);
+                } else {
+                  reject(new Error('Canvas produced empty blob — browser may not support toBlob'));
+                }
+              },
+              'image/jpeg',
+              0.75
+            );
+          } catch (drawErr: any) {
+            reject(new Error('Canvas processing failed: ' + (drawErr.message || 'unknown')));
+          }
+        };
+        
+        img.onerror = () => {
+          clearTimeout(timeout);
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Image load failed — the image format may not be supported by your browser'));
+        };
+        
+        img.src = objectUrl;
+      } catch (initErr: any) {
+        reject(new Error('Image processing init failed: ' + (initErr.message || 'unknown')));
+      }
     });
 
   const processScreenshot = useCallback(async (file: File) => {

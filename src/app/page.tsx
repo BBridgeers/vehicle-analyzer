@@ -1400,7 +1400,7 @@ const AIPanel = ({ chatInput, setChatInput, chatMessages, onSendChat, onSaveToFl
                 {analysisResult.paybackWeeks ? (
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">ROI Payback</span>
-                    <span className="text-emerald-400 font-bold">{analysisResult.paybackWeeks} weeks</span>
+                    <span className="text-emerald-400 font-bold">{Math.round(analysisResult.paybackWeeks.baseline || 0)} weeks</span>
                   </div>
                 ) : null}
               </>

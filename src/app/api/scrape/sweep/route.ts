@@ -4,11 +4,8 @@ import { scrapeVehicle } from '@/lib/scrapers';
 
 // Fixed Craigslist Dallas search URLs — these are the entry points for a sweep
 const SOURCE_URLS: Record<string, string[]> = {
-  craigslist: [
-    'https://dallas.craigslist.org/search/cta?min_price=1000&max_price=7000&max_miles=100000&min_auto_year=2006&auto_title_status=1&purveyor=owner#search=1~list~0~0',
-  ],
-  // Facebook uses the VPS-based stealth scraper (requires headless browser, not Vercel-compatible)
-  facebook: [],
+  craigslist: [],  // now uses dynamic VPS scraper (JSON-LD based, much richer data)
+  facebook: [],    // uses VPS stealth scraper (headless browser)
   autotempest: [],
 };
 
@@ -61,6 +58,43 @@ async function scrapeFacebookMarketplace(params: {
     return data.listings || [];
   } catch (e: any) {
     console.error('[sweep] FB scraper error:', e.message);
+    return [];
+  }
+}
+
+async function scrapeCraigslistMarketplace(params: {
+  query?: string;
+  city?: string;
+  maxPrice?: number;
+  minYear?: number;
+  maxMileage?: number;
+  maxResults?: number;
+}): Promise<any[]> {
+  try {
+    const resp = await fetch(`${VPS_SCRAPER_URL}/api/scrape/craigslist/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: params.query || '',
+        city: params.city || 'dallas',
+        max_price: params.maxPrice,
+        min_year: params.minYear,
+        max_mileage: params.maxMileage,
+        max_results: params.maxResults || 30,
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!resp.ok) {
+      console.error(`[sweep] CL scraper returned ${resp.status}`);
+      return [];
+    }
+
+    const data = await resp.json();
+    console.log(`[sweep] CL scraper found ${data.total_found || 0} listings via ${data.strategy_used}`);
+    return data.listings || [];
+  } catch (e: any) {
+    console.error('[sweep] CL scraper error:', e.message);
     return [];
   }
 }
@@ -213,6 +247,100 @@ export async function POST(request: NextRequest) {
             }
           } catch (e: any) {
             console.error(`[sweep] Facebook source failed:`, e.message);
+          }
+        } else if (source === 'craigslist') {
+          try {
+            // Build query from make/model for dynamic CL search
+            const makes = (make || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+            const models = (model || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+
+            const queries: string[] = [];
+            if (makes.length > 0 && models.length > 0) {
+              for (const m of makes) {
+                for (const mo of models) {
+                  queries.push(`${m} ${mo}`);
+                }
+              }
+            } else if (makes.length > 0) {
+              queries.push(...makes);
+            } else {
+              queries.push('');  // broad search if no specific make
+            }
+
+            const allClResults: any[] = [];
+            const seenUrls = new Set<string>();
+
+            // Run searches sequentially (CL is fine with this)
+            for (const q of queries) {
+              const listings = await scrapeCraigslistMarketplace({
+                query: q,
+                city: region || 'dallas',
+                maxPrice: maxPrice || 7000,
+                minYear: make ? undefined : 2006,
+                maxMileage: maxMileage,
+                maxResults: 25,
+              });
+
+              for (const listing of listings) {
+                const url = listing.source_url || listing.url || '';
+                if (url && seenUrls.has(url)) continue;
+                if (url) seenUrls.add(url);
+                allClResults.push(listing);
+              }
+            }
+
+            for (const listing of allClResults) {
+              const record = {
+                source: 'cl',
+                title: listing.title || `${listing.year || ''} ${listing.make || ''} ${listing.model || ''}`.trim(),
+                price: listing.price || 0,
+                mileage: listing.mileage || null,
+                year: listing.year || null,
+                make: listing.make || '',
+                model: listing.model || '',
+                trim: listing.trim || '',
+                vin: listing.vin || '',
+                location: listing.location || region,
+                url: listing.source_url || '',
+                scraped_at: new Date().toISOString(),
+                description: listing.description || '',
+                postedDate: listing.posted_date || '',
+                titleStatus: listing.title_status || '',
+                images: listing.images || [],
+                bodyStyle: listing.body_style || '',
+                transmission: listing.transmission || '',
+                fuelType: listing.fuel_type || '',
+                drivetrain: listing.drivetrain || '',
+                engine: listing.engine || '',
+                cylinders: listing.cylinders || null,
+                exteriorColor: listing.exterior_color || '',
+                interiorColor: listing.interior_color || '',
+                seats: listing.seats || null,
+                mpg: listing.mpg || '',
+                condition: listing.condition || '',
+                conditionExterior: listing.condition_exterior || '',
+                conditionInterior: listing.condition_interior || '',
+                conditionMechanical: listing.condition_mechanical || '',
+                safetyRating: listing.safety_rating || '',
+                numOwners: listing.num_owners || null,
+                paidOff: listing.paid_off || false,
+                sellerName: listing.seller_name || '',
+                sellerResponsiveness: listing.seller_responsiveness || 'not-contacted',
+                sellerTransparency: listing.seller_transparency || 'not-assessed',
+                sellerRedFlags: listing.seller_red_flags || '',
+                sellerQuotes: listing.seller_quotes || '',
+              };
+
+              await kv.zadd(`scraper:results:${jobId}`, {
+                score: Date.now(),
+                member: JSON.stringify(record),
+              });
+
+              results.push(record);
+              totalFound++;
+            }
+          } catch (e: any) {
+            console.error(`[sweep] Craigslist source failed:`, e.message);
           }
         }
         continue;

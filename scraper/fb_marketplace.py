@@ -213,6 +213,7 @@ class FBMarketplaceScraper:
     STRATEGY_STEALTH = "stealth_browser"
     STRATEGY_FRESH = "headless_fresh"
     STRATEGY_SCRAPLING = "scrapling_escalate"
+    STRATEGY_APIFY = "apify_remote"
     STRATEGY_SCREENSHOT = "screenshot_fallback"
 
     def __init__(self, session_id: str = "default", headless: bool = True, debug: bool = False):
@@ -377,7 +378,141 @@ class FBMarketplaceScraper:
             self._log(f"Scrapling strategy failed: {e}")
             return []
 
+    # ── Strategy 4: Apify Remote (residential proxies, no login needed) ───
+
+    async def _strategy_apify(self, search_url: str) -> list[VehicleListing]:
+        """Use Apify crawlerbros actor — residential proxies, anti-detection built-in."""
+        self._log("Strategy 4: Apify Remote")
+        try:
+            from apify_strategy import apify_search
+            max_results = getattr(self, '_max_results', 20)
+            return await apify_search(search_url, max_results)
+        except ImportError as e:
+            self._log(f"Apify strategy not available: {e}")
+            return []
+        except Exception as e:
+            self._log(f"Apify strategy failed: {e}")
+            return []
+
     # ── Navigation & Extraction ──────────────────────────────────────────
+
+    async def _attempt_fb_login(self, page: Page) -> bool:
+        """Try to log into Facebook using FB_EMAIL/FB_PASSWORD env vars.
+        Returns True if login succeeded, False otherwise."""
+        fb_email = os.environ.get("FB_EMAIL", "")
+        fb_password = os.environ.get("FB_PASSWORD", "")
+
+        if not fb_email or not fb_password:
+            print("[FB-SCRAPER] No FB_EMAIL/FB_PASSWORD set — cannot log in", flush=True)
+            return False
+
+        print("[FB-SCRAPER] Attempting Facebook login...", flush=True)
+        try:
+            # Use mbasic.facebook.com — far less aggressive anti-bot
+            await page.goto("https://mbasic.facebook.com/login", wait_until="domcontentloaded", timeout=30000)
+            await asyncio.sleep(3)
+
+            # mbasic has simple form: email + pass on same page
+            email_input = await page.wait_for_selector(
+                'input[name="email"]', timeout=10000
+            )
+            if not email_input:
+                print("[FB-SCRAPER] Could not find email input", flush=True)
+                return False
+            await email_input.click()
+            await asyncio.sleep(0.3)
+            await email_input.fill(fb_email)
+            print("[FB-SCRAPER] Email filled (mbasic)", flush=True)
+
+            password_input = await page.wait_for_selector(
+                'input[name="pass"]', timeout=5000
+            )
+            if password_input:
+                await password_input.click()
+                await asyncio.sleep(0.3)
+                await password_input.fill(fb_password)
+                print("[FB-SCRAPER] Password filled (mbasic)", flush=True)
+            
+            # mbasic — just press Enter after filling both fields
+            if password_input:
+                await password_input.press("Enter")
+                print("[FB-SCRAPER] Submitted (Enter, mbasic)", flush=True)
+            else:
+                await email_input.press("Enter")
+                print("[FB-SCRAPER] Submitted (Enter on email, mbasic)", flush=True)
+            
+            await asyncio.sleep(5)
+
+            current_url = page.url
+            print(f"[FB-SCRAPER] After login: {current_url[:120]}", flush=True)
+
+            # Check for 2FA
+            if "checkpoint" in current_url.lower() or "two_factor" in current_url.lower() or "two_step" in current_url.lower():
+                print("[FB-SCRAPER] ⚠️ 2FA/checkpoint detected", flush=True)
+                print(f"[FB-SCRAPER] URL: {current_url[:200]}", flush=True)
+                
+                # Take screenshot to understand what FB is asking for
+                try:
+                    ss_dir = os.path.expanduser("~/.fb_scraper_sessions")
+                    os.makedirs(ss_dir, exist_ok=True)
+                    ss_path = os.path.join(ss_dir, "2fa_page.png")
+                    await self.page.screenshot(path=ss_path, full_page=True)
+                    print(f"[FB-SCRAPER] 2FA screenshot saved: {ss_path}", flush=True)
+                except Exception as e:
+                    print(f"[FB-SCRAPER] Screenshot failed: {e}", flush=True)
+                
+                # Try to dismiss "save browser" dialogs — not actual 2FA codes
+                try:
+                    not_now_selectors = [
+                        'button:has-text("Not Now")',
+                        'button:has-text("Skip")',
+                        'a:has-text("Not Now")',
+                        'a:has-text("Skip")',
+                        'div[role="button"]:has-text("Not Now")',
+                        'div[role="button"]:has-text("Skip")',
+                    ]
+                    for sel in not_now_selectors:
+                        try:
+                            dismiss = await self.page.wait_for_selector(sel, timeout=2000)
+                            if dismiss:
+                                await dismiss.click()
+                                print(f"[FB-SCRAPER] Dismissed dialog: {sel}", flush=True)
+                                await asyncio.sleep(3)
+                                current_url = self.page.url
+                                print(f"[FB-SCRAPER] After dismiss: {current_url[:120]}", flush=True)
+                                if "two_step" not in current_url.lower() and "checkpoint" not in current_url.lower():
+                                    print("[FB-SCRAPER] Login successful after dismiss!", flush=True)
+                                    cookies = await self.context.cookies()
+                                    self.sessions.save_cookies(self.session_id, cookies)
+                                    state = {"has_cookies": True, "last_url": current_url, "logged_in": True}
+                                    self.sessions.save_state(self.session_id, state)
+                                    return True
+                                break
+                        except:
+                            continue
+                except Exception as e:
+                    print(f"[FB-SCRAPER] Dismiss attempt error: {e}", flush=True)
+                
+                # Save cookies anyway and return
+                cookies = await self.context.cookies()
+                self.sessions.save_cookies(self.session_id, cookies)
+                return False
+
+            # Check if login succeeded
+            if "login" not in current_url.lower() and "checkpoint" not in current_url.lower() and "two_step" not in current_url.lower():
+                print("[FB-SCRAPER] Login successful!", flush=True)
+                cookies = await self.context.cookies()
+                self.sessions.save_cookies(self.session_id, cookies)
+                state = {"has_cookies": True, "last_url": current_url, "logged_in": True}
+                self.sessions.save_state(self.session_id, state)
+                return True
+
+            print(f"[FB-SCRAPER] Still on login page — login may have failed", flush=True)
+            return False
+
+        except Exception as e:
+            print(f"[FB-SCRAPER] Login error: {e}", flush=True)
+            return False
 
     async def _navigate_and_scrape(self, url: str) -> list[VehicleListing]:
         """Navigate to marketplace and extract listings."""
@@ -392,11 +527,19 @@ class FBMarketplaceScraper:
             self._log(f"Landed on: {current_url[:100]}")
 
             if "login" in current_url.lower() or "checkpoint" in current_url.lower():
-                self._log("Hit login/checkpoint wall")
-                # Save whatever cookies we have
-                cookies = await self.context.cookies()
-                self.sessions.save_cookies(self.session_id, cookies)
-                return []
+                self._log("Hit login/checkpoint wall — attempting login...")
+                # Attempt FB login with credentials
+                logged_in = await self._attempt_fb_login(self.page)
+                if logged_in:
+                    self._log("Login succeeded, navigating to search URL...")
+                    # Now navigate to the actual marketplace URL
+                    await self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    await asyncio.sleep(2)
+                else:
+                    # Save whatever cookies we have and give up
+                    cookies = await self.context.cookies()
+                    self.sessions.save_cookies(self.session_id, cookies)
+                    return []
 
             # Wait for content to load
             await self._wait_for_listings()
@@ -824,11 +967,15 @@ class FBMarketplaceScraper:
 
         listings = []
 
+        # Save max_results for strategies that need it
+        self._max_results = max_results
+
         # Strategy cascade
         strategies = [prefer_strategy] if prefer_strategy else [
             self.STRATEGY_STEALTH,
             self.STRATEGY_FRESH,
             self.STRATEGY_SCRAPLING,
+            self.STRATEGY_APIFY,
             self.STRATEGY_SCREENSHOT,
         ]
 
@@ -845,6 +992,8 @@ class FBMarketplaceScraper:
                     listings = await self._strategy_fresh_browser(search_url)
                 elif strategy == self.STRATEGY_SCRAPLING:
                     listings = await self._strategy_scrapling(search_url)
+                elif strategy == self.STRATEGY_APIFY:
+                    listings = await self._strategy_apify(search_url)
                 elif strategy == self.STRATEGY_SCREENSHOT:
                     listings = await self._strategy_fresh_browser(search_url)
 
@@ -867,65 +1016,171 @@ class FBMarketplaceScraper:
 # ─── Individual Listing Detail Scraper ───────────────────────────────────
 
 async def scrape_listing_detail(listing_url: str, session_id: str = "default") -> dict:
-    """Scrape a single FB Marketplace listing for full detail."""
-    scraper = FBMarketplaceScraper(session_id=session_id, debug=True)
-
+    """Scrape a single FB Marketplace listing for full detail.
+    
+    Strategies:
+    1. Clean URL → try Playwright with session cookies (fast, free)
+    2. Fall back to Apify if Playwright fails (~$0.01/listing)
+    """
+    import urllib.parse as urlparse
+    
+    # Clean the URL — strip tracking bloat, keep only /item/ID/
+    cleaned_url = listing_url
+    item_match = re.search(r'(facebook\.com/marketplace/item/\d+)', listing_url)
+    if item_match:
+        cleaned_url = f"https://www.{item_match.group(1)}/"
+    print(f"[DETAIL] Cleaned URL: {cleaned_url[:80]}...", flush=True)
+    
+    # ── Strategy 1: Playwright + session cookies ──
     try:
+        scraper = FBMarketplaceScraper(session_id=session_id, debug=True)
         scraper.playwright = await async_playwright().start()
         scraper.browser = await scraper.playwright.chromium.launch(
             headless=True,
-            args=["--no-sandbox", "--disable-blink-features=AutomationControlled"]
+            args=["--no-sandbox", "--disable-blink-features=AutomationControlled",
+                  "--disable-dev-shm-usage", "--disable-gpu"]
         )
         scraper.context = await scraper.browser.new_context(
             viewport={"width": 1920, "height": 1080},
             locale="en-US",
         )
+        
+        # Load session cookies if available
+        cookies = scraper.sessions.get(session_id)
+        if cookies:
+            await scraper.context.add_cookies(cookies)
+            print("[DETAIL] Loaded session cookies", flush=True)
+        
         scraper.page = await scraper.context.new_page()
+        
         if HAS_STEALTH:
-            await Stealth().apply_stealth_async(scraper.page)
-
-        await scraper.page.goto(listing_url, wait_until="domcontentloaded", timeout=30000)
-        await asyncio.sleep(3)
-
+            try:
+                await Stealth().apply_stealth_async(scraper.page)
+                print("[DETAIL] Stealth applied", flush=True)
+            except Exception as se:
+                print(f"[DETAIL] Stealth failed: {se}", flush=True)
+        
+        # Navigate — try network idle first, fall back to domcontentloaded
+        try:
+            await scraper.page.goto(cleaned_url, wait_until="networkidle", timeout=45000)
+        except Exception:
+            print("[DETAIL] Network idle timeout — falling back to domcontentloaded", flush=True)
+            await scraper.page.goto(cleaned_url, wait_until="domcontentloaded", timeout=30000)
+        
+        await asyncio.sleep(4)  # Let JS render
+        
         html = await scraper.page.content()
-
-        # Extract detail fields
+        
+        # Check if we hit login wall
+        if "login" in scraper.page.url.lower() or "checkpoint" in scraper.page.url.lower():
+            print(f"[DETAIL] Hit login wall at {scraper.page.url[:80]}", flush=True)
+            raise Exception("FB redirected to login — need authenticated session")
+        
+        # Extract fields
         title_match = re.search(r'<title>(.*?)</title>', html)
         title = title_match.group(1).replace(" - Marketplace - Facebook", "").strip() if title_match else ""
-
+        
         price_match = re.search(r'\$(\d{1,3}(?:,\d{3})*)', html)
         price = int(price_match.group(1).replace(",", "")) if price_match else 0
-
-        desc_match = re.search(r'"marketplace_listing_title".*?"text":"([^"]*)"', html)
+        
+        # Try JSON-LD extraction for richer data
+        ld_match = re.search(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, re.DOTALL)
         description = ""
-        if desc_match:
-            description = desc_match.group(1).encode().decode('unicode_escape')
-
-        # Look for year/make/model
+        images = []
+        if ld_match:
+            try:
+                ld = json.loads(ld_match.group(1))
+                if isinstance(ld, dict):
+                    description = ld.get("description", "")
+                    if isinstance(ld.get("image"), list):
+                        images = ld["image"]
+                    elif isinstance(ld.get("image"), str):
+                        images = [ld["image"]]
+            except json.JSONDecodeError:
+                pass
+        
+        if not description:
+            desc_match = re.search(r'"marketplace_listing_title".*?"text":"([^"]*)"', html)
+            if desc_match:
+                description = desc_match.group(1).encode().decode('unicode_escape')
+        
+        # Year/make/model from title
         ym_match = re.search(r'(19|20)\d{2}\s+([A-Z][a-z]+)\s+([A-Z][a-z]+)', title)
         year, make, model = 0, "", ""
         if ym_match:
-            year, make, model = int(ym_match[0]), ym_match[1], ym_match[2]
-
+            year, make, model = int(ym_match.group(1)), ym_match.group(2), ym_match.group(3)
+        
         # Mileage
         mile_match = re.search(r'([\d,]+)\s*(?:miles|mi)', title + " " + description, re.IGNORECASE)
         mileage = int(mile_match.group(1).replace(",", "")) if mile_match else None
-
-        return {
-            "title": title,
-            "price": price,
-            "year": year,
-            "make": make,
-            "model": model,
-            "mileage": mileage,
-            "description": description[:2000],
-            "sourceUrl": listing_url,
-            "source": "facebook",
-            "scrapedAt": datetime.now().isoformat(),
-        }
-
-    finally:
+        
+        # Location from title
+        location_match = re.search(r'in\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:,\s*[A-Z]{2})?)', title)
+        location = location_match.group(1) if location_match else ""
+        
         await scraper._cleanup()
+        
+        if title:
+            return {
+                "title": title,
+                "price": price,
+                "year": year,
+                "make": make,
+                "model": model,
+                "mileage": mileage,
+                "location": location,
+                "description": description[:2000],
+                "images": images[:10],
+                "sourceUrl": cleaned_url,
+                "source": "facebook",
+                "scrapedAt": datetime.now().isoformat(),
+            }
+        
+    except Exception as e:
+        print(f"[DETAIL] Playwright strategy failed: {e}", flush=True)
+        try:
+            await scraper._cleanup()
+        except Exception:
+            pass
+    
+    # ── Strategy 2: Apify fallback ──
+    try:
+        print("[DETAIL] Trying Apify fallback...", flush=True)
+        from apify_strategy import apify_search, map_apify_to_vehicle
+        listings = await apify_search(cleaned_url, max_results=1)
+        if listings:
+            vl = listings[0]
+            return {
+                "title": vl.title,
+                "price": vl.price,
+                "year": vl.year,
+                "make": vl.make,
+                "model": vl.model,
+                "trim": vl.trim,
+                "mileage": vl.mileage,
+                "vin": vl.vin,
+                "location": vl.location,
+                "description": (vl.description or "")[:2000],
+                "images": vl.images[:10],
+                "bodyStyle": vl.body_style,
+                "transmission": vl.transmission,
+                "fuelType": vl.fuel_type,
+                "drivetrain": vl.drivetrain,
+                "engine": vl.engine,
+                "exteriorColor": vl.exterior_color,
+                "interiorColor": vl.interior_color,
+                "condition": vl.condition,
+                "postedDate": vl.posted_date,
+                "titleStatus": vl.title_status,
+                "sellerName": vl.seller_name,
+                "sourceUrl": cleaned_url,
+                "source": "facebook",
+                "scrapedAt": vl.scraped_at,
+            }
+    except Exception as e:
+        print(f"[DETAIL] Apify fallback failed: {e}", flush=True)
+    
+    raise Exception("All detail scraping strategies failed")
 
 
 # ─── Quick Test ──────────────────────────────────────────────────────────

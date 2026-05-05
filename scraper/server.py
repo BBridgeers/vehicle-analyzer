@@ -15,9 +15,11 @@ Endpoints:
 MEEEOOOWWWWW 🔥
 """
 
-import sys
 import os
-
+import sys
+import json
+import time
+import asyncio
 # Ensure scraper module is importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -26,9 +28,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import uvicorn
-import asyncio
 
 from fb_marketplace import FBMarketplaceScraper, scrape_listing_detail, SessionManager
+from craigslist_search import search_craigslist
 
 # ─── Data Models ───────────────────────────────────────────────────────────
 
@@ -46,6 +48,16 @@ class SearchRequest(BaseModel):
 class DetailRequest(BaseModel):
     url: str = Field(..., description="FB Marketplace listing URL")
     session_id: str = Field(default="default")
+
+class CraigslistSearchRequest(BaseModel):
+    city: str = Field(default="dallas", description="City for Craigslist subdomain")
+    query: str = Field(default="", description="Search terms")
+    min_price: Optional[int] = Field(default=None)
+    max_price: Optional[int] = Field(default=None)
+    min_year: Optional[int] = Field(default=None)
+    max_year: Optional[int] = Field(default=None)
+    max_mileage: Optional[int] = Field(default=None)
+    max_results: int = Field(default=30, le=50)
 
 class SearchResponse(BaseModel):
     success: bool
@@ -162,6 +174,34 @@ async def scrape_detail(request: DetailRequest):
 
     except Exception as e:
         return DetailResponse(success=False, error=str(e))
+
+
+@app.post("/api/scrape/craigslist/search", response_model=SearchResponse)
+async def craigslist_search(request: CraigslistSearchRequest):
+    """Search Craigslist for vehicles. Uses JSON-LD parsing (fast, no browser needed)."""
+    start = time.time()
+    try:
+        results = search_craigslist(
+            city=request.city,
+            query=request.query,
+            min_price=request.min_price,
+            max_price=request.max_price,
+            min_year=request.min_year,
+            max_year=request.max_year,
+            max_mileage=request.max_mileage,
+            max_results=request.max_results,
+        )
+        elapsed = time.time() - start
+        return SearchResponse(
+            success=True,
+            listings=results,
+            strategy_used="craigslist_jsonld",
+            total_found=len(results),
+            elapsed_seconds=round(elapsed, 2),
+            search_url=f"https://{request.city}.craigslist.org/search/cta?query={request.query}",
+        )
+    except Exception as e:
+        return SearchResponse(success=False, error=str(e))
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────

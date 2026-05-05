@@ -52,6 +52,28 @@ CRITICAL RULES:
 - Look at the vehicle photos visible in the screenshot for condition notes
 - Return ONLY the JSON object, no markdown, no code fences, no explanation`;
 
+const CONDITION_PROMPT = `You are a vehicle condition assessment engine. Analyze this photo of a vehicle and describe what you see in detail.
+
+Focus on:
+1. EXTERIOR: Paint condition (scratches, fading, peeling, orange peel), body damage (dents, panel gaps, rust), glass condition, tires (tread depth visible?, brand, wear), lights condition, any modifications
+2. INTERIOR: Seat condition (rips, stains, wear), dashboard (cracks, fading), steering wheel wear, headliner (sagging?), carpets (stains, wear), any odors or issues you can infer from visible condition
+3. MECHANICAL: Any warning lights visible, fluid leaks under the vehicle, rust on frame/components, aftermarket modifications, engine bay condition if visible
+
+Return ONLY valid JSON:
+
+{
+  "exteriorCondition": "<2-3 sentence factual description of exterior condition>",
+  "interiorCondition": "<2-3 sentence factual description of interior condition, if visible>",
+  "mechanicalCondition": "<2-3 sentence description of any visible mechanical issues, warning lights, or under-hood condition>",
+  "notableDamage": "<any specific damage noted, or omit if none>",
+  "overallImpression": "<one word: Excellent|Good|Fair|Poor|Project>"
+}
+
+CRITICAL RULES:
+- Be FACTUAL — describe what you see, do not speculate beyond visible evidence
+- If you can't see something (e.g., interior not visible), omit that field entirely
+- Return ONLY the JSON object, no markdown, no code fences, no explanation`;
+
 export async function POST(request: Request) {
     // ── Rate Limiting ──
     const ip = getClientIp(request);
@@ -75,6 +97,10 @@ export async function POST(request: Request) {
         const formData = await request.formData();
         const imageFile = formData.get('image') as File | null;
         const manualUrl = formData.get('manualUrl') as string | null;
+        const mode = (formData.get('mode') as string) || 'listing';
+
+        // Select prompt based on mode
+        const prompt = mode === 'condition' ? CONDITION_PROMPT : EXTRACTION_PROMPT;
 
         if (!imageFile) {
             return NextResponse.json(
@@ -114,7 +140,7 @@ export async function POST(request: Request) {
                         messages: [{
                             role: 'user',
                             content: [
-                                { type: 'text', text: EXTRACTION_PROMPT },
+                                { type: 'text', text: prompt },
                                 { type: 'image_url', image_url: { url: `data:${imageFile.type || 'image/png'};base64,${base64Data}` } }
                             ]
                         }],
@@ -162,7 +188,7 @@ export async function POST(request: Request) {
                         messages: [{
                             role: 'user',
                             content: [
-                                { type: 'text', text: EXTRACTION_PROMPT },
+                                { type: 'text', text: prompt },
                                 { type: 'image_url', image_url: { url: `data:${imageFile.type || 'image/png'};base64,${base64Data}` } }
                             ]
                         }],
@@ -197,7 +223,7 @@ export async function POST(request: Request) {
             try {
                 const { OllamaVisionEngine } = require('@/lib/vision-engine');
                 const ollama = new OllamaVisionEngine(process.env.OLLAMA_HOST);
-                vehicle = await ollama.extract(imageBuffer, EXTRACTION_PROMPT, imageFile.type);
+                vehicle = await ollama.extract(imageBuffer, prompt, imageFile.type);
                 if (vehicle && (vehicle.make || vehicle.year)) {
                     console.log('[Extract Listing] ✅ Ollama succeeded:', vehicle.make, vehicle.model);
                 }

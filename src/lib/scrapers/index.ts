@@ -1,12 +1,13 @@
 import { Scraper, ScrapedVehicle } from './types';
 import { CraigslistScraper } from './craigslist';
 import { AutoTempestScraper } from './autotempest';
+import { FacebookMarketplaceScraper } from './facebook';
 
 // Registry of available scrapers
 const scrapers: Scraper[] = [
     new CraigslistScraper(),
     new AutoTempestScraper(),
-    // CarsAndBidsScraper will go here
+    new FacebookMarketplaceScraper(),
 ];
 
 export async function scrapeVehicle(url: string): Promise<ScrapedVehicle> {

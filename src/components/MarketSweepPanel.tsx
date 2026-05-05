@@ -25,7 +25,7 @@ interface SweepStatus {
 
 const SOURCE_OPTIONS = [
   { key: "craigslist", label: "Craigslist", color: "text-purple-400" },
-  { key: "facebook", label: "FB Marketplace", color: "text-blue-400", disabled: true },
+  { key: "facebook", label: "FB Marketplace", color: "text-blue-400" },
   { key: "autotempest", label: "AutoTempest", color: "text-orange-400", disabled: true },
 ];
 
@@ -126,6 +126,44 @@ export default function MarketSweepPanel() {
     const params = new URLSearchParams();
     if (resultsFilter) params.set("source", resultsFilter);
     window.open(`/api/scrape/export?${params}`, "_blank");
+  };
+
+  const handleAnalyzeVehicle = (url: string) => {
+    // Navigate to main page with listing URL pre-filled
+    // The main page will auto-trigger the scrape via FacebookMarketplaceScraper
+    window.location.href = `/?url=${encodeURIComponent(url)}`;
+  };
+
+  const handleImportAllToFleet = async () => {
+    const allResults = showResults;
+    if (allResults.length === 0) return;
+
+    if (!confirm(`Import ${allResults.length} vehicles to fleet? This saves them for analysis.`)) return;
+
+    try {
+      // Take each result and save to fleet via POST
+      for (const r of allResults) {
+        await fetch('/api/fleet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: r.title || `${r.make || ''} ${r.model || ''}`,
+            year: r.year || '',
+            make: r.make || '',
+            model: r.model || '',
+            price: r.price || 0,
+            miles: r.mileage || 0,
+            sourceUrl: r.url,
+            source: r.source,
+            location: r.location || '',
+            status: 'pending_analysis',
+          }),
+        });
+      }
+      window.location.href = '/fleet';
+    } catch (e: any) {
+      alert(`Import failed: ${e.message}`);
+    }
   };
 
   const progressPct = status
@@ -292,6 +330,16 @@ export default function MarketSweepPanel() {
         <div className="px-5 py-3 border-b border-[#2a2825] bg-[#161513] flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-sm font-semibold text-gray-200">Scraped Vehicles</h2>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleImportAllToFleet}
+              disabled={showResults.length === 0}
+              className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 disabled:cursor-not-allowed text-white px-3 py-1 rounded-md text-[10px] font-semibold transition-colors flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Import All to Fleet
+            </button>
             <select
               value={resultsFilter}
               onChange={(e) => { setResultsFilter(e.target.value); setResultsPage(1); }}
@@ -327,12 +375,13 @@ export default function MarketSweepPanel() {
                 <th className="text-left px-4 py-2 font-medium">Model</th>
                 <th className="text-left px-4 py-2 font-medium">Location</th>
                 <th className="text-left px-4 py-2 font-medium">Scraped At</th>
+                <th className="text-center px-4 py-2 font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
               {showResults.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-600">
+                  <td colSpan={10} className="px-4 py-8 text-center text-gray-600">
                     {sweeping ? "Sweep in progress..." : "No results yet. Run a sweep to populate."}
                   </td>
                 </tr>
@@ -365,6 +414,14 @@ export default function MarketSweepPanel() {
                     <td className="px-4 py-2 text-gray-400">{r.location || "—"}</td>
                     <td className="px-4 py-2 text-gray-500 text-[10px] whitespace-nowrap">
                       {r.scraped_at ? new Date(r.scraped_at).toLocaleString() : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <button
+                        onClick={() => handleAnalyzeVehicle(r.url)}
+                        className="bg-cyan-900/40 hover:bg-cyan-800 border border-cyan-800/50 hover:border-cyan-600 text-cyan-300 px-2 py-1 rounded text-[10px] font-medium transition-colors"
+                      >
+                        Analyze
+                      </button>
                     </td>
                   </tr>
                 ))

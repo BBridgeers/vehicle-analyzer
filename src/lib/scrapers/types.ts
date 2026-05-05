@@ -6,9 +6,11 @@ export interface ScrapedVehicle {
     year?: number;
     make?: string;
     model?: string;
+    trim?: string;
     description: string;
     images: string[];
     sourceUrl: string;
+    source?: string;
     conditionExterior?: string;
     conditionInterior?: string;
     conditionMechanical?: string;
@@ -18,7 +20,23 @@ export interface ScrapedVehicle {
     fuelType?: string;
     titleStatus?: string;
     exteriorColor?: string;
+    interiorColor?: string;
     location?: string;
+    seats?: number;
+    seatCount?: number;
+    mpg?: string;
+    postedDate?: string;
+    bodyStyle?: string;
+    drivetrain?: string;
+    engine?: string;
+    cylinders?: number;
+    condition?: string;
+    safetyRating?: string;
+    numOwners?: number;
+    paidOff?: boolean;
+    sellerName?: string;
+    sellerRedFlags?: string;
+    sellerQuotes?: string;
 }
 
 export interface Scraper {

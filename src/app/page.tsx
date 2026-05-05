@@ -133,6 +133,16 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeError, setScrapeError] = useState('');
 
+  // Auto-trigger scrape when listingUrl is pre-filled (e.g., from ?url= query param)
+  const hasAutoScraped = useRef(false);
+  React.useEffect(() => {
+    if (hasAutoScraped.current || !listingUrl.trim() || isScraping) return;
+    hasAutoScraped.current = true;
+    // Small delay to let component fully mount before starting scrape
+    const t = setTimeout(() => handleScrape(), 100);
+    return () => clearTimeout(t);
+  }, [listingUrl]);
+
   const handleScrape = async () => {
     const url = listingUrl.trim();
     if (!url) return;
@@ -1603,6 +1613,18 @@ const App = () => {
   const [chatExpanded, setChatExpanded] = useState(true);
   const [photos, setPhotos] = useState<{file: File; preview: string}[]>([]);
   const [history, setHistory] = useState<Array<{name:string; price:string; time:string; verdict:string; active:boolean}>>([]);
+
+  // Auto-fill listing URL from query params (e.g., /?url=https://facebook.com/marketplace/item/123/)
+  const [urlParamHandled, setUrlParamHandled] = useState(false);
+  useEffect(() => {
+    if (urlParamHandled || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const listingUrl = params.get('url');
+    if (listingUrl) {
+      setForm((prev: any) => ({ ...prev, listingUrl }));
+      setUrlParamHandled(true);
+    }
+  }, [urlParamHandled]);
 
   // Update analysis history whenever a new result comes in
   useEffect(() => {

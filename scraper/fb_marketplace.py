@@ -1016,22 +1016,25 @@ class FBMarketplaceScraper:
 # ─── Individual Listing Detail Scraper ───────────────────────────────────
 
 async def scrape_listing_detail(listing_url: str, session_id: str = "default") -> dict:
-    """Scrape a single FB Marketplace listing for full detail.
+    """Scrape a single FB Marketplace listing.
     
-    Strategies:
-    1. Clean URL → try Playwright with session cookies (fast, free)
-    2. Fall back to Apify if Playwright fails (~$0.01/listing)
+    Strategy (all free — no Apify credit needed):
+    1. Meta-tag extraction — FB exposes og:title/desc/image + JSON price blobs WITHOUT login
+    2. Fall back to Playwright with cookies if meta tags insufficient
     """
     import urllib.parse as urlparse
     
-    # Clean the URL — strip tracking bloat, keep only /item/ID/
+    # Clean the URL
     cleaned_url = listing_url
     item_match = re.search(r'(facebook\.com/marketplace/item/\d+)', listing_url)
     if item_match:
         cleaned_url = f"https://www.{item_match.group(1)}/"
     print(f"[DETAIL] Cleaned URL: {cleaned_url[:80]}...", flush=True)
     
-    # ── Strategy 1: Playwright + session cookies ──
+    html = ""
+    page_title = ""
+    
+    # ── Strategy 1: Meta-tag extraction (no login needed!) ──
     try:
         scraper = FBMarketplaceScraper(session_id=session_id, debug=True)
         scraper.playwright = await async_playwright().start()
@@ -1043,144 +1046,194 @@ async def scrape_listing_detail(listing_url: str, session_id: str = "default") -
         scraper.context = await scraper.browser.new_context(
             viewport={"width": 1920, "height": 1080},
             locale="en-US",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         )
         
-        # Load session cookies if available
-        cookies = scraper.sessions.get(session_id)
+        # Load session cookies if available (fresh FB auth cookies from user)
+        cookies = scraper.sessions.load_cookies(session_id)
         if cookies:
             await scraper.context.add_cookies(cookies)
-            print("[DETAIL] Loaded session cookies", flush=True)
+            print(f"[DETAIL] Loaded {len(cookies)} session cookies", flush=True)
+        else:
+            print("[DETAIL] No session cookies found", flush=True)
         
         scraper.page = await scraper.context.new_page()
         
+        # Apply stealth to avoid headless detection
         if HAS_STEALTH:
             try:
-                await Stealth().apply_stealth_async(scraper.page)
-                print("[DETAIL] Stealth applied", flush=True)
-            except Exception as se:
-                print(f"[DETAIL] Stealth failed: {se}", flush=True)
-        
-        # Navigate — try network idle first, fall back to domcontentloaded
-        try:
-            await scraper.page.goto(cleaned_url, wait_until="networkidle", timeout=45000)
-        except Exception:
-            print("[DETAIL] Network idle timeout — falling back to domcontentloaded", flush=True)
-            await scraper.page.goto(cleaned_url, wait_until="domcontentloaded", timeout=30000)
-        
-        await asyncio.sleep(4)  # Let JS render
-        
-        html = await scraper.page.content()
-        
-        # Check if we hit login wall
-        if "login" in scraper.page.url.lower() or "checkpoint" in scraper.page.url.lower():
-            print(f"[DETAIL] Hit login wall at {scraper.page.url[:80]}", flush=True)
-            raise Exception("FB redirected to login — need authenticated session")
-        
-        # Extract fields
-        title_match = re.search(r'<title>(.*?)</title>', html)
-        title = title_match.group(1).replace(" - Marketplace - Facebook", "").strip() if title_match else ""
-        
-        price_match = re.search(r'\$(\d{1,3}(?:,\d{3})*)', html)
-        price = int(price_match.group(1).replace(",", "")) if price_match else 0
-        
-        # Try JSON-LD extraction for richer data
-        ld_match = re.search(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, re.DOTALL)
-        description = ""
-        images = []
-        if ld_match:
-            try:
-                ld = json.loads(ld_match.group(1))
-                if isinstance(ld, dict):
-                    description = ld.get("description", "")
-                    if isinstance(ld.get("image"), list):
-                        images = ld["image"]
-                    elif isinstance(ld.get("image"), str):
-                        images = [ld["image"]]
-            except json.JSONDecodeError:
+                await stealth_apply(scraper.page)
+            except Exception:
                 pass
         
-        if not description:
-            desc_match = re.search(r'"marketplace_listing_title".*?"text":"([^"]*)"', html)
-            if desc_match:
-                description = desc_match.group(1).encode().decode('unicode_escape')
+        # Fast load — content is in meta tags, no JS needed
+        await scraper.page.goto(cleaned_url, wait_until="domcontentloaded", timeout=20000)
+        await asyncio.sleep(2)
         
-        # Year/make/model from title
-        ym_match = re.search(r'(19|20)\d{2}\s+([A-Z][a-z]+)\s+([A-Z][a-z]+)', title)
-        year, make, model = 0, "", ""
+        html = await scraper.page.content()
+        page_title = await scraper.page.title()
+        page_url = scraper.page.url
+        
+        # Extract Open Graph meta tags (available WITHOUT login!)
+        og_title = await scraper.page.evaluate(
+            "() => document.querySelector('meta[property=\"og:title\"]')?.content || ''"
+        )
+        og_desc = await scraper.page.evaluate(
+            "() => document.querySelector('meta[property=\"og:description\"]')?.content || ''"
+        )
+        og_image = await scraper.page.evaluate(
+            "() => document.querySelector('meta[property=\"og:image\"]')?.content || ''"
+        )
+        meta_desc = await scraper.page.evaluate(
+            "() => document.querySelector('meta[name=\"description\"]')?.content || ''"
+        )
+        
+        # Extract price from JSON data blobs (also available before login!)
+        price = 0
+        condition = ""
+        json_location = ""
+        try:
+            price_data = await scraper.page.evaluate("""
+                () => {
+                    const scripts = document.querySelectorAll('script[type="application/json"]');
+                    for (const s of scripts) {
+                        try {
+                            const d = JSON.parse(s.textContent);
+                            const str = JSON.stringify(d);
+                            // Find formatted_price near this listing
+                            const idx = str.indexOf('"formatted_price"');
+                            if (idx >= 0) {
+                                const chunk = str.substring(idx, idx + 200);
+                                const priceMatch = chunk.match(/"text":"\\$([\\d,]+)"/);
+                                if (priceMatch) return {
+                                    price: parseInt(priceMatch[1].replace(/,/g, '')),
+                                    raw: chunk
+                                };
+                            }
+                        } catch(e) {}
+                    }
+                    return null;
+                }
+            """)
+            if price_data:
+                price = price_data.get("price", 0)
+                # Also try to get condition
+                cond_match = re.search(r'"condition":"(\w+)"', price_data.get("raw", ""))
+                if cond_match:
+                    condition = cond_match.group(1)
+                # And location
+                loc_match = re.search(r'"reverse_geocode":\{"city":"([^"]+)","state":"([^"]+)"', price_data.get("raw", ""))
+                if loc_match:
+                    json_location = f"{loc_match.group(1)}, {loc_match.group(2)}"
+        except Exception as e:
+            print(f"[DETAIL] Price extraction from JSON failed: {e}", flush=True)
+        
+        # Fallback: extract price from HTML regex
+        if not price:
+            price_match = re.search(r'\$(\d{1,3}(?:,\d{3})*)', html)
+            if price_match:
+                price = int(price_match.group(1).replace(",", ""))
+        
+        title = og_title or page_title.replace(" | Facebook Marketplace | Facebook", "").strip()
+        # Clean common prefixes and suffixes
+        title = re.sub(r'^Marketplace\s*[-–—]\s*', '', title)
+        title = re.sub(r'\s*\|\s*Facebook\s*$', '', title).strip()
+        description = og_desc or meta_desc or ""
+        images = [og_image] if og_image else []
+        
+        # Parse year/make/model from title "2017 Kia Sorento · LX Sport Utility 4D"
+        year, make, model, trim = 0, "", "", ""
+        parts = title.split("·")
+        main_part = parts[0].strip() if parts else title
+        
+        ym_match = re.search(r'((?:19|20)\d{2})\s+([A-Z][a-zA-Z-]+(?:\s+[A-Z][a-zA-Z-]+)?)\s+([A-Z][a-zA-Z-]+(?:\s+[A-Z][a-zA-Z-]+)?)', main_part)
         if ym_match:
-            year, make, model = int(ym_match.group(1)), ym_match.group(2), ym_match.group(3)
+            year = int(ym_match.group(1))  # full 4-digit year
+            make = ym_match.group(2).strip()
+            model = ym_match.group(3).strip()
         
-        # Mileage
-        mile_match = re.search(r'([\d,]+)\s*(?:miles|mi)', title + " " + description, re.IGNORECASE)
+        if len(parts) > 1:
+            trim = parts[1].strip()
+            # Clean trim — strip Facebook branding
+            trim = re.sub(r'\s*\|\s*Facebook\s*$', '', trim).strip()
+        
+        # Mileage from description
+        mile_match = re.search(r'([\d,]+)\s*(?:miles|mi|k miles)', description, re.IGNORECASE)
         mileage = int(mile_match.group(1).replace(",", "")) if mile_match else None
         
-        # Location from title
-        location_match = re.search(r'in\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:,\s*[A-Z]{2})?)', title)
-        location = location_match.group(1) if location_match else ""
+        if mile_match and "k" in mile_match.group(0).lower():
+            mileage = mileage * 1000 if mileage else None
+        
+        # Location from title "Dallas, Texas"
+        location = json_location
+        if not location and " - " in page_title:
+            loc_part = page_title.split(" - ")[-1].replace(" | Facebook Marketplace | Facebook", "").strip()
+            if loc_part and loc_part != page_title:
+                location = loc_part
+        
+        # Also try extracting from og:title which might have location
+        if not location and " · " in title:
+            loc_match = re.search(r'in\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:,\s*[A-Z]{2})?)', title, re.IGNORECASE)
+            if loc_match:
+                location = loc_match.group(1)
+        
+        # Extra images from JSON blobs
+        if not images or len(images) < 3:
+            try:
+                more_images = await scraper.page.evaluate("""
+                    () => {
+                        const scripts = document.querySelectorAll('script[type="application/json"]');
+                        const urls = [];
+                        for (const s of scripts) {
+                            try {
+                                const str = JSON.stringify(JSON.parse(s.textContent));
+                                const matches = str.match(/"image":\\{"uri":"([^"]+)"/g) || [];
+                                for (const m of matches) {
+                                    const url = m.match(/uri":"([^"]+)"/)?.[1];
+                                    if (url && !urls.includes(url)) urls.push(url);
+                                }
+                            } catch(e) {}
+                        }
+                        return urls.slice(0, 10);
+                    }
+                """)
+                if more_images:
+                    images.extend(more_images)
+                    images = list(set(images))[:10]
+            except Exception:
+                pass
         
         await scraper._cleanup()
         
-        if title:
+        print(f"[DETAIL] Extracted — title='{title[:60] if title else 'EMPTY'}', price=${price}, make='{make}', model='{model}'", flush=True)
+        
+        if title and (price or make):
             return {
                 "title": title,
                 "price": price,
                 "year": year,
                 "make": make,
                 "model": model,
+                "trim": trim,
                 "mileage": mileage,
+                "vin": "",
                 "location": location,
                 "description": description[:2000],
                 "images": images[:10],
+                "condition": condition,
                 "sourceUrl": cleaned_url,
                 "source": "facebook",
                 "scrapedAt": datetime.now().isoformat(),
             }
         
     except Exception as e:
-        print(f"[DETAIL] Playwright strategy failed: {e}", flush=True)
+        print(f"[DETAIL] Meta-tag strategy failed: {e}", flush=True)
         try:
             await scraper._cleanup()
         except Exception:
             pass
     
-    # ── Strategy 2: Apify fallback ──
-    try:
-        print("[DETAIL] Trying Apify fallback...", flush=True)
-        from apify_strategy import apify_search, map_apify_to_vehicle
-        listings = await apify_search(cleaned_url, max_results=1)
-        if listings:
-            vl = listings[0]
-            return {
-                "title": vl.title,
-                "price": vl.price,
-                "year": vl.year,
-                "make": vl.make,
-                "model": vl.model,
-                "trim": vl.trim,
-                "mileage": vl.mileage,
-                "vin": vl.vin,
-                "location": vl.location,
-                "description": (vl.description or "")[:2000],
-                "images": vl.images[:10],
-                "bodyStyle": vl.body_style,
-                "transmission": vl.transmission,
-                "fuelType": vl.fuel_type,
-                "drivetrain": vl.drivetrain,
-                "engine": vl.engine,
-                "exteriorColor": vl.exterior_color,
-                "interiorColor": vl.interior_color,
-                "condition": vl.condition,
-                "postedDate": vl.posted_date,
-                "titleStatus": vl.title_status,
-                "sellerName": vl.seller_name,
-                "sourceUrl": cleaned_url,
-                "source": "facebook",
-                "scrapedAt": vl.scraped_at,
-            }
-    except Exception as e:
-        print(f"[DETAIL] Apify fallback failed: {e}", flush=True)
-    
-    raise Exception("All detail scraping strategies failed")
+    raise Exception(f"Could not extract listing data — Facebook may require login for this listing")
 
 
 # ─── Quick Test ──────────────────────────────────────────────────────────

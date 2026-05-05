@@ -7,10 +7,13 @@ const SOURCE_URLS: Record<string, string[]> = {
   craigslist: [
     'https://dallas.craigslist.org/search/cta?min_price=1000&max_price=7000&max_miles=100000&min_auto_year=2006&auto_title_status=1&purveyor=owner#search=1~list~0~0',
   ],
-  // Facebook and AutoTempest need Playwright — stub for now, Craigslist works serverlessly
+  // Facebook uses the VPS-based stealth scraper (requires headless browser, not Vercel-compatible)
   facebook: [],
   autotempest: [],
 };
+
+// VPS Scraper API base URL — defaults to localhost for dev, set in Vercel env for production
+const VPS_SCRAPER_URL = process.env.VPS_SCRAPER_URL || 'http://localhost:8765';
 
 function generateId(): string {
   return `sweep_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -25,6 +28,41 @@ function dedupeKey(source: string, url: string): string {
     hash |= 0;
   }
   return `scraper:dedup:${source}:${Math.abs(hash)}`;
+}
+
+async function scrapeFacebookMarketplace(params: {
+  query?: string;
+  location?: string;
+  maxPrice?: number;
+  minYear?: number;
+  maxResults?: number;
+}): Promise<any[]> {
+  try {
+    const resp = await fetch(`${VPS_SCRAPER_URL}/api/scrape/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: params.query || '',
+        location: params.location || 'dallas',
+        max_price: params.maxPrice,
+        min_year: params.minYear,
+        max_results: params.maxResults || 20,
+      }),
+      signal: AbortSignal.timeout(60000),
+    });
+
+    if (!resp.ok) {
+      console.error(`[sweep] FB scraper returned ${resp.status}`);
+      return [];
+    }
+
+    const data = await resp.json();
+    console.log(`[sweep] FB scraper found ${data.total_found || 0} listings via ${data.strategy_used}`);
+    return data.listings || [];
+  } catch (e: any) {
+    console.error('[sweep] FB scraper error:', e.message);
+    return [];
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -60,7 +98,71 @@ export async function POST(request: NextRequest) {
     for (const source of sourcesToRun) {
       const urls = SOURCE_URLS[source] || [];
       if (urls.length === 0) {
-        // Source not available (requires browser) — mark as skipped
+        // Source not available via static URLs — try dynamic scraper
+        if (source === 'facebook') {
+          try {
+            const fbListings = await scrapeFacebookMarketplace({
+              query: make && model ? `${make} ${model}` : make || '',
+              location: region || 'dallas',
+              maxPrice: maxPrice || 7000,
+              minYear: make ? undefined : 2006,
+              maxResults: 20,
+            });
+
+            for (const listing of fbListings) {
+              const record = {
+                source: 'fb',
+                title: listing.title || `${listing.year || ''} ${listing.make || ''} ${listing.model || ''}`.trim(),
+                price: listing.price || 0,
+                mileage: listing.mileage || null,
+                year: listing.year || null,
+                make: listing.make || '',
+                model: listing.model || '',
+                trim: listing.trim || '',
+                vin: listing.vin || '',
+                location: listing.location || region,
+                url: listing.sourceUrl || '',
+                scraped_at: new Date().toISOString(),
+                description: listing.description || '',
+                postedDate: listing.postedDate || '',
+                titleStatus: listing.titleStatus || '',
+                images: listing.images || [],
+                bodyStyle: listing.bodyStyle || '',
+                transmission: listing.transmission || '',
+                fuelType: listing.fuelType || '',
+                drivetrain: listing.drivetrain || '',
+                engine: listing.engine || '',
+                cylinders: listing.cylinders || null,
+                exteriorColor: listing.exteriorColor || '',
+                interiorColor: listing.interiorColor || '',
+                seats: listing.seats || null,
+                mpg: listing.mpg || '',
+                condition: listing.condition || '',
+                conditionExterior: listing.conditionExterior || '',
+                conditionInterior: listing.conditionInterior || '',
+                conditionMechanical: listing.conditionMechanical || '',
+                safetyRating: listing.safetyRating || '',
+                numOwners: listing.numOwners || null,
+                paidOff: listing.paidOff || false,
+                sellerName: listing.sellerName || '',
+                sellerResponsiveness: listing.sellerResponsiveness || 'not-contacted',
+                sellerTransparency: listing.sellerTransparency || 'not-assessed',
+                sellerRedFlags: listing.sellerRedFlags || '',
+                sellerQuotes: listing.sellerQuotes || '',
+              };
+
+              await kv.zadd(`scraper:results:${jobId}`, {
+                score: Date.now(),
+                member: JSON.stringify(record),
+              });
+
+              results.push(record);
+              totalFound++;
+            }
+          } catch (e: any) {
+            console.error(`[sweep] Facebook source failed:`, e.message);
+          }
+        }
         continue;
       }
 

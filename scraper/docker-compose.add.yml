@@ -1,0 +1,16 @@
+  # FB Marketplace Stealth Scraper (VPS side — needs real Chrome)
+  fb-scraper:
+    build: ../vehicle-analyzer/scraper
+    container_name: fb-scraper
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      - SCRAPER_PORT=8765
+    volumes:
+      - fb-scraper-sessions:/root/.fb_scraper_sessions
+    networks:
+      - mc-net
+
+volumes:
+  fb-scraper-sessions:

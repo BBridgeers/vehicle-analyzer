@@ -101,15 +101,67 @@ export async function POST(request: NextRequest) {
         // Source not available via static URLs — try dynamic scraper
         if (source === 'facebook') {
           try {
-            const fbListings = await scrapeFacebookMarketplace({
-              query: make && model ? `${make} ${model}` : make || '',
-              location: region || 'dallas',
-              maxPrice: maxPrice || 7000,
-              minYear: make ? undefined : 2006,
-              maxResults: 20,
-            });
+            // Parse comma-separated makes and models for multi-search
+            const makes = (make || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+            const models = (model || '').split(',').map((s: string) => s.trim()).filter(Boolean);
 
-            for (const listing of fbListings) {
+            // Build query combinations — all make×model cross-product
+            const queries: string[] = [];
+            if (makes.length > 0 && models.length > 0) {
+              for (const m of makes) {
+                for (const mo of models) {
+                  queries.push(`${m} ${mo}`);
+                }
+              }
+            } else if (makes.length > 0) {
+              queries.push(...makes);
+            } else if (models.length > 0) {
+              queries.push(...models);
+            }
+
+            // If no specific make/model, single broad search
+            if (queries.length === 0) queries.push('');
+
+            // Run all searches in parallel — max 3 concurrent to avoid FB rate limits
+            const chunkSize = 3;
+            const allFbResults: any[] = [];
+            const seenUrls = new Set<string>();
+
+            for (let i = 0; i < queries.length; i += chunkSize) {
+              const chunk = queries.slice(i, i + chunkSize);
+              const chunkResults = await Promise.allSettled(
+                chunk.map(q =>
+                  scrapeFacebookMarketplace({
+                    query: q,
+                    location: region || 'dallas',
+                    maxPrice: maxPrice || 7000,
+                    minYear: make ? undefined : 2006,
+                    maxResults: Math.ceil(20 / queries.length) || 10,
+                  })
+                )
+              );
+
+              for (const r of chunkResults) {
+                if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+                  for (const listing of r.value) {
+                    // Deduplicate by URL
+                    const url = listing.sourceUrl || listing.url || '';
+                    if (url && seenUrls.has(url)) continue;
+                    if (url) seenUrls.add(url);
+                    allFbResults.push(listing);
+                  }
+                }
+              }
+            }
+
+            // Deduplicate final results by URL
+            const deduped = new Map<string, any>();
+            for (const listing of allFbResults) {
+              const key = listing.sourceUrl || listing.url || `${listing.title}-${listing.price}`;
+              if (!deduped.has(key)) deduped.set(key, listing);
+            }
+
+            for (const listing of deduped.values()) {
               const record = {
                 source: 'fb',
                 title: listing.title || `${listing.year || ''} ${listing.make || ''} ${listing.model || ''}`.trim(),

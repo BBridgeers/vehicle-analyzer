@@ -260,22 +260,22 @@ export default function MarketSweepPanel() {
           {/* Make / Model */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-1.5">Make</label>
+              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-1.5">Make (comma-separated)</label>
               <input
                 type="text"
                 value={make}
                 onChange={(e) => setMake(e.target.value)}
-                placeholder="e.g. Toyota"
+                placeholder="e.g. Toyota, Honda, Ford"
                 className="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-1.5">Model</label>
+              <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-1.5">Model (comma-separated)</label>
               <input
                 type="text"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="e.g. Camry"
+                placeholder="e.g. Camry, Corolla, Civic"
                 className="w-full bg-[#050403] border border-[#3a3730] rounded-md px-3 py-2 text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
               />
             </div>

@@ -117,7 +117,9 @@ export default function ImageUploader({ onImagesChange, onUpload, isLoading: ext
 
                 if (res.ok) {
                     const data = await res.json();
-                    allExtractions.push(data);
+                    // API wraps result in { success, vehicle: { ... } }
+                    const vehicle = data.vehicle || data;
+                    allExtractions.push(vehicle);
                 }
                 // If individual photo fails, just skip it
             }
@@ -127,22 +129,29 @@ export default function ImageUploader({ onImagesChange, onUpload, isLoading: ext
             const exteriorParts: string[] = [];
             const interiorParts: string[] = [];
             const mechanicalParts: string[] = [];
+            const notableParts: string[] = [];
 
             for (const extraction of allExtractions) {
                 if (extraction.exteriorCondition) exteriorParts.push(extraction.exteriorCondition);
                 if (extraction.interiorCondition) interiorParts.push(extraction.interiorCondition);
                 if (extraction.mechanicalCondition) mechanicalParts.push(extraction.mechanicalCondition);
+                if (extraction.notableDamage) notableParts.push(extraction.notableDamage);
                 // Also pass through any other extracted fields
                 for (const [key, val] of Object.entries(extraction)) {
-                    if (!['exteriorCondition', 'interiorCondition', 'mechanicalCondition'].includes(key) && typeof val === 'string') {
+                    if (!['exteriorCondition', 'interiorCondition', 'mechanicalCondition', 'notableDamage', 'overallImpression', 'exteriorColor', 'interiorColor', 'transmission', 'fuelType', 'drivetrain', 'engine', 'bodyStyle', 'condition'].includes(key) && typeof val === 'string') {
                         merged[key] = merged[key] ? `${merged[key]}\n${val}` : val;
                     }
+                }
+                // Pass through scalar specification fields directly (don't join, take first non-empty value)
+                for (const key of ['exteriorColor', 'interiorColor', 'transmission', 'fuelType', 'drivetrain', 'engine', 'bodyStyle', 'condition', 'overallImpression']) {
+                    if (extraction[key] && !merged[key]) merged[key] = extraction[key];
                 }
             }
 
             if (exteriorParts.length > 0) merged.exteriorCondition = exteriorParts.join(' | ');
             if (interiorParts.length > 0) merged.interiorCondition = interiorParts.join(' | ');
             if (mechanicalParts.length > 0) merged.mechanicalCondition = mechanicalParts.join(' | ');
+            if (notableParts.length > 0) merged.notableDamage = notableParts.join(' | ');
 
             if (Object.keys(merged).length > 0) {
                 onUpload(merged);

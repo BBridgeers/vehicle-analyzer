@@ -1137,7 +1137,8 @@ async def scrape_listing_detail(listing_url: str, session_id: str = "default") -
         title = og_title or page_title.replace(" | Facebook Marketplace | Facebook", "").strip()
         # Clean common prefixes and suffixes
         title = re.sub(r'^Marketplace\s*[-–—]\s*', '', title)
-        title = re.sub(r'\s*\|\s*Facebook\s*$', '', title).strip()
+        title = re.sub(r'^\(\d+\)\s*Marketplace\s*[-–—]\s*', '', title)  # "(1) Marketplace - "
+        title = re.sub(r'\|?\s*Facebook\s*$', '', title).strip()
         description = og_desc or meta_desc or ""
         images = [og_image] if og_image else []
         
@@ -1203,12 +1204,11 @@ async def scrape_listing_detail(listing_url: str, session_id: str = "default") -
             except Exception:
                 pass
         
-        await scraper._cleanup()
-        
         print(f"[DETAIL] Extracted — title='{title[:60] if title else 'EMPTY'}', price=${price}, make='{make}', model='{model}'", flush=True)
         
         if title and (price or make):
-            return {
+            # ── Build basic result from meta-tags ──
+            basic_result = {
                 "title": title,
                 "price": price,
                 "year": year,
@@ -1225,6 +1225,46 @@ async def scrape_listing_detail(listing_url: str, session_id: str = "default") -
                 "source": "facebook",
                 "scrapedAt": datetime.now().isoformat(),
             }
+            
+            # ── AI Vision Extraction (MUST happen BEFORE _cleanup closes browser) ──
+            try:
+                from vision_extractor import (
+                    extract_with_groq_vision, capture_screenshot, merge_extraction,
+                    enrich_with_text_model
+                )
+                
+                print("[DETAIL] Capturing screenshot for AI vision extraction...", flush=True)
+                screenshot_b64 = await capture_screenshot(scraper.page)
+                
+                if screenshot_b64:
+                    print(f"[DETAIL] Screenshot captured ({len(screenshot_b64)} base64 chars). Sending to Groq...", flush=True)
+                    vision_result = await extract_with_groq_vision(screenshot_b64, cleaned_url)
+                    if vision_result:
+                        basic_result = merge_extraction(basic_result, vision_result)
+                        print(f"[DETAIL] Vision extraction complete. {len(vision_result)} vision fields merged.", flush=True)
+                    else:
+                        print("[DETAIL] Vision extraction returned empty.", flush=True)
+                else:
+                    print("[DETAIL] Screenshot capture failed.", flush=True)
+                
+                # ── Text enrichment: fill known specs from year/make/model ──
+                enrich_year = basic_result.get("year")
+                enrich_make = basic_result.get("make", "")
+                enrich_model = basic_result.get("model", "")
+                enrich_trim = basic_result.get("trim", "")
+                if enrich_year and enrich_make and enrich_model:
+                    print(f"[DETAIL] Enriching specs for {enrich_year} {enrich_make} {enrich_model}...", flush=True)
+                    spec_result = await enrich_with_text_model(enrich_year, enrich_make, enrich_model, enrich_trim)
+                    if spec_result:
+                        basic_result = merge_extraction(basic_result, spec_result, is_enrichment=True)
+                        print(f"[DETAIL] Text enrichment added {len(spec_result)} spec fields.", flush=True)
+            except ImportError:
+                print("[DETAIL] vision_extractor module not found — skipping AI vision.", flush=True)
+            except Exception as e:
+                print(f"[DETAIL] Vision extraction error (non-fatal): {e}", flush=True)
+            
+            await scraper._cleanup()
+            return basic_result
         
     except Exception as e:
         print(f"[DETAIL] Meta-tag strategy failed: {e}", flush=True)

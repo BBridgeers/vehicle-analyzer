@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  # Next.js App (veracar.co)
+  web:
+    build: .
+    container_name: veracar-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_VERCEL_URL=https://veracar.co
+      # Upstash Redis config (kept same as Vercel)
+      - KV_REST_API_URL=https://immune-calf-107470.upstash.io
+      - KV_REST_API_TOKEN=${KV_REST_API_TOKEN}
+    volumes:
+      - next-cache:/root/.next/cache
+    networks:
+      - mc-net
+    depends_on:
+      - scraper
+
+  # FastAPI Scraper (FB Marketplace, Craigslist)
+  scraper:
+    build: ./scraper
+    container_name: veracar-scraper
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      - SCRAPER_PORT=8765
+    volumes:
+      - scraper-sessions:/root/.fb_scraper_sessions
+    networks:
+      - mc-net
+
+  # Nginx Reverse Proxy (HTTP → HTTPS, caching, security headers)
+  nginx:
+    image: nginx:alpine
+    container_name: veracar-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - mc-net
+    depends_on:
+      - web
+      - scraper
+
+networks:
+  mc-net:
+    driver: bridge
+
+volumes:
+  next-cache:
+  scraper-sessions:

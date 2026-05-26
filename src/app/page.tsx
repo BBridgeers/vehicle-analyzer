@@ -302,6 +302,13 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
       const formData = new FormData();
       formData.append('image', blob, 'screenshot.jpg');
       if (listingUrl.trim()) formData.append('manualUrl', listingUrl.trim());
+      // ── Include uploaded photos so vision model sees everything ──
+      photos.forEach((p, i) => {
+        formData.append(`photo${i}`, p.file);
+      });
+      if (photos.length > 0) {
+        console.log(`[QuickImport] Including ${photos.length} vehicle photos in extraction`);
+      }
       const res = await fetch('/api/extract-listing', {
         method: 'POST',
         // Content-Type set automatically by browser for FormData (multipart boundary)
@@ -1681,15 +1688,68 @@ const App = () => {
   };
 
   const handleRunAnalysis = async () => {
-    if (!form.make || !form.model) {
-        alert('Please provide Make and Model for analysis.');
+    // ── Auto-detect vehicle from photos if make/model missing ──
+    let currentMake = form.make;
+    let currentModel = form.model;
+    let currentYear = form.year;
+
+    if ((!currentMake || !currentModel) && photos.length > 0) {
+      setChatMessages(prev => [
+        ...prev,
+        { sender: 'vera', text: `🔍 Identifying vehicle from ${photos.length} photos...` }
+      ]);
+      try {
+        const photoForm = new FormData();
+        photos.forEach((p, i) => photoForm.append(`photo${i}`, p.file));
+        const detectRes = await fetch('/api/analyze-photos', {
+          method: 'POST',
+          body: photoForm,
+        });
+        if (detectRes.ok) {
+          const detectData = await detectRes.json();
+          const v = detectData.vehicle;
+          if (v?.make && v?.model) {
+            currentMake = v.make;
+            currentModel = v.model;
+            currentYear = v.year ? String(v.year) : currentYear;
+            // Populate form with detected fields
+            setForm((f: any) => ({
+              ...f,
+              make: v.make || f.make,
+              model: v.model || f.model,
+              year: v.year ? String(v.year) : f.year,
+              trim: v.trim || f.trim,
+              bodyStyle: v.bodyStyle || f.bodyStyle,
+              exteriorColor: v.exteriorColor || f.exteriorColor,
+              interiorColor: v.interiorColor || f.interiorColor,
+              exteriorCondition: v.conditionExterior || f.exteriorCondition,
+              interiorCondition: v.conditionInterior || f.interiorCondition,
+              mechanicalCondition: v.conditionMechanical || f.mechanicalCondition,
+              notableDamage: v.notableDamage || f.notableDamage,
+              overallImpression: v.overallImpression || f.overallImpression,
+            }));
+            setChatMessages(prev => [
+              ...prev,
+              { sender: 'vera', text: `✅ Identified: ${v.year || ''} ${v.make} ${v.model}${v.trim ? ' ' + v.trim : ''} (${v.confidence || 'medium'} confidence)${v.notes ? '. ' + v.notes : ''}` }
+            ]);
+          }
+        } else {
+          console.warn('[Analysis] Photo detection failed, continuing with available data');
+        }
+      } catch (e: any) {
+        console.warn('[Analysis] Photo detection error:', e.message);
+      }
+    }
+
+    if (!currentMake || !currentModel) {
+        alert('Please provide Make and Model for analysis, or upload vehicle photos for auto-detection.');
         return;
     }
     
     setIsAnalyzing(true);
     setChatMessages(prev => [
       ...prev,
-      { sender: 'vera', text: `Analyzing market variables for ${form.year} ${form.make} ${form.model}...` }
+      { sender: 'vera', text: `Analyzing market variables for ${currentYear} ${currentMake} ${currentModel}...` }
     ]);
 
     try {

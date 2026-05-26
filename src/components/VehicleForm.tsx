@@ -10,6 +10,7 @@ interface VehicleFormProps {
     onSubmit: (vehicle: Vehicle) => void;
     isLoading: boolean;
     initialData?: Vehicle | null; // New prop
+    hasPhotos?: boolean; // Whether photos have been uploaded (for auto-detect)
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -35,7 +36,7 @@ const defaultForm: Vehicle = {
     postedDate: "",
 };
 
-export default function VehicleForm({ onSubmit, isLoading, initialData }: VehicleFormProps) {
+export default function VehicleForm({ onSubmit, isLoading, initialData, hasPhotos }: VehicleFormProps) {
     // Helper for capitalization
     const toTitleCase = (str: string) => {
         return str.replace(/\b\w/g, (char) => char.toUpperCase());
@@ -560,7 +561,7 @@ export default function VehicleForm({ onSubmit, isLoading, initialData }: Vehicl
             {/* Submit */}
             <button
                 type="submit"
-                disabled={isLoading || !form.year || !form.make || !form.model || !form.price}
+                disabled={isLoading || (!form.year && !form.make && !form.model && !hasPhotos) || !form.price}
                 className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 text-base"
                 id="analyze-btn"
             >

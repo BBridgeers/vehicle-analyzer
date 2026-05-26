@@ -16,12 +16,10 @@ if (fs.existsSync(envPath)) {
 }
 
 const groqKey = process.env.GROQ_API_KEY;
-const ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434';
 
 import { VisionManager } from '../src/lib/vision-engine';
 const visionManager = new VisionManager({
     groqKey: groqKey,
-    ollamaHost: ollamaHost
 });
 
 // ── CONSTANTS ──

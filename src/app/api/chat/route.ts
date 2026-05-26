@@ -6,7 +6,8 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
     // ── Rate Limiting ──
     const ip = getClientIp(request);
-    const rl = await rateLimit(`chat:${ip}`, CHAT_LIMIT.max, CHAT_LIMIT.windowSec);
+    // Use IP as userId for rate limiting
+    const rl = await rateLimit(`chat:${ip}`, CHAT_LIMIT.max, CHAT_LIMIT.windowSec, ip);
     if (!rl.allowed) {
         return NextResponse.json(
             { error: `Daily chat limit of ${CHAT_LIMIT.max} messages reached. Resets at midnight.` },

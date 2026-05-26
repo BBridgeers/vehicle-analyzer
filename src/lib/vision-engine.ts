@@ -49,7 +49,6 @@ export interface IVisionEngine {
 function parseRobustJSON(text: string): any {
     try {
         let jsonStr = text.trim();
-        // Remove markdown formatting
         if (jsonStr.startsWith('```')) {
             jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
         }
@@ -60,10 +59,10 @@ function parseRobustJSON(text: string): any {
     }
 }
 
-// ── ENGINES ──
+// ── GROQ VISION ENGINE (primary) ──
 
 export class GroqVisionEngine implements IVisionEngine {
-    name = "Groq";
+    name = "Groq Llama 4 Scout";
     private apiKey?: string;
 
     constructor(apiKey?: string) {
@@ -72,37 +71,39 @@ export class GroqVisionEngine implements IVisionEngine {
 
     async extract(image: Buffer | string, prompt: string): Promise<VisionResult | null> {
         if (!this.apiKey || this.apiKey.includes('your_')) return null;
+
+        const base64Data = Buffer.isBuffer(image) ? image.toString('base64') : image.replace(/^data:image\/\w+;base64,/, '');
+
         try {
-            const base64Data = Buffer.isBuffer(image) ? image.toString('base64') : image.replace(/^data:image\/\w+;base64,/, '');
-            
             const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
                 model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            { type: 'text', text: prompt },
-                            {
-                                type: 'image_url',
-                                image_url: { url: `data:image/png;base64,${base64Data}` }
-                            }
-                        ]
-                    }
-                ],
+                messages: [{
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: prompt },
+                        { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Data}` } }
+                    ]
+                }],
                 temperature: 0.1,
-                response_format: { type: 'json_object' }
+                max_tokens: 4096,
             }, {
                 headers: { 'Authorization': `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' }
             });
 
             const content = response.data.choices[0].message.content;
-            return content ? parseRobustJSON(content) : null;
+            if (content) {
+                console.log('[Vision Engine] ✅ Groq Llama 4 Scout succeeded');
+                return parseRobustJSON(content);
+            }
         } catch (e: any) {
-            console.error("Groq Error:", e.response?.data || e.message);
-            return null;
+            console.error('[Vision Engine] Groq Llama 4 Scout error:', e.response?.data || e.message);
         }
+
+        return null;
     }
 }
+
+// ── OLLAMA (local fallback) ──
 
 export class OllamaVisionEngine implements IVisionEngine {
     name = "Ollama";
@@ -115,7 +116,7 @@ export class OllamaVisionEngine implements IVisionEngine {
     async extract(image: Buffer | string, prompt: string): Promise<VisionResult | null> {
         try {
             const base64Data = Buffer.isBuffer(image) ? image.toString('base64') : image.replace(/^data:image\/\w+;base64,/, '');
-            
+
             const response = await axios.post(`${this.host}/api/generate`, {
                 model: 'llama3.2-vision',
                 prompt: prompt,
@@ -138,7 +139,6 @@ export class VisionManager {
 
     constructor(configs: { groqKey?: string; ollamaHost?: string }) {
         this.engines = [];
-        // Priority order: Groq (primary, fast) → Ollama (local fallback)
         if (configs.groqKey) this.engines.push(new GroqVisionEngine(configs.groqKey));
         this.engines.push(new OllamaVisionEngine(configs.ollamaHost));
     }

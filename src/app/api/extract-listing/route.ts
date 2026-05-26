@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { rateLimit, getClientIp, EXTRACT_LIMIT } from '@/lib/rate-limit';
+import { MASTER_INSPECTOR_KNOWLEDGE } from '@/lib/master-inspector';
 
 const EXTRACTION_PROMPT = `You are a vehicle listing data extraction engine. Analyze this screenshot of a vehicle listing (likely from Facebook Marketplace or similar) and extract ALL visible information into structured JSON.
+
+${MASTER_INSPECTOR_KNOWLEDGE}
+
+═══════════════════════════════════════════
+EXTRACTION TASK:
+═══════════════════════════════════════════
 
 STEP 1 — READ THE BROWSER ADDRESS BAR FIRST:
 Before reading any listing content, look at the very top of the screenshot. There will be a browser address bar (Chrome/Edge/Firefox) showing the full URL of the page. This looks like: https://www.facebook.com/marketplace/item/916998977756029/
@@ -9,6 +16,13 @@ Read it character by character and capture the full URL exactly as "listingUrl".
 
 STEP 2 — Extract all other visible listing data:
 Extract every field you can find. If a field is not visible, omit it (do not include null values).
+
+STEP 3 — CONDITION ASSESSMENT FROM VEHICLE PHOTOS:
+If additional vehicle photos were provided (following this message), analyze EACH one carefully for condition. Look at:
+- EXTERIOR: Paint condition (scratches, fading, peeling, orange peel), body damage (dents, panel gaps, rust), glass condition, tires (tread depth visible?, brand, wear), lights condition, any modifications
+- INTERIOR: Seat condition (rips, stains, wear), dashboard (cracks, fading), steering wheel wear, headliner (sagging?), carpets (stains, wear)
+- MECHANICAL: Any warning lights visible, fluid leaks under the vehicle, rust on frame/components, aftermarket modifications, engine bay condition if visible
+Write 2-4 detailed sentences for each category. This data directly feeds the vehicle's condition score.
 
 Return ONLY valid JSON with this exact structure:
 
@@ -34,14 +48,17 @@ Return ONLY valid JSON with this exact structure:
   "cylinders": <number>,
   "mpg": "<string, e.g. 17 city / 23 hwy / 19 combined>",
   "safetyRating": "<string, e.g. 5/5 overall NHTSA>",
-  "seatCount": <number - total number of seats, e.g. 5 for most sedans, 7 for SUVs with 3rd row>,
+  "seatCount": <number>,
   "numOwners": <number>,
-  "paidOff": <boolean - true if listing says vehicle is paid off>,
+  "paidOff": <boolean>,
   "sellerName": "<string>",
   "description": "<full seller description text>",
   "postedDate": "<string, e.g. Listed 2 days ago>",
-  "conditionExterior": "<any visible exterior damage, mods, or notable features from photos>",
-  "conditionInterior": "<any visible interior wear, damage, or notable features from photos>"
+  "conditionExterior": "<2-4 detailed sentences about paint, dents, rust, glass, tires, mods — from provided photos>",
+  "conditionInterior": "<2-4 detailed sentences about seats, dash, wheel, headliner, carpets, odors — from provided photos>",
+  "conditionMechanical": "<2-4 detailed sentences about warning lights, leaks, rust, mods, engine bay — from provided photos>",
+  "notableDamage": "<any specific damage noted, or empty string>",
+  "overallImpression": "<Excellent|Good|Fair|Poor|Project>"
 }
 
 CRITICAL RULES:
@@ -49,7 +66,7 @@ CRITICAL RULES:
 - For price, extract the asking price only
 - For mileage, extract as a clean integer
 - Look at BOTH the structured data fields AND the seller's description text
-- Look at the vehicle photos visible in the screenshot for condition notes
+- If additional vehicle photos were provided, analyze them THOROUGHLY for conditionExterior, conditionInterior, and conditionMechanical — these fields are critical for the vehicle score
 - Return ONLY the JSON object, no markdown, no code fences, no explanation`;
 
 const CONDITION_PROMPT = `You are a vehicle condition assessment engine. Analyze this photo of a vehicle and describe what you see in detail.
@@ -77,7 +94,8 @@ CRITICAL RULES:
 export async function POST(request: Request) {
     // ── Rate Limiting ──
     const ip = getClientIp(request);
-    const rl = await rateLimit(`extract:${ip}`, EXTRACT_LIMIT.max, EXTRACT_LIMIT.windowSec);
+    // Use IP as userId for rate limiting
+    const rl = await rateLimit(`extract:${ip}`, EXTRACT_LIMIT.max, EXTRACT_LIMIT.windowSec, ip);
     if (!rl.allowed) {
         return NextResponse.json(
             { error: `Rate limit exceeded. You can analyze ${EXTRACT_LIMIT.max} listings per hour. Resets at ${new Date(rl.resetAt).toLocaleTimeString()}.` },
@@ -99,8 +117,26 @@ export async function POST(request: Request) {
         const manualUrl = formData.get('manualUrl') as string | null;
         const mode = (formData.get('mode') as string) || 'listing';
 
+        // Collect additional vehicle photos (keyed as photo0, photo1, etc.)
+        const extraPhotos: { file: File; base64: string }[] = [];
+        for (const [key, value] of formData.entries()) {
+            if (key.startsWith('photo') && value instanceof File) {
+                const ab = await (value as File).arrayBuffer();
+                extraPhotos.push({
+                    file: value as File,
+                    base64: Buffer.from(ab).toString('base64')
+                });
+            }
+        }
+
+        // Enhanced prompt when photos are provided — tell the model to analyze ALL images
+        const hasPhotos = extraPhotos.length > 0;
+        const enhancedPrompt = hasPhotos
+            ? `${EXTRACTION_PROMPT}\n\nADDITIONAL VEHICLE PHOTOS (${extraPhotos.length} images): These are the actual vehicle photos uploaded by the user. Use them to extract detailed condition information, verify the make/model, and identify features not visible in the listing screenshot. Merge all findings into the JSON output.`
+            : EXTRACTION_PROMPT;
+
         // Select prompt based on mode
-        const prompt = mode === 'condition' ? CONDITION_PROMPT : EXTRACTION_PROMPT;
+        const prompt = mode === 'condition' ? CONDITION_PROMPT : enhancedPrompt;
 
         if (!imageFile) {
             return NextResponse.json(
@@ -117,11 +153,37 @@ export async function POST(request: Request) {
             );
         }
 
-        // Convert File to Buffer for vision engines
+        // Create sanitized image buffer early (reused by both strategies)
         const arrayBuffer = await imageFile.arrayBuffer();
         const imageBuffer = Buffer.from(arrayBuffer);
 
-        // ── STRATEGY A: Groq Vision (primary, fast) ──
+        // Helper: sanitize JSON from LLM (strips bad control chars, code fences)
+        const sanitizeJson = (raw: string): string => {
+            let s = raw.trim();
+            // Remove markdown code fences
+            s = s.replace(/```(?:json)?\s*/g, '').replace(/```/g, '');
+            // Strip bad control characters that break JSON.parse (except \n, \r, \t)
+            s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+            return s.trim();
+        };
+
+        // Build the image contents array: screenshot first, then extra photos
+        const buildImageContents = (base64Data: string, mimeType: string) => {
+            const contents: any[] = [
+                { type: 'text', text: prompt },
+                { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Data}` } }
+            ];
+            // Append extra vehicle photos
+            for (const photo of extraPhotos) {
+                contents.push({
+                    type: 'image_url',
+                    image_url: { url: `data:${photo.file.type || 'image/jpeg'};base64,${photo.base64}` }
+                });
+            }
+            return contents;
+        };
+
+        // ── STRATEGY A: Groq Llama 4 Scout 17B (vision-capable, LPU-fast) ──
         const groqKey = process.env.GROQ_API_KEY;
         let vehicle: any = null;
         let lastError = '';
@@ -129,6 +191,7 @@ export async function POST(request: Request) {
         if (groqKey && !groqKey.includes('your_')) {
             try {
                 const base64Data = imageBuffer.toString('base64');
+                const mimeType = imageFile.type || 'image/png';
                 const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -137,13 +200,7 @@ export async function POST(request: Request) {
                     },
                     body: JSON.stringify({
                         model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-                        messages: [{
-                            role: 'user',
-                            content: [
-                                { type: 'text', text: prompt },
-                                { type: 'image_url', image_url: { url: `data:${imageFile.type || 'image/png'};base64,${base64Data}` } }
-                            ]
-                        }],
+                        messages: [{ role: 'user', content: buildImageContents(base64Data, mimeType) }],
                         temperature: 0.1,
                         max_tokens: 2048,
                     }),
@@ -152,73 +209,25 @@ export async function POST(request: Request) {
                 if (groqRes.ok) {
                     const data = await groqRes.json();
                     const content = data.choices?.[0]?.message?.content;
-                    if (content) {
-                        const parsed = JSON.parse(content.replace(/```json\n?|```/g, '').trim());
+                    if (content && !content.trim().startsWith('<')) {
+                        const parsed = JSON.parse(sanitizeJson(content));
                         if (parsed && (parsed.make || parsed.year)) {
                             vehicle = parsed;
-                            console.log('[Extract Listing] ✅ Groq succeeded:', vehicle.make, vehicle.model);
+                            console.log('[Extract Listing] ✅ Groq Llama 4 Scout:', vehicle.make, vehicle.model);
                         }
                     }
                 } else {
                     const errBody = await groqRes.text();
-                    console.error('[Extract Listing] Groq API error:', groqRes.status, errBody.substring(0, 300));
                     lastError = `Groq: ${groqRes.status} — ${errBody.substring(0, 100)}`;
+                    console.error('[Extract Listing] Groq error:', groqRes.status, errBody.substring(0, 200));
                 }
             } catch (e: any) {
-                console.error('[Extract Listing] Groq exception:', e.message);
                 lastError = `Groq: ${e.message}`;
+                console.error('[Extract Listing] Groq exception:', e.message);
             }
         }
 
-        // ── STRATEGY B: OpenRouter fallback (any vision-capable model) ──
-        const openRouterKey = process.env.OPENROUTER_API_KEY;
-        if (!vehicle && openRouterKey) {
-            try {
-                const base64Data = imageBuffer.toString('base64');
-                const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${openRouterKey}`,
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': 'https://www.veracar.co',
-                        'X-Title': 'Vehicle Analyzer Pro',
-                    },
-                    body: JSON.stringify({
-                        model: 'google/gemini-2.5-flash-lite',
-                        messages: [{
-                            role: 'user',
-                            content: [
-                                { type: 'text', text: prompt },
-                                { type: 'image_url', image_url: { url: `data:${imageFile.type || 'image/png'};base64,${base64Data}` } }
-                            ]
-                        }],
-                        temperature: 0.1,
-                        max_tokens: 2048,
-                    }),
-                });
-
-                if (orRes.ok) {
-                    const data = await orRes.json();
-                    const content = data.choices?.[0]?.message?.content;
-                    if (content) {
-                        const parsed = JSON.parse(content.replace(/```json\n?|```/g, '').trim());
-                        if (parsed && (parsed.make || parsed.year)) {
-                            vehicle = parsed;
-                            console.log('[Extract Listing] ✅ OpenRouter succeeded:', vehicle.make, vehicle.model);
-                        }
-                    }
-                } else {
-                    const errBody = await orRes.text();
-                    console.error('[Extract Listing] OpenRouter error:', orRes.status, errBody.substring(0, 300));
-                    lastError += ` | OpenRouter: ${orRes.status}`;
-                }
-            } catch (e: any) {
-                console.error('[Extract Listing] OpenRouter exception:', e.message);
-                lastError += ` | OpenRouter: ${e.message}`;
-            }
-        }
-
-        // ── STRATEGY C: Ollama (local fallback) ──
+        // ── STRATEGY B: Ollama (local fallback) ──
         if (!vehicle) {
             try {
                 const { OllamaVisionEngine } = require('@/lib/vision-engine');
@@ -236,7 +245,7 @@ export async function POST(request: Request) {
         if (!vehicle) {
             const errorMsg = lastError
                 ? `Vision analysis failed across all providers. ${lastError}`
-                : 'Vision analysis failed across all providers. Check your API keys and verify GROQ_API_KEY or OPENROUTER_API_KEY is set.';
+                : 'Vision analysis failed across all providers. Check your GROQ_API_KEY.';
             return NextResponse.json(
                 { error: errorMsg, detail: lastError },
                 { status: 500 }

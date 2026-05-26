@@ -30,6 +30,7 @@ from typing import Optional, List
 import uvicorn
 
 from fb_marketplace import FBMarketplaceScraper, scrape_listing_detail, SessionManager
+from fastapi import Query
 from craigslist_search import search_craigslist
 
 # ─── Data Models ───────────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ class SearchRequest(BaseModel):
 class DetailRequest(BaseModel):
     url: str = Field(..., description="FB Marketplace listing URL")
     session_id: str = Field(default="default")
+    two_factor_code: Optional[str] = Field(default=None, description="Optional 2FA code for Facebook authentication")
 
 class CraigslistSearchRequest(BaseModel):
     city: str = Field(default="dallas", description="City for Craigslist subdomain")
@@ -165,7 +167,7 @@ async def search_marketplace(request: SearchRequest):
 async def scrape_detail(request: DetailRequest):
     """Scrape a single FB Marketplace listing for full details."""
     try:
-        listing = await scrape_listing_detail(request.url, request.session_id)
+        listing = await scrape_listing_detail(request.url, request.session_id, request.two_factor_code)
 
         if not listing or not listing.get("title"):
             return DetailResponse(success=False, error="Could not extract listing data")
@@ -208,4 +210,4 @@ async def craigslist_search(request: CraigslistSearchRequest):
 
 if __name__ == "__main__":
     port = int(os.environ.get("SCRAPER_PORT", 8765))
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")

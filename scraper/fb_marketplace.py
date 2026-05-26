@@ -396,8 +396,9 @@ class FBMarketplaceScraper:
 
     # ── Navigation & Extraction ──────────────────────────────────────────
 
-    async def _attempt_fb_login(self, page: Page) -> bool:
+    async def _attempt_fb_login(self, page: Page, two_factor_code: str = None) -> bool:
         """Try to log into Facebook using FB_EMAIL/FB_PASSWORD env vars.
+        Can accept optional 2FA code for complete authentication.
         Returns True if login succeeded, False otherwise."""
         fb_email = os.environ.get("FB_EMAIL", "")
         fb_password = os.environ.get("FB_PASSWORD", "")
@@ -460,6 +461,68 @@ class FBMarketplaceScraper:
                     print(f"[FB-SCRAPER] 2FA screenshot saved: {ss_path}", flush=True)
                 except Exception as e:
                     print(f"[FB-SCRAPER] Screenshot failed: {e}", flush=True)
+                
+                # Try to complete 2FA if we can
+                # Check for code input fields
+                code_input = None
+                try:
+                    code_selectors = [
+                        'input[name="code"]',
+                        'input[name="verification_code"]',
+                        'input[name="challenger_code"]',
+                        'input[type="tel"]',
+                    ]
+                    for sel in code_selectors:
+                        try:
+                            code_input = await self.page.wait_for_selector(sel, timeout=3000)
+                            if code_input:
+                                print(f"[FB-SCRAPER] 2FA code input found via: {sel}", flush=True)
+                                break
+                        except:
+                            continue
+                except:
+                    pass
+                
+                if code_input:
+                    # Try to input 2FA code if provided
+                    if two_factor_code:
+                        await code_input.click()
+                        await asyncio.sleep(0.3)
+                        await code_input.fill(two_factor_code)
+                        print(f"[FB-SCRAPER] 2FA code filled", flush=True)
+                        
+                        # Submit the code
+                        try:
+                            submit_btn = await self.page.wait_for_selector(
+                                'button[type="submit"]', timeout=3000
+                            )
+                            if submit_btn:
+                                await submit_btn.click()
+                                print(f"[FB-SCRAPER] 2FA code submitted", flush=True)
+                                await asyncio.sleep(5)
+                                
+                                current_url = self.page.url
+                                # Check if 2FA succeeded
+                                if "login" not in current_url.lower() and "checkpoint" not in current_url.lower() and "two_step" not in current_url.lower():
+                                    print("[FB-SCRAPER] 2FA successful! Login complete.", flush=True)
+                                    cookies = await self.context.cookies()
+                                    self.sessions.save_cookies(self.session_id, cookies)
+                                    state = {"has_cookies": True, "last_url": current_url, "logged_in": True}
+                                    self.sessions.save_state(self.session_id, state)
+                                    return True
+                                else:
+                                    print(f"[FB-SCRAPER] 2FA submission failed. URL: {current_url[:80]}", flush=True)
+                                    cookies = await self.context.cookies()
+                                    self.sessions.save_cookies(self.session_id, cookies)
+                                    return False
+                        except Exception as e:
+                            print(f"[FB-SCRAPER] 2FA submit error: {e}", flush=True)
+                    else:
+                        print("[FB-SCRAPER] ⚠️ 2FA code required. Pass two_factor_code parameter.", flush=True)
+                        # Save cookies anyway and return False (login incomplete)
+                        cookies = await self.context.cookies()
+                        self.sessions.save_cookies(self.session_id, cookies)
+                        return False
                 
                 # Try to dismiss "save browser" dialogs — not actual 2FA codes
                 try:
@@ -529,7 +592,7 @@ class FBMarketplaceScraper:
             if "login" in current_url.lower() or "checkpoint" in current_url.lower():
                 self._log("Hit login/checkpoint wall — attempting login...")
                 # Attempt FB login with credentials
-                logged_in = await self._attempt_fb_login(self.page)
+                logged_in = await self._attempt_fb_login(self.page, two_factor_code=None)
                 if logged_in:
                     self._log("Login succeeded, navigating to search URL...")
                     # Now navigate to the actual marketplace URL
@@ -1015,12 +1078,22 @@ class FBMarketplaceScraper:
 
 # ─── Individual Listing Detail Scraper ───────────────────────────────────
 
-async def scrape_listing_detail(listing_url: str, session_id: str = "default") -> dict:
+async def scrape_listing_detail(
+    listing_url: str, 
+    session_id: str = "default",
+    two_factor_code: str = None
+) -> dict:
     """Scrape a single FB Marketplace listing.
     
     Strategy (all free — no Apify credit needed):
     1. Meta-tag extraction — FB exposes og:title/desc/image + JSON price blobs WITHOUT login
     2. Fall back to Playwright with cookies if meta tags insufficient
+    3. If 2FA is encountered, retry with the provided code
+    
+    Args:
+        listing_url: Facebook Marketplace listing URL
+        session_id: Session ID for cookie persistence
+        two_factor_code: Optional 2FA code to complete authentication
     """
     import urllib.parse as urlparse
     
@@ -1229,21 +1302,30 @@ async def scrape_listing_detail(listing_url: str, session_id: str = "default") -
             # ── AI Vision Extraction (MUST happen BEFORE _cleanup closes browser) ──
             try:
                 from vision_extractor import (
-                    extract_with_groq_vision, capture_screenshot, merge_extraction,
+                    extract_with_groq_vision, extract_with_openrouter_vision,
+                    capture_screenshot, merge_extraction,
                     enrich_with_text_model
                 )
                 
                 print("[DETAIL] Capturing screenshot for AI vision extraction...", flush=True)
                 screenshot_b64 = await capture_screenshot(scraper.page)
                 
+                vision_result = {}
                 if screenshot_b64:
-                    print(f"[DETAIL] Screenshot captured ({len(screenshot_b64)} base64 chars). Sending to Groq...", flush=True)
+                    print(f"[DETAIL] Screenshot captured ({len(screenshot_b64)} base64 chars). Sending to Groq Llama 3.2 Vision...", flush=True)
+                    # ── Groq Llama 3.2 first (primary) ──
                     vision_result = await extract_with_groq_vision(screenshot_b64, cleaned_url)
+                    
+                    if not vision_result:
+                        # ── OpenRouter fallback ──
+                        print("[DETAIL] Groq returned empty. Trying OpenRouter fallback...", flush=True)
+                        vision_result = await extract_with_openrouter_vision(screenshot_b64, cleaned_url)
+                    
                     if vision_result:
                         basic_result = merge_extraction(basic_result, vision_result)
                         print(f"[DETAIL] Vision extraction complete. {len(vision_result)} vision fields merged.", flush=True)
                     else:
-                        print("[DETAIL] Vision extraction returned empty.", flush=True)
+                        print("[DETAIL] Vision extraction returned empty from all providers.", flush=True)
                 else:
                     print("[DETAIL] Screenshot capture failed.", flush=True)
                 
@@ -1272,6 +1354,148 @@ async def scrape_listing_detail(listing_url: str, session_id: str = "default") -
             await scraper._cleanup()
         except Exception:
             pass
+    
+    # Try again with 2FA code if provided
+    if two_factor_code:
+        print(f"[DETAIL] Retrying with 2FA code...", flush=True)
+        scraper2 = FBMarketplaceScraper(session_id=session_id, debug=True)
+        scraper2.playwright = await async_playwright().start()
+        scraper2.browser = await scraper2.playwright.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-blink-features=AutomationControlled",
+                  "--disable-dev-shm-usage", "--disable-gpu"]
+        )
+        scraper2.context = await scraper2.browser.new_context(
+            viewport={"width": 1920, "height": 1080},
+            locale="en-US",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        )
+        cookies = scraper2.sessions.load_cookies(session_id)
+        if cookies:
+            await scraper2.context.add_cookies(cookies)
+        scraper2.page = await scraper2.context.new_page()
+        if HAS_STEALTH:
+            try:
+                await stealth_apply(scraper2.page)
+            except Exception:
+                pass
+        
+        await scraper2.page.goto(cleaned_url, wait_until="domcontentloaded", timeout=20000)
+        await asyncio.sleep(2)
+        
+        # Check if 2FA prompt appears, then input code
+        if "two_factor" in scraper2.page.url.lower() or "checkpoint" in scraper2.page.url.lower():
+            print("[DETAIL] 2FA checkpoint detected", flush=True)
+            await scraper2._attempt_fb_login(scraper2.page, two_factor_code=two_factor_code)
+            await asyncio.sleep(3)
+            # Refresh the page
+            await scraper2.page.goto(cleaned_url, wait_until="domcontentloaded", timeout=20000)
+            await asyncio.sleep(2)
+        
+        # Extract after 2FA complete
+        html = await scraper2.page.content()
+        page_title = await scraper2.page.title()
+        og_title = await scraper2.page.evaluate(
+            "() => document.querySelector('meta[property=\"og:title\"]')?.content || ''"
+        )
+        og_desc = await scraper2.page.evaluate(
+            "() => document.querySelector('meta[property=\"og:description\"]')?.content || ''"
+        )
+        og_image = await scraper2.page.evaluate(
+            "() => document.querySelector('meta[property=\"og:image\"]')?.content || ''"
+        )
+        meta_desc = await scraper2.page.evaluate(
+            "() => document.querySelector('meta[name=\"description\"]')?.content || ''"
+        )
+        
+        # Try to extract price again
+        try:
+            price_data = await scraper2.page.evaluate("""
+                () => {
+                    const scripts = document.querySelectorAll('script[type="application/json"]');
+                    for (const s of scripts) {
+                        try {
+                            const d = JSON.parse(s.textContent);
+                            const str = JSON.stringify(d);
+                            const idx = str.indexOf('"formatted_price"');
+                            if (idx >= 0) {
+                                const chunk = str.substring(idx, idx + 200);
+                                const priceMatch = chunk.match(/"text":"\$([\d,]+)"/);
+                                if (priceMatch) return {
+                                    price: parseInt(priceMatch[1].replace(/,/g, '')),
+                                    raw: chunk
+                                };
+                            }
+                        } catch(e) {}
+                    }
+                    return null;
+                }
+            """)
+            if price_data:
+                price = price_data.get("price", 0)
+                loc_match = re.search(r'"reverse_geocode":\{"city":"([^"]+)","state":"([^"]+)"', price_data.get("raw", ""))
+                if loc_match:
+                    json_location = f"{loc_match.group(1)}, {loc_match.group(2)}"
+        except Exception:
+            pass
+        
+        # Extract other fields again
+        title = og_title or page_title.replace(" | Facebook Marketplace | Facebook", "").strip()
+        title = re.sub(r'^Marketplace\s*[-–—]\s*', '', title)
+        title = re.sub(r'^\(\d+\)\s*Marketplace\s*[-–—]\s*', '', title)
+        title = re.sub(r'\|?\s*Facebook\s*$', '', title).strip()
+        description = og_desc or meta_desc or ""
+        images = [og_image] if og_image else []
+        
+        # Parse year/make/model
+        year, make, model, trim = 0, "", "", ""
+        parts = title.split("·")
+        main_part = parts[0].strip() if parts else title
+        
+        ym_match = re.search(r'((?:19|20)\d{2})\s+([A-Z][a-zA-Z-]+(?:\s+[A-Z][a-zA-Z-]+)?)\s+([A-Z][a-zA-Z-]+(?:\s+[A-Z][a-zA-Z-]+)?)', main_part)
+        if ym_match:
+            year = int(ym_match.group(1))
+            make = ym_match.group(2).strip()
+            model = ym_match.group(3).strip()
+        
+        if len(parts) > 1:
+            trim = parts[1].strip()
+            trim = re.sub(r'\s*\|\s*Facebook\s*$', '', trim).strip()
+        
+        # Mileage from description
+        mile_match = re.search(r'([\d,]+)\s*(?:miles|mi|k miles)', description, re.IGNORECASE)
+        mileage = int(mile_match.group(1).replace(",", "")) if mile_match else None
+        
+        if mile_match and "k" in mile_match.group(0).lower():
+            mileage = mileage * 1000 if mileage else None
+        
+        # Location
+        location = json_location
+        if not location and " - " in page_title:
+            loc_part = page_title.split(" - ")[-1].replace(" | Facebook Marketplace | Facebook", "").strip()
+            if loc_part and loc_part != page_title:
+                location = loc_part
+        
+        if title and (price or make):
+            # Return result after 2FA success
+            await scraper2._cleanup()
+            return {
+                "title": title,
+                "price": price,
+                "year": year,
+                "make": make,
+                "model": model,
+                "trim": trim,
+                "mileage": mileage,
+                "vin": "",
+                "location": location,
+                "description": description[:2000],
+                "images": images[:10],
+                "condition": "",
+                "sourceUrl": cleaned_url,
+                "source": "facebook",
+                "scrapedAt": datetime.now().isoformat(),
+            }
     
     raise Exception(f"Could not extract listing data — Facebook may require login for this listing")
 

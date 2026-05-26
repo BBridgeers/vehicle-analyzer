@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+build
+dist
+scraper/*.pyc
+scraper/__pycache__
+*.log
+.env
+.DS_Store
+coverage
+.vscode
+.idea

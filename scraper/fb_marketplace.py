@@ -610,7 +610,18 @@ class FBMarketplaceScraper:
             # Scroll to load more
             await self._human_scroll()
 
-            # Extract listings
+            # ── DOM-level extraction (primary) ──
+            listings = await self._extract_from_dom()
+            if listings:
+                self._log(f"DOM extraction: {len(listings)} listings")
+                # Save cookies for future sessions
+                cookies = await self.context.cookies()
+                self.sessions.save_cookies(self.session_id, cookies)
+                state = {"has_cookies": len(cookies) > 0, "last_url": url}
+                self.sessions.save_state(self.session_id, state)
+                return listings
+
+            # ── Fallback: HTML regex extraction ──
             html = await self.page.content()
 
             # Save cookies for future sessions
@@ -672,6 +683,227 @@ class FBMarketplaceScraper:
             await self.page.evaluate(evasion)
         except:
             pass
+
+    # ── DOM-Level Extraction ────────────────────────────────────────────
+
+    async def _extract_from_dom(self) -> list:
+        """Extract listings using Playwright DOM access — reads actual
+        rendered listing cards, not regex on raw HTML. Returns empty
+        list on failure so caller falls through to regex fallback."""
+        try:
+            listings_raw = await self.page.evaluate("""() => {
+                const cards = document.querySelectorAll('a[href*=\"/marketplace/item/\"]');
+                const seen = new Set();
+                const results = [];
+                
+                for (const card of cards) {
+                    const href = card.getAttribute('href') || '';
+                    const itemMatch = href.match(/\\/marketplace\\/item\\/(\\d+)/);
+                    if (!itemMatch) continue;
+                    const itemId = itemMatch[1];
+                    if (seen.has(itemId)) continue;
+                    seen.add(itemId);
+                    
+                    // Get all text from this card and its parent container
+                    const container = card.closest('div[role=\"article\"]') || card.closest('div') || card;
+                    const allText = container.textContent || '';
+                    
+                    // Find the image
+                    const img = container.querySelector('img');
+                    const imageUrl = img ? (img.src || img.getAttribute('data-src') || '') : '';
+                    
+                    results.push({
+                        itemId: itemId,
+                        text: allText.substring(0, 500),
+                        imageUrl: imageUrl,
+                        href: href
+                    });
+                    
+                    if (results.length >= 20) break;
+                }
+                return results;
+            }""")
+
+            if not listings_raw:
+                return []
+
+            listings = []
+            for raw in listings_raw:
+                text = raw.get('text', '')
+                item_id = raw.get('itemId', '')
+                
+                vl = VehicleListing(
+                    source_url=f"https://www.facebook.com/marketplace/item/{item_id}/",
+                    source="facebook",
+                    scraped_at=datetime.now().isoformat(),
+                )
+                
+                # FB's new layout concatenates ALL fields with NO whitespace:
+                # "$7,1002004 Toyota 4runner SR5 Premium Sport Utility 4DLewisville, TX158K miles"
+                
+                # 1. Price: leading $X,XXX (captures before year digits)
+                price_match = re.search(r'\$(\d{1,3}(?:,\d{3})*)', text)
+                if price_match:
+                    try:
+                        vl.price = int(price_match.group(1).replace(',', ''))
+                    except:
+                        pass
+                    # Remove price from text to simplify remaining parsing
+                    text_after_price = text[price_match.end():]
+                else:
+                    text_after_price = text
+                
+                # 2. Year: first 4-digit number starting with 19/20 (can be concatenated)
+                year_match = re.search(r'((?:19|20)\d{2})', text_after_price)
+                if year_match:
+                    vl.year = int(year_match.group(1))
+                    text_after_year = text_after_price[year_match.end():]
+                else:
+                    text_after_year = text_after_price
+                
+                # 3. Make + Model + Trim: everything between year and location/mileage
+                # Known makes (ordered by length to match compound names first)
+                makes = [
+                    "Mercedes-Benz", "Land Rover", "Alfa Romeo", "Aston Martin",
+                    "Rolls-Royce", "Lamborghini", "Maserati", "Mitsubishi",
+                    "Volkswagen", "Chevrolet", "Cadillac", "Buick", "Chrysler",
+                    "Dodge", "Toyota", "Honda", "Nissan", "Subaru", "Mazda",
+                    "Hyundai", "Kia", "Jeep", "Ford", "GMC", "RAM", "BMW",
+                    "Lexus", "Acura", "Audi", "Volvo", "Tesla", "Mini",
+                    "Fiat", "Jaguar", "Porsche", "Infiniti", "Lincoln",
+                    "Genesis", "Scion", "Saturn", "Suzuki", "Isuzu",
+                ]
+                vl.make = ""
+                vl.model = ""
+                for make in makes:
+                    pattern = re.compile(r'\b' + re.escape(make) + r'\b', re.IGNORECASE)
+                    mk_match = pattern.search(text_after_year)
+                    if mk_match:
+                        vl.make = mk_match.group(0)
+                        text_after_make = text_after_year[mk_match.end():]
+                        break
+                
+                if not vl.make:
+                    text_after_make = text_after_year
+                # ensure text_after_make is always bound
+                if 'text_after_make' not in dir():
+                    text_after_make = text_after_year
+                
+                # Model: next word(s) after make, up to trim or location
+                if text_after_make.strip():
+                    # Trim levels ONLY (NOT model names)
+                    trims_only = r'\b(?:i-force\s*max|i-force|SR5|TRD(?:\s*(?:Pro|Off\.Road|Sport))?|Limited|Platinum|Sport|Touring|XLE|XSE|SE|LE|LX|EX|SX|LT|LTZ|LS|GS|GT|Off\.Road|Nightshade|Premium|Hybrid|Plug\.in|PHEV|EV)\b'
+                    model_match = re.search(r'([A-Za-z0-9][A-Za-z0-9. -]{0,50})', text_after_make.strip())
+                    if model_match:
+                        raw_model = model_match.group(1).strip()
+                        # Check if a trim is embedded in the model text
+                        trim_match = re.search(trims_only, raw_model, re.IGNORECASE)
+                        if trim_match:
+                            vl.trim = trim_match.group(0)
+                            # Model is everything before the trim
+                            vl.model = raw_model[:trim_match.start()].strip()
+                        else:
+                            vl.model = raw_model
+                
+                # 4. Trim: find known trims in remaining text
+                trims_full = r'\b(?:i-force\s*max|i-force|SR5|TRD(?:\s*(?:Pro|Off\.Road|Sport))?|Limited|Platinum|Sport|Touring|XLE|XSE|SE|LE|LX|EX|SX|LT|LTZ|LS|GS|GT|Off\.Road|Nightshade|Premium|Hybrid|Plug\.in|PHEV|EV)\b'
+                if not vl.trim:
+                    t_match = re.search(trims_full, text, re.IGNORECASE)
+                    if t_match:
+                        vl.trim = t_match.group(0)
+                
+                # 5. Location: City, ST pattern (near end, before mileage)
+                # Known DFW and Texas cities
+                loc_match = re.search(
+                    r'\b(Dallas|Fort\s*Worth|Arlington|Plano|Irving|Garland|Grand\s*Prairie|Mesquite|Carrollton|Frisco|Denton|McKinney|Richardson|Lewisville|Allen|Flower\s*Mound|Grapevine|Southlake|Coppell|Keller|Colleyville|Hurst|Euless|Bedford|Addison|Farmers\s*Branch|University\s*Park|Highland\s*Park|Rockwall|Rowlett|Wylie|Sachse|Cedar\s*Hill|DeSoto|Duncanville|Lancaster|Waxahachie|Burleson|Mansfield|Weatherford|Cleburne|Greenville|Terrell|Forney|Royse\s*City|Prosper|Celina|Aubrey|Little\s*Elm|The\s*Colony|Lake\s*Dallas|Corinth|Highland\s*Village|Trophy\s*Club|Roanoke|Justin|Argyle|Sanger|Krum|Decatur|Bridgeport|Boyd|Azle|Springtown|Hudson\s*Oaks|Willow\s*Park|Aledo|Benbrook|White\s*Settlement|Saginaw|Haltom\s*City|Richland\s*Hills|North\s*Richland\s*Hills|Watauga|Lake\s*Worth|River\s*Oaks|Sansom\s*Park|Forest\s*Hill|Everman|Kennedale|Rendon|Crowley|Joshua|Godley|Venus|Midlothian|Red\s*Oak|Glenn\s*Heights|Ovilla|Ferris|Wilmer|Hutchins|Seagoville|Balch\s*Springs|Sunnyvale|Heath|McLendon.Chisholm|Murphy|Parker|St.\s*Paul|Lucas|Fairview|Princeton|Melissa|Anna|Van\s*Alstyne|Howe|Sherman|Denison|Gainesville|Whitesboro)\b.*?,\s*(?:TX|Texas)\b',
+                    text, re.IGNORECASE
+                )
+                if loc_match:
+                    vl.location = re.sub(r'\s+', ' ', loc_match.group(0)).strip()
+                else:
+                    # Generic city, ST fallback
+                    loc_match = re.search(r'([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),\s*(?:TX|OK|AR|LA|NM)', text)
+                    if loc_match:
+                        vl.location = loc_match.group(0)
+                
+                # 6. Mileage: at end "158K miles" or "21K miles" or "119K miles"
+                mile_match = re.search(r'(\d{2,3}(?:\.\d)?)K\s*(?:miles|mi)', text, re.IGNORECASE)
+                if mile_match:
+                    try:
+                        vl.mileage = int(float(mile_match.group(1)) * 1000)
+                    except:
+                        pass
+                if not vl.mileage:
+                    mile_match = re.search(r'(\d{1,3}(?:,\d{3})*)\s*(?:miles|mi\.?)', text, re.IGNORECASE)
+                    if mile_match:
+                        try:
+                            vl.mileage = int(mile_match.group(1).replace(',', ''))
+                        except:
+                            pass
+                
+                # 7. Title: reconstruct clean title
+                parts = []
+                if vl.year: parts.append(str(vl.year))
+                if vl.make: parts.append(vl.make)
+                if vl.model: parts.append(vl.model)
+                if vl.trim: parts.append(vl.trim)
+                vl.title = ' '.join(parts) if parts else text[:100].strip()
+                
+                # 8. Transmission (scan whole text)
+                if re.search(r'\bAutomatic\b', text, re.IGNORECASE):
+                    vl.transmission = "Automatic"
+                elif re.search(r'\bManual\b', text, re.IGNORECASE):
+                    vl.transmission = "Manual"
+                elif re.search(r'\bCVT\b', text, re.IGNORECASE):
+                    vl.transmission = "CVT"
+                
+                # 9. Body style — also infer from text patterns like "Sport Utility"
+                for bs in ['SUV', 'Sedan', 'Truck', 'Coupe', 'Wagon', 'Hatchback', 'Van', 'Minivan', 'Crossover', 'Convertible']:
+                    if re.search(rf'\b{bs}\b', text, re.IGNORECASE):
+                        vl.body_style = bs
+                        break
+                if not vl.body_style:
+                    if re.search(r'Sport\s*Utility', text, re.IGNORECASE):
+                        vl.body_style = "SUV"
+                    elif re.search(r'Crew\s*Cab|Extended\s*Cab|Regular\s*Cab|Pickup', text, re.IGNORECASE):
+                        vl.body_style = "Truck"
+                
+                # 10. Fuel type
+                if re.search(r'\bHybrid\b', text, re.IGNORECASE):
+                    vl.fuel_type = "Hybrid"
+                elif re.search(r'\bDiesel\b', text, re.IGNORECASE):
+                    vl.fuel_type = "Diesel"
+                elif re.search(r'\bElectric\b|\bEV\b', text, re.IGNORECASE):
+                    vl.fuel_type = "Electric"
+                
+                # 11. Drivetrain
+                if re.search(r'\b4WD\b|\b4x4\b|\bFour.Wheel.Drive\b', text, re.IGNORECASE):
+                    vl.drivetrain = "4WD"
+                elif re.search(r'\bAWD\b|\bAll.Wheel.Drive\b', text, re.IGNORECASE):
+                    vl.drivetrain = "AWD"
+                elif re.search(r'\bRWD\b|\bRear.Wheel.Drive\b', text, re.IGNORECASE):
+                    vl.drivetrain = "RWD"
+                elif re.search(r'\bFWD\b|\bFront.Wheel.Drive\b', text, re.IGNORECASE):
+                    vl.drivetrain = "FWD"
+                
+                # 12. Title status
+                for ts in ['clean title', 'salvage title', 'rebuilt title', 'clear title']:
+                    if re.search(rf'\b{ts}\b', text, re.IGNORECASE):
+                        vl.title_status = ts.title()
+                        break
+                
+                # 13. Images
+                img = raw.get('imageUrl', '')
+                if img and not img.startswith('data:'):
+                    vl.images = [img]
+                
+                listings.append(vl)
+            
+            return listings
+            
+        except Exception as e:
+            self._log(f"DOM extraction failed: {e}")
+            return []
 
     # ── HTML Parsing ────────────────────────────────────────────────────
 
@@ -1211,11 +1443,66 @@ async def scrape_listing_detail(
         # Clean common prefixes and suffixes
         title = re.sub(r'^Marketplace\s*[-–—]\s*', '', title)
         title = re.sub(r'^\(\d+\)\s*Marketplace\s*[-–—]\s*', '', title)  # "(1) Marketplace - "
-        title = re.sub(r'\|?\s*Facebook\s*$', '', title).strip()
+        title = re.sub(r'\|\s*Facebook\s*$', '', title).strip()
         description = og_desc or meta_desc or ""
-        images = [og_image] if og_image else []
         
-        # Parse year/make/model from title "2017 Kia Sorento · LX Sport Utility 4D"
+        # Grab ALL listing images from the page (not just og:image)
+        images = []
+        if og_image:
+            images.append(og_image)
+        try:
+            all_imgs = await scraper.page.evaluate("""() => {
+                const imgs = document.querySelectorAll('img');
+                const urls = [];
+                for (const img of imgs) {
+                    const src = img.src || img.getAttribute('data-src') || '';
+                    if (src && src.includes('fbcdn.net') && !src.includes('profile') && !src.includes('emoji')) {
+                        urls.push(src);
+                    }
+                }
+                return urls;
+            }""")
+            for img_url in (all_imgs or []):
+                if img_url not in images:
+                    images.append(img_url)
+        except Exception as e:
+            print(f"[DETAIL] Image extraction failed: {e}", flush=True)
+        
+        # Extract seller rating from FB JSON data
+        seller_name = ""
+        seller_rating = None
+        seller_red_flags = ""
+        try:
+            seller_data = await scraper.page.evaluate("""() => {
+                const scripts = document.querySelectorAll('script[type="application/json"]');
+                for (const s of scripts) {
+                    try {
+                        const d = JSON.parse(s.textContent);
+                        const str = JSON.stringify(d);
+                        const idx = str.indexOf('"marketplace_listing_seller"');
+                        if (idx >= 0) {
+                            const chunk = str.substring(idx, idx + 500);
+                            return chunk;
+                        }
+                    } catch(e) {}
+                }
+                return null;
+            }""")
+            if seller_data:
+                name_match = re.search(r'"name":"([^"]+)"', seller_data)
+                if name_match:
+                    seller_name = name_match.group(1)
+                rating_match = re.search(r'"rating":([\d.]+)', seller_data)
+                if rating_match:
+                    seller_rating = float(rating_match.group(1))
+                    if seller_rating < 3.0:
+                        seller_red_flags = f"CRITICAL: Very low seller rating: {seller_rating}/5"
+                    elif seller_rating < 3.5:
+                        seller_red_flags = f"Low seller rating: {seller_rating}/5"
+        except Exception as e:
+            print(f"[DETAIL] Seller extraction failed: {e}", flush=True)
+        
+        # Parse year/make/model from title
         year, make, model, trim = 0, "", "", ""
         parts = title.split("·")
         main_part = parts[0].strip() if parts else title
@@ -1443,11 +1730,66 @@ async def scrape_listing_detail(
         title = og_title or page_title.replace(" | Facebook Marketplace | Facebook", "").strip()
         title = re.sub(r'^Marketplace\s*[-–—]\s*', '', title)
         title = re.sub(r'^\(\d+\)\s*Marketplace\s*[-–—]\s*', '', title)
-        title = re.sub(r'\|?\s*Facebook\s*$', '', title).strip()
+        title = re.sub(r'\|\s*Facebook\s*$', '', title).strip()
         description = og_desc or meta_desc or ""
-        images = [og_image] if og_image else []
         
-        # Parse year/make/model
+        # Grab ALL listing images from the page (not just og:image)
+        images = []
+        if og_image:
+            images.append(og_image)
+        try:
+            all_imgs = await scraper.page.evaluate("""() => {
+                const imgs = document.querySelectorAll('img');
+                const urls = [];
+                for (const img of imgs) {
+                    const src = img.src || img.getAttribute('data-src') || '';
+                    if (src && src.includes('fbcdn.net') && !src.includes('profile') && !src.includes('emoji')) {
+                        urls.push(src);
+                    }
+                }
+                return urls;
+            }""")
+            for img_url in (all_imgs or []):
+                if img_url not in images:
+                    images.append(img_url)
+        except Exception as e:
+            print(f"[DETAIL] Image extraction failed: {e}", flush=True)
+        
+        # Extract seller rating from FB JSON data
+        seller_name = ""
+        seller_rating = None
+        seller_red_flags = ""
+        try:
+            seller_data = await scraper.page.evaluate("""() => {
+                const scripts = document.querySelectorAll('script[type="application/json"]');
+                for (const s of scripts) {
+                    try {
+                        const d = JSON.parse(s.textContent);
+                        const str = JSON.stringify(d);
+                        const idx = str.indexOf('"marketplace_listing_seller"');
+                        if (idx >= 0) {
+                            const chunk = str.substring(idx, idx + 500);
+                            return chunk;
+                        }
+                    } catch(e) {}
+                }
+                return null;
+            }""")
+            if seller_data:
+                name_match = re.search(r'"name":"([^"]+)"', seller_data)
+                if name_match:
+                    seller_name = name_match.group(1)
+                rating_match = re.search(r'"rating":([\d.]+)', seller_data)
+                if rating_match:
+                    seller_rating = float(rating_match.group(1))
+                    if seller_rating < 3.0:
+                        seller_red_flags = f"CRITICAL: Very low seller rating: {seller_rating}/5"
+                    elif seller_rating < 3.5:
+                        seller_red_flags = f"Low seller rating: {seller_rating}/5"
+        except Exception as e:
+            print(f"[DETAIL] Seller extraction failed: {e}", flush=True)
+        
+        # Parse year/make/model from title
         year, make, model, trim = 0, "", "", ""
         parts = title.split("·")
         main_part = parts[0].strip() if parts else title

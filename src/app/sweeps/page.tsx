@@ -31,7 +31,7 @@ export default function SweepsPage() {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-cyan-900 flex items-center justify-center text-cyan-100 font-bold text-sm">JS</div>
             <div>
-              <div className="text-sm font-medium">J. Smith</div>
+              <div className="text-sm font-medium">Blake</div>
               <div className="text-xs text-gray-500">Pro Analyst</div>
             </div>
           </div>

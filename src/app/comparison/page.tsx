@@ -109,7 +109,7 @@ const Header = ({ activeNav }: { activeNav: string; setActiveNav?: (id: string) 
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3 pr-6 border-r border-[#262420]">
           <div className="text-right">
-            <div className="text-sm font-bold text-white">Julian Smith</div>
+            <div className="text-sm font-bold text-white">Blake</div>
             <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Fleet Director</div>
           </div>
           <div className="w-10 h-10 rounded-full bg-cyan-900/40 border border-cyan-700/50 flex items-center justify-center font-black text-cyan-100 text-xs">JS</div>

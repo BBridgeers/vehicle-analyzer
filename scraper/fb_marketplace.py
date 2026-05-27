@@ -1379,6 +1379,24 @@ async def scrape_listing_detail(
         page_title = await scraper.page.title()
         page_url = scraper.page.url
         
+        # ── Detect login wall / error page ──
+        if page_title.strip() in ("Facebook", "Error", "Log in", "Login") or "login" in page_url.lower():
+            print(f"[DETAIL] Detected login wall (title='{page_title}', url='{page_url[:80]}'). Attempting mbasic login...", flush=True)
+            login_ok = await scraper._attempt_fb_login(scraper.page)
+            if login_ok:
+                print("[DETAIL] mbasic login succeeded. Re-navigating to listing...", flush=True)
+                await scraper.page.goto(cleaned_url, wait_until="domcontentloaded", timeout=20000)
+                await asyncio.sleep(3)
+                html = await scraper.page.content()
+                page_title = await scraper.page.title()
+                page_url = scraper.page.url
+                # Save fresh cookies
+                fresh_cookies = await scraper.context.cookies()
+                scraper.sessions.save_cookies(session_id, fresh_cookies)
+                print(f"[DETAIL] Saved {len(fresh_cookies)} fresh cookies after login", flush=True)
+            else:
+                print("[DETAIL] mbasic login failed. Cookies may be required.", flush=True)
+        
         # Extract Open Graph meta tags (available WITHOUT login!)
         og_title = await scraper.page.evaluate(
             "() => document.querySelector('meta[property=\"og:title\"]')?.content || ''"
@@ -1565,6 +1583,17 @@ async def scrape_listing_detail(
                 pass
         
         print(f"[DETAIL] Extracted — title='{title[:60] if title else 'EMPTY'}', price=${price}, make='{make}', model='{model}'", flush=True)
+        
+        # ── Validate: reject FB error/login pages BEFORE AI vision ──
+        ERROR_TITLES = ["Facebook", "Error", "Sorry, something went wrong", "Log in", "Login", ""]
+        is_error_page = (
+            (title.strip() in ERROR_TITLES or page_title.strip() in ERROR_TITLES) and
+            not (make and model and year)
+        )
+        if is_error_page:
+            print(f"[DETAIL] FB returned error/login page (title='{title}', page_title='{page_title}'). Aborting — no AI hallucination.", flush=True)
+            await scraper._cleanup()
+            return {"error": "fb_blocked", "title": title, "sourceUrl": cleaned_url}
         
         if title and (price or make):
             # ── Build basic result from meta-tags ──

@@ -45,6 +45,17 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
     className="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative"
     onClick={onToggle}
   >
+    {/* Thumbnail — first image from scraper */}
+    {vehicle.images && vehicle.images.length > 0 && (
+      <div className="w-full h-40 bg-[#0a0905] overflow-hidden">
+        <img
+          src={vehicle.images[0]}
+          alt={vehicle.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+      </div>
+    )}
     <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
       <CheckboxControl checked={checked} onChange={onToggle} />
     </div>

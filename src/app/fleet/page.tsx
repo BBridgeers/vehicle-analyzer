@@ -41,12 +41,25 @@ const CheckboxControl = ({ checked, onChange }: { checked: boolean; onChange: ()
 );
 
 const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; checked: boolean; onToggle: () => void; onDelete: (e: React.MouseEvent) => void }) => {
-  // Handle both analyzed vehicles (with score/badge) and raw scraped vehicles
-  const isAnalyzed = typeof vehicle.score === 'number' && vehicle.score > 0;
-  const displayScore = isAnalyzed ? vehicle.score : (vehicle.price ? Math.min(95, Math.round(vehicle.price / 200)) : 50);
-  const displayBadge = isAnalyzed ? vehicle.badge : (vehicle.status === 'pending_analysis' ? 'Pending Analysis' : 'Raw Listing');
-  const displayBadgeClass = isAnalyzed ? vehicle.badgeClass : 'bg-gray-600 text-white';
-  const displayScoreColor = isAnalyzed ? vehicle.scoreColor : 'text-gray-500';
+  // Read analysis from nested field (from /analysis page) OR flat fields (legacy)
+  const analysis = vehicle.analysis;
+  const score = analysis?.verdictScore ?? vehicle.score;
+  const verdict = analysis?.verdict ?? vehicle.badge ?? (vehicle.verdict || '');
+  const isAnalyzed = typeof score === 'number' && score > 0 && !!verdict;
+  
+  // Map verdict to badge display
+  const verdictMap: Record<string, { badge: string; badgeClass: string; scoreColor: string }> = {
+    '🔥 STRONG BUY': { badge: 'Strong Buy', badgeClass: 'bg-emerald-500 text-[#0a0905]', scoreColor: 'text-emerald-500' },
+    '✅ RECOMMENDED': { badge: 'Recommended', badgeClass: 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30', scoreColor: 'text-emerald-400' },
+    '⚠️ PROCEED WITH CAUTION': { badge: 'Fair Deal', badgeClass: 'bg-yellow-600/20 text-yellow-300 border border-yellow-500/30', scoreColor: 'text-yellow-400' },
+    '🚫 AVOID': { badge: 'Risky', badgeClass: 'bg-red-600/30 text-red-300 border border-red-500/30', scoreColor: 'text-red-500' },
+  };
+  const vm = verdictMap[verdict] || (isAnalyzed ? { badge: verdict, badgeClass: 'bg-cyan-600/30 text-cyan-300 border border-cyan-500/30', scoreColor: 'text-cyan-400' } : null);
+  
+  const displayScore = isAnalyzed ? score : (vehicle.price ? Math.min(95, Math.round(vehicle.price / 200)) : 50);
+  const displayBadge = isAnalyzed ? (vm?.badge || verdict) : (vehicle.status === 'pending_analysis' ? 'Pending Analysis' : 'Raw Listing');
+  const displayBadgeClass = isAnalyzed ? (vm?.badgeClass || 'bg-cyan-600/30 text-cyan-300') : 'bg-gray-600 text-white';
+  const displayScoreColor = isAnalyzed ? (vm?.scoreColor || 'text-cyan-400') : 'text-gray-500';
   const displayLocation = vehicle.location && vehicle.location !== 'Unknown' ? vehicle.location : '';
   const displayMiles = (() => {
     if (vehicle.miles && typeof vehicle.miles === 'string' && !vehicle.miles.startsWith('NaN')) return vehicle.miles;

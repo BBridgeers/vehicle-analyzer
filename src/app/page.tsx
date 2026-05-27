@@ -191,6 +191,7 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
         notableDamage: v.notableDamage || f.notableDamage,
         overallImpression: v.overallImpression || f.overallImpression,
         postedDate: v.postedDate || f.postedDate,
+        images: v.images || f.images || [],
       }));
       // Auto-trigger AI analysis after URL scrape completes
       // Use ref to get the latest onRunAnalysis with fresh form state
@@ -1626,6 +1627,7 @@ const defaultForm = {
   platform: '', postedDate: '', location: '', sellerDescription: '',
   exteriorCondition: '', interiorCondition: '', mechanicalCondition: '',
   communication: '', transparency: '', redFlags: '', sellerQuotes: '',
+  images: [] as string[],
 };
 
 const defaultMessages = [
@@ -1811,6 +1813,7 @@ const App = () => {
             sellerTransparency: (form.transparency as any) || undefined,
             sellerRedFlags: form.redFlags || undefined,
             sellerQuotes: form.sellerQuotes || undefined,
+            images: form.images || [],
         };
 
         // ── Dynamic import to avoid SSR issues ──

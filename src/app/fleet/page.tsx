@@ -113,36 +113,40 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
     </div>
     {/* Data footer — uniform grid */}
     <div className="p-4 bg-[#141311] space-y-3 flex-1">
-      {/* Asking → Negotiated (the money line) */}
+      {/* Asking → Negotiate To */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Asking</p>
           <p className="text-base font-bold text-gray-100">{displayPrice || '—'}</p>
         </div>
         <div>
-          <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Negotiate To</p>
+          <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5 whitespace-nowrap">Negotiate To</p>
           <p className="text-base font-bold text-cyan-400">{vehicle.negotiated || '—'}</p>
         </div>
       </div>
-      {/* Insurance, OpEx, Mileage, Equity */}
-      <div className="grid grid-cols-4 gap-2">
+      {/* Ins /mo → OpEx /mo */}
+      <div className="grid grid-cols-2 gap-3">
         <div>
           <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Ins /mo</p>
-          <p className="text-sm font-bold text-red-400">{vehicle.insurance || '—'}</p>
+          <p className="text-base font-bold text-red-400">{vehicle.insurance || '—'}</p>
         </div>
-        <div>
+        <div className="flex flex-col items-center">
           <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">OpEx /mo</p>
-          <p className="text-sm font-bold text-red-400">{vehicle.opex || '—'}</p>
-        </div>
-        <div>
-          <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Mileage</p>
-          <p className="text-sm font-bold text-gray-200">{displayMiles || '—'}</p>
-        </div>
-        <div>
-          <p className="text-[8px] text-gray-600 uppercase tracking-widest font-bold mb-0.5">Equity</p>
-          <p className={`text-xs font-bold ${vehicle.equityColor || 'text-gray-500'}`}>{vehicle.equity || '—'}</p>
+          <p className="text-base font-bold text-red-400">{vehicle.opex || '—'}</p>
         </div>
       </div>
+      {/* View Listing button */}
+      {vehicle.sourceUrl && (
+        <a
+          href={vehicle.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-center py-2 bg-cyan-950/30 border border-cyan-800/40 rounded-lg text-xs font-bold text-cyan-400 hover:bg-cyan-900/40 hover:text-cyan-300 transition-colors uppercase tracking-widest"
+          onClick={(e) => e.stopPropagation()}
+        >
+          View Listing →
+        </a>
+      )}
     </div>
   </div>
 )};

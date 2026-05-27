@@ -54,20 +54,26 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
 
   return (
   <div
-    className="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative"
+    className="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative flex flex-col"
     onClick={onToggle}
   >
-    {/* Thumbnail — first image from scraper */}
-    {vehicle.images && vehicle.images.length > 0 && (
-      <div className="w-full h-40 bg-[#0a0905] overflow-hidden">
+    {/* Thumbnail — fixed height, always rendered for layout uniformity */}
+    <div className="w-full h-40 bg-[#0a0905] overflow-hidden flex-shrink-0">
+      {vehicle.images && vehicle.images.length > 0 ? (
         <img
           src={vehicle.images[0]}
           alt={displayName}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
-      </div>
-    )}
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-gray-700">
+          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+      )}
+    </div>
     <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
       <CheckboxControl checked={checked} onChange={onToggle} />
     </div>
@@ -81,23 +87,25 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
         </svg>
       </button>
     </div>
-    <div className="p-5 border-b border-[#262420] relative">
-      <div className="flex justify-between items-start mb-4 pl-8">
-        <div>
-          <h3 className="font-bold text-gray-100 text-lg">{displayName}</h3>
-          <p className="text-xs text-gray-500 mt-1">
+    {/* Title area — fixed height, truncated name */}
+    <div className="px-5 pt-4 pb-3 border-b border-[#262420] flex-shrink-0" style={{ minHeight: '5.5rem' }}>
+      <div className="flex justify-between items-start pl-8">
+        <div className="min-w-0 flex-1 mr-2">
+          <h3 className="font-bold text-gray-100 text-base leading-tight truncate" title={displayName}>{displayName}</h3>
+          <p className="text-xs text-gray-500 mt-1 truncate">
             {[displayPrice, displayMiles, displayLocation].filter(Boolean).join(' • ')}
           </p>
         </div>
         <CircleScore score={displayScore} colorClass={displayScoreColor} />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mt-2">
         <span className={`px-2 py-0.5 font-black tracking-widest uppercase text-[10px] rounded ${displayBadgeClass}`}>
           {displayBadge}
         </span>
       </div>
     </div>
-    <div className="p-4 bg-[#141311] space-y-3">
+    {/* Data footer — uniform grid */}
+    <div className="p-4 bg-[#141311] space-y-3 flex-1">
       {/* Asking → Negotiated (the money line) */}
       <div className="grid grid-cols-2 gap-3">
         <div>

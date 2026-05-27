@@ -32,6 +32,9 @@ export interface Vehicle {
     numOwners?: number;
     paidOff?: boolean;
     sellerName?: string;
+    // Scraper-extended fields
+    images?: string[];
+    sourceUrl?: string;
     // Condition notes (optional, user-entered or vision-extracted)
     conditionExterior?: string;
     conditionInterior?: string;

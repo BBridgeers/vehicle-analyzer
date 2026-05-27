@@ -97,14 +97,32 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
         </span>
       </div>
     </div>
-    <div className="p-5 grid grid-cols-2 gap-4 bg-[#141311]">
-      <div>
-        <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Equity</p>
-        <p className={`text-lg font-bold ${vehicle.equityColor || 'text-gray-500'}`}>{vehicle.equity || '—'}</p>
+    <div className="p-4 bg-[#141311] space-y-3">
+      {/* Asking → Negotiated (the money line) */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Asking</p>
+          <p className="text-base font-bold text-gray-100">{displayPrice || '—'}</p>
+        </div>
+        <div>
+          <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Negotiate To</p>
+          <p className="text-base font-bold text-cyan-400">{vehicle.negotiated || '—'}</p>
+        </div>
       </div>
-      <div>
-        <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Monthly OpEx</p>
-        <p className="text-lg font-bold text-gray-200">{vehicle.opex || '—'}</p>
+      {/* Insurance, OpEx, Equity (tiny) */}
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Ins /mo</p>
+          <p className="text-sm font-bold text-gray-200">{vehicle.insurance || '—'}</p>
+        </div>
+        <div>
+          <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">OpEx /mo</p>
+          <p className="text-sm font-bold text-gray-200">{vehicle.opex || '—'}</p>
+        </div>
+        <div>
+          <p className="text-[8px] text-gray-600 uppercase tracking-widest font-bold mb-0.5">Equity</p>
+          <p className={`text-xs font-bold ${vehicle.equityColor || 'text-gray-500'}`}>{vehicle.equity || '—'}</p>
+        </div>
       </div>
     </div>
   </div>

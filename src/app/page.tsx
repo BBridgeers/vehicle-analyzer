@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import ImageUploader from '@/components/ImageUploader';
 import type { Vehicle } from '@/lib/types';
 
@@ -1632,7 +1633,8 @@ const App = () => {
   const [form, setForm] = useState(defaultForm);
   const [activeMode, setActiveMode] = useState('rideshare');
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState(defaultMessages);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const router = useRouter();
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -1837,6 +1839,12 @@ const App = () => {
         };
 
         setAnalysisResult(analysisResult);
+
+        // ── Redirect to analysis page ──
+        const analysisId = `va-${Date.now()}`;
+        localStorage.setItem(`analysis_${analysisId}`, JSON.stringify({ vehicle, result }));
+        router.push(`/analysis/${analysisId}`);
+        return;
 
         // ── Also try AI-powered insight via chat API ──
         try {

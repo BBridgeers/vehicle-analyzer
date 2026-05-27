@@ -48,7 +48,14 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
   const displayBadgeClass = isAnalyzed ? vehicle.badgeClass : 'bg-gray-600 text-white';
   const displayScoreColor = isAnalyzed ? vehicle.scoreColor : 'text-gray-500';
   const displayLocation = vehicle.location && vehicle.location !== 'Unknown' ? vehicle.location : '';
-  const displayMiles = vehicle.miles ? `${Number(vehicle.miles).toLocaleString()} miles` : (vehicle.mileage ? `${Number(vehicle.mileage).toLocaleString()} miles` : '');
+  const displayMiles = (() => {
+    if (vehicle.miles && typeof vehicle.miles === 'string' && !vehicle.miles.startsWith('NaN')) return vehicle.miles;
+    const m = vehicle.mileage || vehicle.miles;
+    if (!m || m === 0) return '';
+    const num = typeof m === 'string' ? parseInt(m.replace(/,/g, '')) : m;
+    if (isNaN(num) || num === 0) return '';
+    return `${num.toLocaleString()} miles`;
+  })();
   const displayName = vehicle.name || [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(' ') || 'Unknown Vehicle';
   const displayPrice = vehicle.price ? `$${Number(vehicle.price).toLocaleString()}` : '';
 
@@ -117,8 +124,8 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
           <p className="text-base font-bold text-cyan-400">{vehicle.negotiated || '—'}</p>
         </div>
       </div>
-      {/* Insurance, OpEx, Equity (tiny) */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Insurance, OpEx, Mileage, Equity */}
+      <div className="grid grid-cols-4 gap-2">
         <div>
           <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Ins /mo</p>
           <p className="text-sm font-bold text-red-400">{vehicle.insurance || '—'}</p>
@@ -126,6 +133,10 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
         <div>
           <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">OpEx /mo</p>
           <p className="text-sm font-bold text-red-400">{vehicle.opex || '—'}</p>
+        </div>
+        <div>
+          <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Mileage</p>
+          <p className="text-sm font-bold text-gray-200">{displayMiles || '—'}</p>
         </div>
         <div>
           <p className="text-[8px] text-gray-600 uppercase tracking-widest font-bold mb-0.5">Equity</p>

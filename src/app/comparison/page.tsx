@@ -727,10 +727,105 @@ const ExecuteModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   );
 };
 
+const ComparisonVehicleColumn = ({ vehicle, index, isLast, isWinner }: { vehicle: any; index: number; isLast: boolean; isWinner: boolean }) => {
+  const v = vehicle;
+  const score = v.score || 50;
+  const dashoffset = 251.2 - (251.2 * score / 100);
+  const scoreColor = score >= 80 ? 'text-emerald-500' : score >= 60 ? 'text-yellow-500' : score >= 40 ? 'text-amber-500' : 'text-red-500';
+  const name = v.name || `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim();
+  const price = v.price ? `$${Number(v.price).toLocaleString()}` : '—';
+  const negotiated = v.negotiated || '—';
+  const equity = v.equity || '—';
+  const insurance = v.insurance || '—';
+  const opex = v.opex || '—';
+  const miles = v.mileage ? `${Number(v.mileage).toLocaleString()} miles` : (v.miles || '—');
+  const bodyStyle = v.bodyStyle || '—';
+
+  return (
+    <div style={{ ...customStyles.vehicleCol, ...(isLast ? customStyles.vehicleColLast : {}), ...(isWinner ? { ...customStyles.winnerGlow, backgroundColor: 'rgba(6, 78, 59, 0.05)' } : {}) }} className="relative">
+      <div className="h-44 border-b border-[#262420] p-8 flex flex-col justify-end">
+        {isWinner && (
+          <div className="absolute top-6 left-8 flex items-center gap-2">
+            <span className="bg-emerald-500 text-[#0a0905] px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest">Primary Winner</span>
+            <svg className="w-5 h-5 text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5L8.5 10L12 4L15.5 10L21 5L19 16H5ZM19 19C19 19.5523 18.5523 20 18 20H6C5.44772 20 5 19.5523 5 19V18H19V19Z"></path></svg>
+          </div>
+        )}
+        <h2 className="text-2xl font-black text-white leading-none truncate" title={name}>{name}</h2>
+        <span className="font-mono text-[10px] text-gray-500 mt-2">{bodyStyle} • {miles}</span>
+      </div>
+
+      <div className="p-8 space-y-0">
+        <div className="h-32 flex items-center border-b border-[#262420]/50">
+          <div className="flex items-center gap-6">
+            <Gauge value={score} dashoffset={dashoffset} color={scoreColor} textColor="text-white" />
+          </div>
+        </div>
+
+        <div className="h-28 flex items-center border-b border-[#262420]/50">
+          <div className="flex flex-col gap-2"><span className="text-xs font-black text-gray-400">{bodyStyle || 'Standard'}</span></div>
+        </div>
+
+        <div className="h-32 flex items-center border-b border-[#262420]/50">
+          <div className="grid grid-cols-2 gap-4 w-full">
+            <div><div className="text-[9px] text-gray-500 font-black uppercase mb-1">Asking Price</div><div className="text-lg font-bold text-gray-400 line-through decoration-red-500/50 decoration-2">{price}</div></div>
+            <div><div className="text-[9px] text-emerald-400 font-black uppercase mb-1">Est. Negotiated</div><div className="text-xl font-black text-white">{negotiated}</div></div>
+          </div>
+        </div>
+
+        <div className="h-28 flex items-center border-b border-[#262420]/50">
+          <div className="flex items-baseline gap-2"><span className="text-3xl font-black text-emerald-500">{equity}</span><span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Equity</span></div>
+        </div>
+
+        <div className="h-32 flex items-center border-b border-[#262420]/50">
+          <div className="w-full space-y-2">
+            <div className="flex justify-between items-center bg-[#141311] px-4 py-2 rounded-lg border border-[#262420]"><span className="text-[10px] font-bold text-gray-400 uppercase">Insurance</span><span className="text-xs font-black text-red-400">{insurance}/mo</span></div>
+            <div className="flex justify-between items-center bg-[#141311] px-4 py-2 rounded-lg border border-[#262420]"><span className="text-[10px] font-bold text-gray-400 uppercase">OpEx</span><span className="text-xs font-black text-red-400">{opex}/mo</span></div>
+          </div>
+        </div>
+
+        <div className="h-28 flex items-center">
+          <div className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-emerald-500"></div><span className="text-lg font-black text-white">{miles}</span></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MatrixPage = () => {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [executeModalOpen, setExecuteModalOpen] = useState(false);
   const [engineMode, setEngineMode] = useState('3up');
+  const [comparisonVehicles, setComparisonVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        // Read selected IDs from KV/localStorage
+        const { kvGet } = await import('@/lib/kv-client');
+        const ids = await kvGet<string[]>('vera_comparison_ids') || [];
+        
+        if (ids.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch fleet and filter by selected IDs
+        const res = await fetch('/api/fleet');
+        if (res.ok) {
+          const fleet = await res.json();
+          const selected = fleet.filter((v: any) => ids.includes(String(v.id)));
+          setComparisonVehicles(selected);
+        }
+      } catch (e) {
+        console.error('Failed to load comparison vehicles:', e);
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const displayVehicles = comparisonVehicles.length > 0 ? comparisonVehicles : null;
 
   return (
     <>
@@ -741,21 +836,31 @@ const MatrixPage = () => {
           <span className="text-xs font-black text-gray-500 uppercase tracking-[0.4em]">Comparison Engine V.2.1</span>
         </div>
 
-        <section style={{ ...customStyles.glassCard, borderRadius: '2.5rem', overflow: 'hidden', display: 'flex', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-          <MetricLabelCol />
-          <CivicColumn />
-          <RAV4Column />
-          <CX9Column />
-        </section>
+        {loading ? (
+          <div className="h-64 flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-cyan-800 border-t-cyan-400 rounded-full animate-spin"></div>
+          </div>
+        ) : displayVehicles ? (
+          <section style={{ ...customStyles.glassCard, borderRadius: '2.5rem', overflow: 'hidden', display: 'flex', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <MetricLabelCol />
+            {displayVehicles.map((v, i) => (
+              <ComparisonVehicleColumn key={v.id} vehicle={v} index={i} isLast={i === displayVehicles.length - 1} isWinner={i === 0} />
+            ))}
+          </section>
+        ) : (
+          <div className="h-64 flex flex-col items-center justify-center bg-[#11100e] border border-[#262420] rounded-2xl">
+            <p className="text-gray-400 font-bold text-lg mb-2">No Vehicles Selected</p>
+            <p className="text-gray-600 text-sm">Select vehicles from the Fleet Dashboard and click Compare.</p>
+            <Link href="/fleet" className="mt-4 bg-cyan-600 text-white px-6 py-2 rounded-lg text-sm font-bold">Go to Fleet</Link>
+          </div>
+        )}
 
         <SummaryCards />
-
         <Footer
           onSaveScenario={() => setSaveModalOpen(true)}
           onExecuteAcquisition={() => setExecuteModalOpen(true)}
         />
       </main>
-
       <SaveScenarioModal isOpen={saveModalOpen} onClose={() => setSaveModalOpen(false)} />
       <ExecuteModal isOpen={executeModalOpen} onClose={() => setExecuteModalOpen(false)} />
     </>

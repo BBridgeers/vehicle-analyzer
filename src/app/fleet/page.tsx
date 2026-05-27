@@ -113,11 +113,11 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
       <div className="grid grid-cols-3 gap-2">
         <div>
           <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">Ins /mo</p>
-          <p className="text-sm font-bold text-gray-200">{vehicle.insurance || '—'}</p>
+          <p className="text-sm font-bold text-red-400">{vehicle.insurance || '—'}</p>
         </div>
         <div>
           <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-0.5">OpEx /mo</p>
-          <p className="text-sm font-bold text-gray-200">{vehicle.opex || '—'}</p>
+          <p className="text-sm font-bold text-red-400">{vehicle.opex || '—'}</p>
         </div>
         <div>
           <p className="text-[8px] text-gray-600 uppercase tracking-widest font-bold mb-0.5">Equity</p>

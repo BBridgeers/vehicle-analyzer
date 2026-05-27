@@ -40,7 +40,19 @@ const CheckboxControl = ({ checked, onChange }: { checked: boolean; onChange: ()
   </label>
 );
 
-const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; checked: boolean; onToggle: () => void; onDelete: (e: React.MouseEvent) => void }) => (
+const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; checked: boolean; onToggle: () => void; onDelete: (e: React.MouseEvent) => void }) => {
+  // Handle both analyzed vehicles (with score/badge) and raw scraped vehicles
+  const isAnalyzed = typeof vehicle.score === 'number' && vehicle.score > 0;
+  const displayScore = isAnalyzed ? vehicle.score : (vehicle.price ? Math.min(95, Math.round(vehicle.price / 200)) : 50);
+  const displayBadge = isAnalyzed ? vehicle.badge : (vehicle.status === 'pending_analysis' ? 'Pending Analysis' : 'Raw Listing');
+  const displayBadgeClass = isAnalyzed ? vehicle.badgeClass : 'bg-gray-600 text-white';
+  const displayScoreColor = isAnalyzed ? vehicle.scoreColor : 'text-gray-500';
+  const displayLocation = vehicle.location && vehicle.location !== 'Unknown' ? vehicle.location : '';
+  const displayMiles = vehicle.miles ? `${Number(vehicle.miles).toLocaleString()} miles` : (vehicle.mileage ? `${Number(vehicle.mileage).toLocaleString()} miles` : '');
+  const displayName = vehicle.name || [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(' ') || 'Unknown Vehicle';
+  const displayPrice = vehicle.price ? `$${Number(vehicle.price).toLocaleString()}` : '';
+
+  return (
   <div
     className="bg-[#11100e] border border-[#262420] rounded-xl overflow-hidden hover:border-cyan-500/50 transition-all group cursor-pointer relative"
     onClick={onToggle}
@@ -50,7 +62,7 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
       <div className="w-full h-40 bg-[#0a0905] overflow-hidden">
         <img
           src={vehicle.images[0]}
-          alt={vehicle.name}
+          alt={displayName}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
@@ -72,29 +84,31 @@ const VehicleCard = ({ vehicle, checked, onToggle, onDelete }: { vehicle: any; c
     <div className="p-5 border-b border-[#262420] relative">
       <div className="flex justify-between items-start mb-4 pl-8">
         <div>
-          <h3 className="font-bold text-gray-100 text-lg">{vehicle.name}</h3>
-          <p className="text-xs text-gray-500 mt-1">{vehicle.miles} • {vehicle.location}</p>
+          <h3 className="font-bold text-gray-100 text-lg">{displayName}</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            {[displayPrice, displayMiles, displayLocation].filter(Boolean).join(' • ')}
+          </p>
         </div>
-        <CircleScore score={vehicle.score} colorClass={vehicle.scoreColor} />
+        <CircleScore score={displayScore} colorClass={displayScoreColor} />
       </div>
       <div className="flex items-center gap-2">
-        <span className={`px-2 py-0.5 font-black tracking-widest uppercase text-[10px] rounded ${vehicle.badgeClass}`}>
-          {vehicle.badge}
+        <span className={`px-2 py-0.5 font-black tracking-widest uppercase text-[10px] rounded ${displayBadgeClass}`}>
+          {displayBadge}
         </span>
       </div>
     </div>
     <div className="p-5 grid grid-cols-2 gap-4 bg-[#141311]">
       <div>
         <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Equity</p>
-        <p className={`text-lg font-bold ${vehicle.equityColor}`}>{vehicle.equity}</p>
+        <p className={`text-lg font-bold ${vehicle.equityColor || 'text-gray-500'}`}>{vehicle.equity || '—'}</p>
       </div>
       <div>
         <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Monthly OpEx</p>
-        <p className="text-lg font-bold text-gray-200">{vehicle.opex}</p>
+        <p className="text-lg font-bold text-gray-200">{vehicle.opex || '—'}</p>
       </div>
     </div>
   </div>
-);
+)};
 
 const AddCard = () => (
   <div className="bg-[#11100e] border border-[#262420] border-dashed rounded-xl flex flex-col items-center justify-center p-8 group hover:bg-[#1a1816] hover:border-cyan-500/30 transition-all cursor-pointer">

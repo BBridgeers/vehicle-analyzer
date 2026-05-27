@@ -10,9 +10,22 @@ interface SweepResult {
   year?: number;
   make?: string;
   model?: string;
+  trim?: string;
   location?: string;
   url: string;
   scraped_at: string;
+  images?: string[];
+  bodyStyle?: string;
+  transmission?: string;
+  fuelType?: string;
+  drivetrain?: string;
+  exteriorColor?: string;
+  interiorColor?: string;
+  vin?: string;
+  titleStatus?: string;
+  description?: string;
+  sellerName?: string;
+  sellerRedFlags?: string;
 }
 
 interface SweepStatus {
@@ -138,25 +151,38 @@ export default function MarketSweepPanel() {
     const allResults = showResults;
     if (allResults.length === 0) return;
 
-    if (!confirm(`Import ${allResults.length} vehicles to fleet? This saves them for analysis.`)) return;
+    if (!confirm(`Import ${allResults.length} vehicles to fleet? This saves them with photos for analysis.`)) return;
 
     try {
-      // Take each result and save to fleet via POST
+      // Batch import — send all vehicles with full fields including images
       for (const r of allResults) {
         await fetch('/api/fleet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: r.title || `${r.make || ''} ${r.model || ''}`,
+            name: r.title || `${r.make || ''} ${r.model || ''} ${r.trim || ''}`.trim(),
             year: r.year || '',
             make: r.make || '',
             model: r.model || '',
+            trim: r.trim || '',
             price: r.price || 0,
             miles: r.mileage || 0,
             sourceUrl: r.url,
             source: r.source,
             location: r.location || '',
             status: 'pending_analysis',
+            images: r.images || [],
+            bodyStyle: r.bodyStyle || '',
+            transmission: r.transmission || '',
+            fuelType: r.fuelType || '',
+            drivetrain: r.drivetrain || '',
+            exteriorColor: r.exteriorColor || '',
+            interiorColor: r.interiorColor || '',
+            vin: r.vin || '',
+            titleStatus: r.titleStatus || '',
+            description: r.description || '',
+            sellerName: r.sellerName || '',
+            sellerRedFlags: r.sellerRedFlags || '',
           }),
         });
       }

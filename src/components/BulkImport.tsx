@@ -99,24 +99,28 @@ export default function BulkImport({ onImport, isLoading }: BulkImportProps) {
                     year: v.year || new Date().getFullYear(),
                     make: v.make || "Unknown",
                     model: v.model || "Unknown",
+                    trim: v.trim || "",
                     price: v.price || 0,
                     mileage: v.mileage || 0,
                     vin: v.vin,
                     description: v.description,
                     listingUrl: v.sourceUrl,
                     source: "URL Import",
+                    images: v.images || [],
                     conditionExterior: v.conditionExterior,
                     conditionInterior: v.conditionInterior,
                     conditionMechanical: v.conditionMechanical,
-                    // Defaults
                     location: v.location || "Unknown",
                     titleStatus: v.titleStatus || "Clean",
+                    bodyStyle: v.bodyStyle || "",
+                    transmission: v.transmission || "",
+                    fuelType: v.fuelType || "",
+                    drivetrain: v.drivetrain || "",
+                    exteriorColor: v.exteriorColor || "",
+                    interiorColor: v.interiorColor || "",
                     sellerResponsiveness: "not-contacted",
                     sellerTransparency: "not-assessed",
-                    // Mapped fields
-                    transmission: v.transmission,
-                    fuelType: v.fuelType,
-                    exteriorColor: v.exteriorColor,
+                    sellerRedFlags: v.sellerRedFlags || "",
                 };
                 scrapedVehicles.push(mappedVehicle);
             } catch (err: any) {

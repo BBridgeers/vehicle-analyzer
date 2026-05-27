@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import VERAWidget from '@/components/VERAWidget';
 
 const customStyles: React.CSSProperties = {
   scrollbarWidth: 'none' as 'none',

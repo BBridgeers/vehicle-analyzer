@@ -58,14 +58,10 @@ const CircleScore = ({ score, colorClass }: { score: number; colorClass: string 
   </div>
 );
 
-const Sidebar = ({ history: sidebarHistory }: { history?: Array<{name:string; price:string; time:string; verdict:string; active:boolean}> }) => {
+const Sidebar = ({ history: sidebarHistory, onHistoryClick }: { history?: Array<{name:string; price:string; time:string; verdict:string; active:boolean; idx: number}>; onHistoryClick?: (idx: number) => void }) => {
   const [activeHistory, setActiveHistory] = useState(0);
 
-  const displayHistory = sidebarHistory && sidebarHistory.length > 0 ? sidebarHistory : [
-    { name: '2019 Toyota RAV4', price: '$22,500', time: '2 hrs ago', verdict: 'Good', active: true },
-    { name: '2016 Honda Civic', price: '$14,200', time: 'Yesterday', verdict: 'Risk', active: false },
-    { name: '2021 Tesla Model 3', price: '$31,000', time: 'Oct 24', verdict: 'Fair', active: false },
-  ];
+  const displayHistory = sidebarHistory && sidebarHistory.length > 0 ? sidebarHistory : [];
 
   return (
 <aside className="w-64 bg-[#11100e] border-r border-[#262420] flex flex-col h-full z-10 flex-shrink-0">
@@ -107,7 +103,7 @@ const Sidebar = ({ history: sidebarHistory }: { history?: Array<{name:string; pr
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Analysis History</h3>
         <div className="space-y-3">
           {displayHistory.map((item, i) => (
-            <HistoryItem key={i} {...item} active={i === activeHistory} onClick={() => setActiveHistory(i)} />
+            <HistoryItem key={i} {...item} active={i === activeHistory} onClick={() => { setActiveHistory(i); onHistoryClick?.(item.idx); }} />
           ))}
         </div>
       </div>
@@ -1624,7 +1620,8 @@ const defaultForm = {
   listingUrl: '', referenceUrl: '', vin: '', price: '', mileage: '',
   year: '', make: '', model: '', trim: '', transmission: '', fuelType: '',
   seats: '', titleStatus: '', exteriorColor: '', interiorColor: '',
-  platform: '', postedDate: '', location: '', sellerDescription: '',
+  drivetrain: '', engine: '', bodyStyle: '', platform: '',
+  postedDate: '', location: '', sellerDescription: '',
   exteriorCondition: '', interiorCondition: '', mechanicalCondition: '',
   communication: '', transparency: '', redFlags: '', sellerQuotes: '',
   images: [] as string[],
@@ -1646,7 +1643,7 @@ const App = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [chatExpanded, setChatExpanded] = useState(true);
   const [photos, setPhotos] = useState<{file: File; preview: string}[]>([]);
-  const [history, setHistory] = useState<Array<{name:string; price:string; time:string; verdict:string; active:boolean}>>([]);
+  const [history, setHistory] = useState<Array<{name:string; price:string; time:string; verdict:string; active:boolean; idx: number}>>([]);
 
   // Load real history from fleet API on mount
   useEffect(() => {
@@ -1654,12 +1651,13 @@ const App = () => {
       .then(r => r.json())
       .then(fleet => {
         if (Array.isArray(fleet) && fleet.length > 0) {
-          const entries = fleet.slice(0, 15).map((v: any) => ({
+          const entries = fleet.slice(0, 15).map((v: any, idx: number) => ({
             name: `${v.year || '?'} ${v.make || '?'} ${v.model || 'Vehicle'}`,
             price: `$${Number(v.price || 0).toLocaleString()}`,
             time: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : 'Unknown',
             verdict: v.analysis?.verdict || v.verdict || 'Analyzed',
             active: false,
+            idx,
           }));
           setHistory(entries);
         }
@@ -1667,12 +1665,17 @@ const App = () => {
       .catch(() => {});
   }, []);
 
-  // Persist form to localStorage before navigating away, restore on load
+  // Restore form from Redis on mount
   useEffect(() => {
-    const saved = localStorage.getItem('vera_last_form');
-    if (saved && !form.make) {
-      try { setForm(JSON.parse(saved)); } catch {}
-    }
+    if (form.make) return; // Already populated
+    fetch('/api/analysis/form')
+      .then(r => r.json())
+      .then(data => {
+        if (data?.success && data.form) {
+          setForm((f: any) => ({ ...f, ...data.form }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Auto-fill listing URL from query params (e.g., /?url=https://facebook.com/marketplace/item/123/)
@@ -1701,7 +1704,8 @@ const App = () => {
       // Deduplicate by name + price
       const exists = prev.some(h => h.name === entry.name && h.price === entry.price);
       if (exists) return prev;
-      return [entry, ...prev.map(h => ({...h, active: false}))].slice(0, 20);
+      // idx points to fleet index for lookups
+      return [{...entry, idx: 0}, ...prev.map((h, i) => ({...h, active: false, idx: i + 1}))].slice(0, 20);
     });
   }, [analysisResult, form.make, form.model, form.price, form.year]);
 
@@ -1720,6 +1724,65 @@ const App = () => {
   const handleClearForm = () => {
     setForm(defaultForm);
     setAnalysisResult(null);
+  };
+
+  const handleHistoryClick = async (idx: number) => {
+    try {
+      const res = await fetch('/api/fleet');
+      const fleet = await res.json();
+      if (Array.isArray(fleet) && fleet[idx]) {
+        const v = fleet[idx];
+        // Populate form fields
+        setForm((f: any) => ({
+          ...defaultForm,
+          year: v.year ? String(v.year) : '',
+          make: v.make || '',
+          model: v.model || '',
+          trim: v.trim || '',
+          price: v.price ? String(v.price) : '',
+          mileage: v.mileage ? String(v.mileage) : '',
+          vin: v.vin || '',
+          location: v.location || '',
+          exteriorColor: v.exteriorColor || '',
+          interiorColor: v.interiorColor || '',
+          transmission: v.transmission || '',
+          fuelType: v.fuelType || '',
+          drivetrain: v.drivetrain || '',
+          engine: v.engine || '',
+          bodyStyle: v.bodyStyle || '',
+          seats: v.seats ? String(v.seats) : '',
+          titleStatus: v.titleStatus || '',
+          postedDate: v.postedDate || '',
+          exteriorCondition: v.conditionExterior || v.exteriorCondition || '',
+          interiorCondition: v.conditionInterior || v.interiorCondition || '',
+          mechanicalCondition: v.conditionMechanical || v.mechanicalCondition || '',
+          sellerDescription: v.description || v.sellerDescription || '',
+          listingUrl: v.sourceUrl || v.listingUrl || '',
+          platform: v.source || '',
+          communication: v.sellerResponsiveness || '',
+          transparency: v.sellerTransparency || '',
+          redFlags: v.sellerRedFlags || '',
+          sellerQuotes: v.sellerQuotes || '',
+          images: v.images || [],
+        }));
+        // Populate analysis results in right panel
+        if (v.analysis) {
+          const a = v.analysis;
+          setAnalysisResult({
+            score: a.verdictScore || 0,
+            equity: a.instantEquity >= 0 ? `+$${a.instantEquity.toLocaleString()}` : `-$${Math.abs(a.instantEquity).toLocaleString()}`,
+            opex: `$${(a.operationalCosts?.totalMonthly ?? 0).toFixed(0)}`,
+            badge: a.verdict || 'Analyzed',
+            badgeClass: a.verdict?.startsWith('🔥') ? 'bg-emerald-500 text-[#0a0905]' : 'bg-cyan-600/30 text-cyan-300',
+            scoreColor: a.verdict?.startsWith('🔥') ? 'text-emerald-500' : 'text-cyan-400',
+            fullAnalysis: a,
+          });
+          setChatMessages([{ sender: 'vera', text: `Loaded analysis for ${v.year} ${v.make} ${v.model}. Score: ${a.verdictScore}/100 — ${a.verdict}` }]);
+        }
+      }
+    } catch (e) {
+      console.error('History click failed:', e);
+    }
   };
 
   const handleRunAnalysis = async () => {
@@ -1874,8 +1937,12 @@ const App = () => {
 
         setAnalysisResult(analysisResult);
 
-        // ── Save form state for restoration when user returns ──
-        localStorage.setItem('vera_last_form', JSON.stringify(form));
+        // ── Save form state to Redis for restoration ──
+        fetch('/api/analysis/form', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ form }),
+        }).catch(() => {});
         
         // ── Save to Redis and navigate to analysis page ──
         await fetch('/api/analysis', {
@@ -2202,7 +2269,7 @@ Generated by V.E.R.A. Vehicle Analyzer
 
   return (
     <div className="flex h-screen w-full bg-[#0a0905] text-gray-200 overflow-hidden font-sans">
-      <Sidebar history={history} />
+      <Sidebar history={history} onHistoryClick={handleHistoryClick} />
       <MainContent 
         form={form} 
         setForm={setForm} 

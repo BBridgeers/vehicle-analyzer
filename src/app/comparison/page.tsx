@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import VERAWidget from '@/components/VERAWidget';
 import { useRouter } from 'next/navigation';
 
 const customStyles: Record<string, React.CSSProperties> = {

@@ -113,7 +113,7 @@ const Sidebar = ({ history: sidebarHistory }: { history?: Array<{name:string; pr
       </div>
 
       <div className="p-4 border-t border-[#262420] flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-cyan-900 flex items-center justify-center text-cyan-100 font-bold text-sm">JS</div>
+        <div className="w-8 h-8 rounded-full bg-cyan-900 flex items-center justify-center text-cyan-100 font-bold text-sm">B</div>
         <div className="flex-1">
           <div className="text-sm font-medium">Blake</div>
           <div className="text-xs text-gray-500">Pro Analyst</div>
@@ -1646,6 +1646,33 @@ const App = () => {
   const [photos, setPhotos] = useState<{file: File; preview: string}[]>([]);
   const [history, setHistory] = useState<Array<{name:string; price:string; time:string; verdict:string; active:boolean}>>([]);
 
+  // Load real history from fleet API on mount
+  useEffect(() => {
+    fetch('/api/fleet')
+      .then(r => r.json())
+      .then(fleet => {
+        if (Array.isArray(fleet) && fleet.length > 0) {
+          const entries = fleet.slice(0, 15).map((v: any) => ({
+            name: `${v.year || '?'} ${v.make || '?'} ${v.model || 'Vehicle'}`,
+            price: `$${Number(v.price || 0).toLocaleString()}`,
+            time: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : 'Unknown',
+            verdict: v.analysis?.verdict || v.verdict || 'Analyzed',
+            active: false,
+          }));
+          setHistory(entries);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Persist form to localStorage before navigating away, restore on load
+  useEffect(() => {
+    const saved = localStorage.getItem('vera_last_form');
+    if (saved && !form.make) {
+      try { setForm(JSON.parse(saved)); } catch {}
+    }
+  }, []);
+
   // Auto-fill listing URL from query params (e.g., /?url=https://facebook.com/marketplace/item/123/)
   const [urlParamHandled, setUrlParamHandled] = useState(false);
   useEffect(() => {
@@ -1844,6 +1871,9 @@ const App = () => {
 
         setAnalysisResult(analysisResult);
 
+        // ── Save form state for restoration when user returns ──
+        localStorage.setItem('vera_last_form', JSON.stringify(form));
+        
         // ── Save to Redis and navigate to analysis page ──
         await fetch('/api/analysis', {
           method: 'POST',

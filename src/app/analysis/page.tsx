@@ -19,6 +19,7 @@ import ActionPlanPanel from '@/components/ActionPlanPanel';
 import ConditionPanel from '@/components/ConditionPanel';
 import SellerVerificationPanel from '@/components/SellerVerificationPanel';
 import RidesharePanel from '@/components/RidesharePanel';
+import VERAWidget from '@/components/VERAWidget';
 
 interface AnalysisData {
   vehicle: Vehicle;
@@ -206,10 +207,10 @@ export default function AnalysisPage() {
   const isPositiveEquity = instantEquity && instantEquity > 0;
 
   return (
-    <div className="min-h-screen bg-[#0a0905] font-sans text-[#d1d5db] flex">
+    <div className="min-h-screen bg-[#0a0905] font-sans text-[#d1d5db] flex h-screen overflow-hidden">
       <Sidebar current="analysis" />
 
-      <main className="flex-1 pb-20">
+      <main className="flex-1 pb-20 overflow-y-auto">
         {/* Top Bar */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#262420] bg-[#0a0905]/90 backdrop-blur sticky top-0 z-40">
           <div className="flex items-center gap-4">
@@ -362,6 +363,13 @@ export default function AnalysisPage() {
           <div className="h-12" />
         </div>
       </main>
+
+      {/* VERA AI Co-pilot */}
+      <VERAWidget
+        analysisResult={{ score: verdictScore, badge: verdict, equity: instantEquity }}
+        vehicle={vehicle}
+        compact
+      />
 
       <style jsx>{`
         @keyframes verdictPulse {

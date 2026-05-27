@@ -44,6 +44,23 @@ export default function EvaluationAnalysisPage() {
         setError('Failed to parse analysis data');
       }
     } else {
+      // Try without prefix - key format is analysis_test where test is the ID
+      // The key is analysis_<params.id> so if ID is va-12345, key is analysis_va-12345
+      // Check if ID starts with va- and try to find it
+      const originalId = params.id.startsWith('va-') ? params.id : null;
+      if (originalId) {
+        const altKey = `analysis_${originalId}`;
+        const altStored = localStorage.getItem(altKey);
+        if (altStored) {
+          try {
+            const parsed = JSON.parse(altStored) as VehicleWithAnalysis;
+            setData(parsed);
+            return;
+          } catch (e) {
+            console.log('Alt key parse failed', e);
+          }
+        }
+      }
       setError('Analysis data not found');
     }
   }, [params.id]);

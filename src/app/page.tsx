@@ -1653,59 +1653,18 @@ const AIPanel = ({ chatInput, setChatInput, chatMessages, onSendChat, onSaveToFl
         )}
       </div>
 
-      {/* Chat */}
-      <div className="h-64 border-t border-[#262420] bg-[#0a0905] flex flex-col flex-shrink-0 relative">
-        <div className="px-4 py-2 border-b border-[#262420] bg-[#11100e] flex justify-between items-center">
-          <span className="text-xs font-semibold text-cyan-500">Ask VERA</span>
-          <button onClick={onToggleChat} className="text-gray-500 hover:text-white">
-            <svg className={`w-4 h-4 transition-transform ${chatExpanded ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-          </button>
-        </div>
-
-        {chatExpanded && (
-        <>
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm" style={customStyles.scrollbarHide}>
-          {chatMessages.map((msg, i) => (
-            msg.sender === 'vera' ? (
-              <div key={i} className="flex gap-3">
-                <div className="w-6 h-6 rounded bg-cyan-900/50 flex items-center justify-center flex-shrink-0 border border-cyan-800">
-                  <span className="text-[10px] text-cyan-400 font-bold">V</span>
-                </div>
-                <div className="text-gray-300 bg-[#161513] p-2 rounded-lg rounded-tl-none border border-[#2a2825] text-xs">
-                  {msg.text}
-                </div>
-              </div>
-            ) : (
-              <div key={i} className="flex gap-3 flex-row-reverse">
-                <div className="w-6 h-6 rounded bg-[#2a2825] flex items-center justify-center flex-shrink-0 text-xs font-medium">JS</div>
-                <div className="text-gray-200 bg-cyan-900/40 p-2 rounded-lg rounded-tr-none border border-cyan-800/50 text-xs">
-                  {msg.text}
-                </div>
-              </div>
-            )
-          ))}
-        </div>
-
-        <div className="p-3 border-t border-[#262420] bg-[#11100e]">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Command VERA..."
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') onSendChat(); }}
-              className="w-full bg-[#050403] border border-[#3a3730] rounded-full pl-4 pr-10 py-2 text-xs text-gray-200 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
-            />
-            <button
-              onClick={onSendChat}
-              className="absolute right-1 top-1 bottom-1 w-8 bg-cyan-600 hover:bg-cyan-500 rounded-full flex items-center justify-center text-white transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-            </button>
-          </div>
-        </div>
-        </>
-        )}
+      {/* Chat — consolidated into the app-wide floating VERA (bottom-right on every page) */}
+      <div className="border-t border-[#262420] bg-[#0a0905] p-4 flex-shrink-0">
+        <button
+          onClick={() => { if (typeof window !== 'undefined') window.dispatchEvent(new Event('vera:open')); }}
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[#141311] border border-cyan-800/50 hover:border-cyan-600 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded bg-cyan-900/50 border border-cyan-800 flex items-center justify-center text-[10px] font-bold text-cyan-400">V</span>
+            <span className="text-xs font-semibold text-gray-200">Ask VERA</span>
+          </span>
+          <span className="text-[10px] text-gray-500">bottom-right, on every page →</span>
+        </button>
       </div>
     </aside>
   );
@@ -2147,27 +2106,42 @@ const App = () => {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, systemPrompt }),
+        body: JSON.stringify({ messages: apiMessages, systemPrompt, page: typeof window !== 'undefined' ? window.location.pathname : '', pageTitle: typeof document !== 'undefined' ? document.title : '', pageText: typeof document !== 'undefined' ? (document.body.innerText || '').slice(0, 2500) : '' }),
       });
       
       if (!response.body) throw new Error('No response body');
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let fullResponse = '';
-      
+      let text = '';
+      let buffer = '';
+
       setChatMessages(prev => [...prev, { sender: 'vera', text: '' }]);
-      
+
+      const flush = () => setChatMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { sender: 'vera', text };
+        return updated;
+      });
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value);
-        fullResponse += chunk;
-        setChatMessages(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { sender: 'vera', text: fullResponse };
-          return updated;
-        });
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';           // keep the partial line for the next chunk
+        for (const line of lines) {
+          const s = line.trim();
+          if (!s.startsWith('data:')) continue;
+          const payload = s.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const obj = JSON.parse(payload);
+            if (obj.error) { text += `\n⚠️ ${obj.error}`; continue; }
+            if (obj.text) { text += obj.text; flush(); }
+          } catch { /* ignore partial JSON */ }
+        }
       }
+      if (text) flush();
     } catch (error) {
       console.error('Chat error:', error);
       setChatMessages(prev => [...prev.slice(0, -1), { sender: 'vera', text: 'Sorry, I encountered an error processing your request.' }]);

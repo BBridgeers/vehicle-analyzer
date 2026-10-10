@@ -142,6 +142,13 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const abortRef = useRef<AbortController | null>(null);
 
+    // Any page/panel can summon her: window.dispatchEvent(new Event('vera:open'))
+    useEffect(() => {
+        const open = () => { setIsOpen(true); setIsMinimized(false); };
+        window.addEventListener('vera:open', open);
+        return () => window.removeEventListener('vera:open', open);
+    }, []);
+
     // VERA follows the user: persist the thread and snapshot the screen on every turn
     useEffect(() => {
         try {

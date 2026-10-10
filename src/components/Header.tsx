@@ -35,7 +35,7 @@ export default function Header({ onToggleHistory, showHistory }: HeaderProps) {
                         display: "flex", alignItems: "center", justifyContent: "center",
                         fontSize: "12px", fontWeight: "800", letterSpacing: "0.5px",
                         color: "#fff", flexShrink: 0,
-                    }}>VA</div>
+                    }}>V</div>
                     <span style={{
                         fontSize: "14px",
                         fontWeight: "600",
@@ -43,19 +43,7 @@ export default function Header({ onToggleHistory, showHistory }: HeaderProps) {
                         color: "#f0ede6",
                         fontFamily: "'Bricolage Grotesque', 'Space Grotesk', sans-serif",
                     }}>
-                        Vehicle Analyzer
-                        <span style={{
-                            marginLeft: "6px",
-                            fontSize: "9px",
-                            fontWeight: "700",
-                            letterSpacing: "1.5px",
-                            textTransform: "uppercase",
-                            background: "rgba(217,74,42,0.18)",
-                            color: "#d94a2a",
-                            padding: "2px 6px",
-                            borderRadius: "3px",
-                            border: "1px solid rgba(217,74,42,0.25)",
-                        }}>Pro</span>
+                        VERACAR
                     </span>
                 </Link>
 

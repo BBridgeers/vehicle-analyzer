@@ -4,7 +4,8 @@ import { fetchWithHeaders } from './utils';
 
 export class CraigslistScraper implements Scraper {
     canHandle(url: string): boolean {
-        return url.includes('craigslist.org');
+        // listing detail pages only (never /search)
+        return /craigslist\.org/.test(url) && /\/[a-z]{3}\/d\//.test(url);
     }
 
     async scrape(url: string): Promise<ScrapedVehicle> {

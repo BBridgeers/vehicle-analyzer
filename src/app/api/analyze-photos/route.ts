@@ -1,3 +1,4 @@
+import { llmFetch, TEXT_BASE, TEXT_MODEL, TEXT_KEY, VISION_BASE, VISION_MODEL, VISION_KEY } from '@/lib/llm-config';
 import { NextResponse } from 'next/server';
 import { MASTER_INSPECTOR_KNOWLEDGE } from '@/lib/master-inspector';
 
@@ -91,7 +92,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No photos provided' }, { status: 400 });
         }
 
-        const groqKey = process.env.GROQ_API_KEY;
+        const groqKey = process.env.GROQ_API_KEY || 'local';
         if (!groqKey) {
             return NextResponse.json({ error: 'GROQ_API_KEY not configured' }, { status: 500 });
         }
@@ -130,14 +131,14 @@ export async function POST(request: Request) {
 
         if (groqKey && !groqKey.includes('your_')) {
             try {
-                const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                const groqRes = await fetch(`${VISION_BASE}/chat/completions`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${groqKey}`,
+                        'Authorization': `Bearer ${VISION_KEY}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+                        model: VISION_MODEL,
                         messages,
                         temperature: 0.1,
                         max_tokens: 1024,

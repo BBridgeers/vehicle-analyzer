@@ -1,3 +1,4 @@
+import { llmFetch, TEXT_BASE, TEXT_MODEL, TEXT_KEY, VISION_BASE, VISION_MODEL, VISION_KEY } from '@/lib/llm-config';
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getClientIp, CHAT_LIMIT } from '@/lib/rate-limit';
 
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const groqKey = process.env.GROQ_API_KEY;
+        const groqKey = process.env.GROQ_API_KEY || 'local';
         if (!groqKey) {
             return new Response(
                 JSON.stringify({ error: "GROQ_API_KEY not configured" }),
@@ -48,14 +49,14 @@ export async function POST(request: NextRequest) {
             groqMessages.unshift({ role: 'system', content: systemPrompt });
         }
 
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const response = await fetch(`${TEXT_BASE}/chat/completions`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${groqKey}`,
+                'Authorization': `Bearer ${TEXT_KEY}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: TEXT_MODEL,
                 messages: groqMessages,
                 temperature: 0.7,
                 stream: true,

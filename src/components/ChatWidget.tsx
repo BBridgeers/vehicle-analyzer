@@ -651,7 +651,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
                                     </div>
                                 </div>
                                 <p className="text-[10px] text-[var(--color-text-disabled)] mt-1.5 font-mono text-center">
-                                    Enter to send · Shift+Enter for newline · Powered by Groq // Llama 3.3
+                                    Enter to send · Shift+Enter for newline · Powered by V.E.R.A. · local AI
                                 </p>
                             </div>
                         </>

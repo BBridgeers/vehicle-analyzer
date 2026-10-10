@@ -1,3 +1,4 @@
+import { llmFetch, TEXT_BASE, TEXT_MODEL, TEXT_KEY, VISION_BASE, VISION_MODEL, VISION_KEY } from './llm-config';
 import axios from 'axios';
 
 // ── TYPES & INTERFACES ──
@@ -75,8 +76,8 @@ export class GroqVisionEngine implements IVisionEngine {
         const base64Data = Buffer.isBuffer(image) ? image.toString('base64') : image.replace(/^data:image\/\w+;base64,/, '');
 
         try {
-            const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-                model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+            const response = await axios.post(`${VISION_BASE}/chat/completions`, {
+                model: VISION_MODEL,
                 messages: [{
                     role: 'user',
                     content: [

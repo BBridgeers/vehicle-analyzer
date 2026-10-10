@@ -4,7 +4,8 @@ import { fetchWithHeaders } from './utils';
 
 export class AutoTempestScraper implements Scraper {
     canHandle(url: string): boolean {
-        return url.includes('autotempest.com');
+        // listing pages only — /results is a multi-car search page
+        return /autotempest\.com/.test(url) && !/autotempest\.com\/results/.test(url);
     }
 
     async scrape(url: string): Promise<ScrapedVehicle> {

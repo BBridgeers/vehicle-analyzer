@@ -1,5 +1,6 @@
 "use client";
 
+import { downloadDocxReport } from '@/lib/export-docx';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -221,6 +222,9 @@ export default function AnalysisPage() {
             <button onClick={() => setIsInspectorOpen(true)} className="flex items-center gap-2 px-3 py-2 bg-[#141311] border border-[#262420] rounded-lg text-xs font-bold text-gray-300 hover:bg-[#1e1c19] transition-colors">
               Why?
             </button>
+            <button onClick={() => downloadDocxReport(vehicle, result)} className="flex items-center gap-2 px-3 py-2 bg-emerald-700/80 border border-emerald-600 rounded-lg text-xs font-bold text-white hover:bg-emerald-600 transition-colors">
+              Download .docx
+            </button>
             <button onClick={downloadReport} className="flex items-center gap-2 px-3 py-2 bg-[#141311] border border-[#262420] rounded-lg text-xs font-bold text-gray-300 hover:bg-[#1e1c19] transition-colors">
               Download Report
             </button>
@@ -228,6 +232,37 @@ export default function AnalysisPage() {
         </div>
 
         <AnalysisInspector isOpen={isInspectorOpen} onClose={() => setIsInspectorOpen(false)} analysis={result} vehicle={vehicle} />
+
+        {result?.maintenanceForecast && (
+          <div className="max-w-5xl mx-auto px-4 pt-6">
+            <div className="bg-[#131210] border border-[#2a2825] rounded-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-[#2a2825] bg-[#161513] flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-gray-200">Inferred Maintenance Outlook</h2>
+                <span className="text-[10px] text-gray-500 uppercase tracking-widest">
+                  {result.maintenanceForecast.dataQuality} · near-term est. ${result.maintenanceForecast.nearTermCost.low.toLocaleString()}–${result.maintenanceForecast.nearTermCost.high.toLocaleString()}
+                </span>
+              </div>
+              <div className="p-5 space-y-2">
+                {result.maintenanceForecast.items.map((it: any, i: number) => (
+                  <div key={i} className="flex items-start gap-3 bg-[#0a0905] border border-[#2a2825] rounded-lg px-3 py-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${it.urgency === 'now' ? 'bg-red-900/40 text-red-300 border border-red-700/40' : it.urgency === 'soon' ? 'bg-amber-900/40 text-amber-300 border border-amber-700/40' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{it.urgency}</span>
+                    <div className="flex-1">
+                      <div className="text-sm text-gray-200 font-semibold">
+                        {it.item}{it.estCost[1] > 0 ? ` · $${it.estCost[0].toLocaleString()}–$${it.estCost[1].toLocaleString()}` : ' · free at dealer'}
+                      </div>
+                      <div className="text-[11px] text-gray-500">{it.why}</div>
+                    </div>
+                    <span className="text-[10px] text-gray-600 uppercase hidden sm:block">{it.source}</span>
+                  </div>
+                ))}
+                {result.maintenanceForecast.notes?.length > 0 && (
+                  <div className="text-[11px] text-gray-500 pt-1">{result.maintenanceForecast.notes.join(' • ')}</div>
+                )}
+                <div className="text-[10px] text-gray-600 pt-1">Next service due: {result.maintenanceForecast.nextServiceDue}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="max-w-5xl mx-auto px-4 pt-6">
           {/* ── VERDICT BANNER with Decision Buttons ── */}
@@ -280,15 +315,15 @@ export default function AnalysisPage() {
           </div>
 
           {/* 14 Collapsible Sections */}
-          <CollapsibleSection title="Final Verdict" icon="⚖️" expanded={expandedSection === 'verdict-final'} onToggle={() => toggleSection('verdict-final')}>
+          <CollapsibleSection title="Final Verdict" icon="⚖️" expanded={expandedSection === null || expandedSection === 'verdict-final'} onToggle={() => toggleSection('verdict-final')}>
             <FinalVerdictPanel structuredVerdict={result.structuredVerdict} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Market Value Comparison" icon="📊" expanded={expandedSection === 'market'} onToggle={() => toggleSection('market')}>
+          <CollapsibleSection title="Market Value Comparison" icon="📊" expanded={expandedSection === null || expandedSection === 'market'} onToggle={() => toggleSection('market')}>
             <MarketChart marketValues={result.marketValues} askingPrice={vehicle.price} />
           </CollapsibleSection>
 
-          <CollapsibleSection title={`Critical Issues (${criticalIssues.length})`} icon="⚠️" expanded={expandedSection === 'issues'} onToggle={() => toggleSection('issues')}>
+          <CollapsibleSection title={`Critical Issues (${criticalIssues.length})`} icon="⚠️" expanded={expandedSection === null || expandedSection === 'issues'} onToggle={() => toggleSection('issues')}>
             <div className="space-y-3">
               {criticalIssues.map((issue, idx) => (
                 <IssueCard key={idx} issue={issue} index={idx + 1} />
@@ -297,35 +332,35 @@ export default function AnalysisPage() {
           </CollapsibleSection>
 
           {result.vinAnalysis && (
-            <CollapsibleSection title="Vehicle History & Records" icon="📋" expanded={expandedSection === 'history'} onToggle={() => toggleSection('history')}>
+            <CollapsibleSection title="Vehicle History & Records" icon="📋" expanded={expandedSection === null || expandedSection === 'history'} onToggle={() => toggleSection('history')}>
               <VinHistoryPanel vinAnalysis={result.vinAnalysis} />
             </CollapsibleSection>
           )}
 
-          <CollapsibleSection title="Scenario-Based Financial Analysis" icon="📈" expanded={expandedSection === 'scenarios'} onToggle={() => toggleSection('scenarios')}>
+          <CollapsibleSection title="Scenario-Based Financial Analysis" icon="📈" expanded={expandedSection === null || expandedSection === 'scenarios'} onToggle={() => toggleSection('scenarios')}>
             <ScenarioAnalysisPanel scenarios={result.scenarios} askingPrice={vehicle.price} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Break-Even Analysis" icon="📉" expanded={expandedSection === 'breakeven'} onToggle={() => toggleSection('breakeven')}>
+          <CollapsibleSection title="Break-Even Analysis" icon="📉" expanded={expandedSection === null || expandedSection === 'breakeven'} onToggle={() => toggleSection('breakeven')}>
             <BreakEvenPanel breakEven={result.breakEven} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Insurance Cost Estimates" icon="🛡️" expanded={expandedSection === 'insurance'} onToggle={() => toggleSection('insurance')}>
+          <CollapsibleSection title="Insurance Cost Estimates" icon="🛡️" expanded={expandedSection === null || expandedSection === 'insurance'} onToggle={() => toggleSection('insurance')}>
             <InsurancePanel insurance={result.insurance} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Operational Cost Breakdown" icon="💰" expanded={expandedSection === 'opex'} onToggle={() => toggleSection('opex')}>
+          <CollapsibleSection title="Operational Cost Breakdown" icon="💰" expanded={expandedSection === null || expandedSection === 'opex'} onToggle={() => toggleSection('opex')}>
             <OperationalCostsPanel costs={result.operationalCosts} />
           </CollapsibleSection>
 
           {result.initialInvestment && (
-            <CollapsibleSection title="Initial Investment Required" icon="🏦" expanded={expandedSection === 'investment'} onToggle={() => toggleSection('investment')}>
+            <CollapsibleSection title="Initial Investment Required" icon="🏦" expanded={expandedSection === null || expandedSection === 'investment'} onToggle={() => toggleSection('investment')}>
               <InitialInvestmentPanel investment={result.initialInvestment} />
             </CollapsibleSection>
           )}
 
           {result.paybackWeeks && (
-            <CollapsibleSection title="ROI & Payback Timeline" icon="⏱️" expanded={expandedSection === 'payback'} onToggle={() => toggleSection('payback')}>
+            <CollapsibleSection title="ROI & Payback Timeline" icon="⏱️" expanded={expandedSection === null || expandedSection === 'payback'} onToggle={() => toggleSection('payback')}>
               <PaybackPanel
                 paybackWeeks={result.paybackWeeks}
                 vehiclePrice={vehicle.price}
@@ -339,24 +374,24 @@ export default function AnalysisPage() {
           )}
 
           {result.rideshare && (
-            <CollapsibleSection title="Rideshare Eligibility & Earnings" icon="🚗" expanded={expandedSection === 'rideshare'} onToggle={() => toggleSection('rideshare')}>
+            <CollapsibleSection title="Rideshare Eligibility & Earnings" icon="🚗" expanded={expandedSection === null || expandedSection === 'rideshare'} onToggle={() => toggleSection('rideshare')}>
               <RidesharePanel eligibility={result.rideshare.eligibility} earnings={result.rideshare.earnings} vehiclePrice={vehicle.price} />
             </CollapsibleSection>
           )}
 
-          <CollapsibleSection title="Negotiation Strategy" icon="🤝" expanded={expandedSection === 'negotiation'} onToggle={() => toggleSection('negotiation')}>
+          <CollapsibleSection title="Negotiation Strategy" icon="🤝" expanded={expandedSection === null || expandedSection === 'negotiation'} onToggle={() => toggleSection('negotiation')}>
             <NegotiationPanel negotiation={result.negotiation} askingPrice={vehicle.price} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Pre-Purchase Action Plan" icon="✅" expanded={expandedSection === 'actionplan'} onToggle={() => toggleSection('actionplan')}>
+          <CollapsibleSection title="Pre-Purchase Action Plan" icon="✅" expanded={expandedSection === null || expandedSection === 'actionplan'} onToggle={() => toggleSection('actionplan')}>
             <ActionPlanPanel actionPlan={result.actionPlan} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Condition Assessment" icon="🔍" expanded={expandedSection === 'condition'} onToggle={() => toggleSection('condition')}>
+          <CollapsibleSection title="Condition Assessment" icon="🔍" expanded={expandedSection === null || expandedSection === 'condition'} onToggle={() => toggleSection('condition')}>
             <ConditionPanel condition={result.conditionAssessment} />
           </CollapsibleSection>
 
-          <CollapsibleSection title="Seller Verification" icon="👤" expanded={expandedSection === 'seller'} onToggle={() => toggleSection('seller')}>
+          <CollapsibleSection title="Seller Verification" icon="👤" expanded={expandedSection === null || expandedSection === 'seller'} onToggle={() => toggleSection('seller')}>
             <SellerVerificationPanel seller={result.sellerVerification} />
           </CollapsibleSection>
 
@@ -387,7 +422,7 @@ function Sidebar({ current }: { current: string }) {
     <aside className="w-64 bg-[#11100e] border-r border-[#262420] flex flex-col h-screen flex-shrink-0 sticky top-0">
       <div className="h-16 flex items-center px-6 border-b border-[#262420]">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center font-bold text-white tracking-widest text-sm">VA</div>
+          <div className="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center font-bold text-white tracking-widest text-sm">V</div>
           <span className="font-bold text-lg tracking-wider text-gray-100">V.E.R.A.</span>
         </Link>
       </div>

@@ -43,7 +43,7 @@ export default function AgentForm() {
         <div className="font-mono max-w-4xl mx-auto my-8 p-4 bg-zinc-100 text-zinc-900 min-h-screen">
             <div className="bg-white p-8 rounded-lg shadow-sm">
                 <h1 className="text-2xl font-bold mb-8 border-b border-zinc-200 pb-4">Agent Data Entry Portal</h1>
-                <p className="mb-6">Use this form to aggregate vehicle data found on marketplaces. Click "Generate Output" to get JSON/CSV ready for the Vehicle Analyzer.</p>
+                <p className="mb-6">Use this form to aggregate vehicle data found on marketplaces. Click "Generate Output" to get JSON/CSV ready for VERACAR.</p>
 
                 <form ref={formRef} id="vehicleForm">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Redis } from '@upstash/redis';
 
-declare const kv: Redis;
+import { kv } from '@/lib/kv';
 
 /**
  * Market Analytics Stats API

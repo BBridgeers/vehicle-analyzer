@@ -1,3 +1,5 @@
+import { llmFetch, TEXT_BASE, TEXT_MODEL, TEXT_KEY, VISION_BASE, VISION_MODEL, VISION_KEY } from '@/lib/llm-config';
+import { kv } from '@/lib/kv';
 import { NextResponse } from 'next/server';
 
 // ── Expert-enriched CARFAX system prompt ──────────────────────────────────────
@@ -130,6 +132,16 @@ Respond with ONLY valid JSON — no markdown fences, no text before or after.
   "make": "<make or null>",
   "model": "<model or null>",
   "trim": "<trim or null>",
+  "bodyStyle": "<body style or null>",
+  "engine": "<engine description e.g. 1.4L 4-cylinder or null>",
+  "drivetrain": "<FWD | RWD | AWD | 4WD | null>",
+  "transmission": "<Automatic | CVT | Manual | null>",
+  "fuelType": "<Gasoline | Electric | Plug-in Hybrid | Hybrid | Diesel | null>",
+  "seats": <number of seats or null>,
+  "exteriorColor": "<exterior colour or null>",
+  "interiorColor": "<interior colour or null>",
+  "location": "<last registered city/state if stated or null>",
+  "price": <asking price in dollars or null>,
   "mileage": <number or null>,
   "carfaxRetailValue": <dollar number or null>,
   "titleStatus": "Clean" | "Rebuilt" | "Salvage" | "Lemon" | "Flood" | "Fire" | "Unknown",
@@ -249,15 +261,15 @@ async function tryClientPagesVisionOcr(
     })),
   ];
 
-  const visionRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const visionRes = await fetch(`${VISION_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${groqKey}`,
+      Authorization: `Bearer ${VISION_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      temperature: 0.05,
+      model: VISION_MODEL,
+      temperature: 0,
       max_tokens: 6000,
       messages: [{ role: 'user', content: contentParts }],
     }),
@@ -278,14 +290,26 @@ async function analyzeWithGroq(pdfText: string, groqKey: string, strategyUsed: s
     pdfText.length > 65000
       ? pdfText.slice(0, 65000) + '\n\n[... truncated ...]'
       : pdfText;
+  // ── Per-VIN cache: if we've already analysed this vehicle, skip the model entirely ──
+  const vinInText = (trimmedText.match(/\b[A-HJ-NPR-Z0-9]{17}\b/) || [])[0];
+  if (vinInText) {
+    try {
+      const cached = await kv.get(`carfax:${vinInText.toUpperCase()}`);
+      if (cached && typeof cached === 'object' && !(cached as any).error) {
+        console.log(`[Carfax] cache hit for ${vinInText} — skipping model call`);
+        return { ...(cached as any), cached: true };
+      }
+    } catch { /* cache miss — proceed */ }
+  }
+
   console.log(
-    `[Carfax] Sending ${trimmedText.length} chars to Groq for analysis (via ${strategyUsed})`
+    `[Carfax] Sending ${trimmedText.length} chars to the local model for analysis (via ${strategyUsed})`
   );
 
   const groqRequestBody = {
-    model: 'llama-3.3-70b-versatile',
-    temperature: 0.05,
-    max_tokens: 32768,
+    model: TEXT_MODEL,
+    temperature: 0,
+    max_tokens: 16000,
     response_format: { type: 'json_object' } as const,
     messages: [
       { role: 'system' as const, content: CARFAX_SYSTEM_PROMPT },
@@ -305,17 +329,10 @@ async function analyzeWithGroq(pdfText: string, groqKey: string, strategyUsed: s
       await new Promise((r) => setTimeout(r, delay));
     }
     try {
-      groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(groqRequestBody),
-      });
+      groqRes = await llmFetch(groqRequestBody);
       if (groqRes.ok) break;
       lastError = await groqRes.text();
-      console.warn(`[Carfax] Groq attempt ${attempt + 1} failed (${groqRes.status}): ${lastError.slice(0, 200)}`);
+      console.warn(`[Carfax] model attempt ${attempt + 1} failed (${groqRes.status}): ${lastError.slice(0, 200)}`);
       if (groqRes.status === 401 || groqRes.status === 403) break;
     } catch (fetchError: any) {
       lastError = fetchError.message;
@@ -356,7 +373,7 @@ async function analyzeWithGroq(pdfText: string, groqKey: string, strategyUsed: s
 // ── Route handler ─────────────────────────────────────────────────────────────
 export async function POST(request: Request) {
   try {
-    let groqKey = process.env.GROQ_API_KEY;
+    let groqKey = process.env.GROQ_API_KEY || 'local';
     if (!groqKey) {
       return NextResponse.json(
         { error: 'Server configuration error — GROQ_API_KEY not set.' },
@@ -388,7 +405,13 @@ export async function POST(request: Request) {
       try {
         const text = await tryClientPagesVisionOcr(pages, groqKey, pagesFilename);
         if (text.length >= 100) {
-          const analysis = await analyzeWithGroq(text, groqKey, 'C (client pages + vision)');
+          let analysis = await analyzeWithGroq(text, groqKey, 'C (client pages + vision)');
+  if (analysis && !(analysis as any).error) {
+    try {
+      const v = (analysis as any).vin;
+      if (v) await kv.set(`carfax:${String(v).toUpperCase()}`, analysis, { ex: 60 * 60 * 24 * 90 });
+    } catch { /* cache write is best-effort */ }
+  }
           if (analysis.error) {
             return NextResponse.json({ error: analysis.error }, { status: analysis.status });
           }
@@ -480,7 +503,13 @@ export async function POST(request: Request) {
     }
 
     // ── Analysis on extracted text ────────────────────────────────────────
-    const analysis = await analyzeWithGroq(pdfText, groqKey, strategyUsed);
+    let analysis = await analyzeWithGroq(pdfText, groqKey, strategyUsed);
+  if (analysis && !(analysis as any).error) {
+    try {
+      const v = (analysis as any).vin;
+      if (v) await kv.set(`carfax:${String(v).toUpperCase()}`, analysis, { ex: 60 * 60 * 24 * 90 });
+    } catch { /* cache write is best-effort */ }
+  }
     if (analysis.error) {
       return NextResponse.json({ error: analysis.error }, { status: analysis.status });
     }

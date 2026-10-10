@@ -144,6 +144,10 @@ export interface AnalysisResult {
     sellerVerification: SellerVerification;
     // Real-world VIN Data (Antigravity Engine)
     vinAnalysis?: VinAnalysis;
+    /** Inferred maintenance outlook (deterministic; age/mileage/history driven) */
+    maintenanceForecast?: import("./maintenance-forecast").MaintenanceForecast;
+    /** Which external sources contributed to this analysis */
+    dataSources?: { carfax: boolean; nhtsa: boolean; vin: boolean; vinSpecs: boolean };
     scoringBreakdown?: ScoringBreakdown;
 }
 

@@ -171,7 +171,7 @@ const Sidebar = ({ activeNav, setActiveNav }: { activeNav: string; setActiveNav:
     <aside className="w-64 bg-[#11100e] border-r border-[#262420] flex flex-col h-full z-20 flex-shrink-0 relative">
       <div className="h-16 flex items-center px-6 border-b border-[#262420]">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center font-bold text-white tracking-widest text-sm">VA</div>
+          <div className="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center font-bold text-white tracking-widest text-sm">V</div>
           <span className="font-bold text-lg tracking-wider text-gray-100">V.E.R.A.</span>
         </div>
       </div>

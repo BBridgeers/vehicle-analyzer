@@ -67,7 +67,7 @@ const Sidebar = ({ history: sidebarHistory, onHistoryClick }: { history?: Array<
 <aside className="w-64 bg-[#11100e] border-r border-[#262420] flex flex-col h-full z-10 flex-shrink-0">
       <div className="h-16 flex items-center px-6 border-b border-[#262420]">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center font-bold text-white tracking-widest text-sm">VA</div>
+          <div className="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center font-bold text-white tracking-widest text-sm">V</div>
           <span className="font-bold text-lg tracking-wider text-gray-100">V.E.R.A.</span>
         </div>
       </div>
@@ -458,6 +458,68 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
     return pages;
   };
 
+  // ── Fill every field we can from a CARFAX payload, then chain the VIN decode ──
+  const mergeVinSpecs = (specs: any) => {
+    if (!specs) return;
+    setForm((f: any) => {
+      const nx: any = { ...f };
+      const real = (v: any) => v !== undefined && v !== null && String(v).trim() !== '' &&
+        String(v).trim().toLowerCase() !== 'unknown' && String(v) !== '0';
+      const fill = (k: string, v: any) => { if (real(v) && !real(nx[k])) nx[k] = String(v); };
+      if (real(specs.year)) nx.year = String(specs.year);
+      if (real(specs.make)) nx.make = String(specs.make);
+      if (real(specs.model)) nx.model = String(specs.model);
+      fill('trim', specs.trim);
+      fill('bodyStyle', specs.bodyStyle);
+      fill('engine', specs.engine);
+      fill('drivetrain', specs.drivetrain);
+      fill('transmission', specs.transmission);
+      fill('fuelType', specs.fuelType);
+      fill('seats', specs.seats);
+      fill('exteriorColor', specs.exteriorColor);
+      fill('interiorColor', specs.interiorColor);
+      return nx;
+    });
+  };
+
+  const decodeVinInto = (vinRaw: string) => {
+    const vin = (vinRaw || '').trim().toUpperCase();
+    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return;
+    setTimeout(async () => {
+      try {
+        const r = await fetch('/api/vin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vin }),
+        });
+        const dd = await r.json();
+        if (r.ok && dd.specs) mergeVinSpecs(dd.specs);
+      } catch { /* VIN decode is best-effort */ }
+    }, 200);
+  };
+
+  const autofillFromCarfax = (d: any) => {
+    const vin = String(d?.vin || '').trim().toUpperCase();
+    setForm((f: any) => {
+      const nx: any = { ...f };
+      const real = (v: any) => v !== undefined && v !== null && String(v).trim() !== '' &&
+        String(v).trim().toLowerCase() !== 'unknown' && String(v) !== '0';
+      const put = (k: string, v: any) => { if (real(v)) nx[k] = v; };
+      put('vin', vin);
+      put('year', d.year); put('make', d.make); put('model', d.model); put('trim', d.trim);
+      put('mileage', d.mileage); put('titleStatus', d.titleStatus);
+      put('bodyStyle', d.bodyStyle); put('engine', d.engine); put('drivetrain', d.drivetrain);
+      put('transmission', d.transmission); put('fuelType', d.fuelType); put('seats', d.seats);
+      put('exteriorColor', d.exteriorColor); put('interiorColor', d.interiorColor);
+      put('price', d.price);
+      if (real(d.carfaxRetailValue) && !real(nx.price)) nx.price = String(d.carfaxRetailValue);
+      if (d.summary && !nx.sellerDescription) nx.sellerDescription = d.summary;
+      return nx;
+    });
+    // Proactively decode the VIN to fill everything the report didn't carry
+    decodeVinInto(vin);
+  };
+
   const processCarfax = async (file: File) => {
     setCarfaxFile(file);
     setCarfaxStatus('parsing');
@@ -482,7 +544,7 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
         setCarfaxResult(visionData);
         setCarfaxStatus('done');
         if (onCarfaxResult) onCarfaxResult(visionData);
-        if (visionData.titleStatus) setForm((f: any) => ({ ...f, titleStatus: visionData.titleStatus }));
+        autofillFromCarfax(visionData);
         return;
       }
 
@@ -490,8 +552,7 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
       setCarfaxResult(data);
       setCarfaxStatus('done');
       if (onCarfaxResult) onCarfaxResult(data);
-      // Auto-fill title status if CARFAX reveals it
-      if (data.titleStatus) setForm((f: any) => ({ ...f, titleStatus: data.titleStatus }));
+autofillFromCarfax(data);
     } catch (e: any) {
       setCarfaxError(e.message);
       setCarfaxStatus('error');
@@ -712,7 +773,7 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
                   <svg className="w-5 h-5 text-amber-400 animate-spin flex-shrink-0" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                   <div>
                     <p className="text-xs font-medium text-amber-300">{carfaxFile?.name}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Groq AI is reading the report...</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">VERA is reading the report...</p>
                   </div>
                 </div>
               )}
@@ -752,6 +813,11 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
                     {carfaxResult.incidents && carfaxResult.incidents.length > 0 && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Incidents</div><div className="text-amber-300 font-semibold">{carfaxResult.incidents.length}</div></div>}
                     {carfaxResult.titleStatus && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Title</div><div className={`font-semibold ${ carfaxResult.titleStatus === 'Clean' ? 'text-emerald-300' : 'text-orange-300' }`}>{carfaxResult.titleStatus}</div></div>}
                     {carfaxResult.serviceRecordCount != null && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Service Recs</div><div className="text-gray-200 font-semibold">{carfaxResult.serviceRecordCount}</div></div>}
+                    {carfaxResult.lastServiceDate && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Last Service</div><div className="text-gray-200 font-semibold">{carfaxResult.lastServiceDate}{carfaxResult.lastServiceMileage ? ` @ ${Number(carfaxResult.lastServiceMileage).toLocaleString()} mi` : ''}</div></div>}
+                    {carfaxResult.serviceQuality && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Service Quality</div><div className="text-gray-200 font-semibold">{carfaxResult.serviceQuality}</div></div>}
+                    {carfaxResult.annualMileageAvg != null && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Avg Miles/Yr</div><div className="text-gray-200 font-semibold">{Number(carfaxResult.annualMileageAvg).toLocaleString()}</div></div>}
+                    {carfaxResult.odometerRollback != null && <div className="bg-[#0a0905] border border-[#2a2825] rounded px-2 py-1.5"><div className="text-gray-500 mb-0.5">Odometer</div><div className={`font-semibold ${carfaxResult.odometerRollback ? 'text-red-400' : 'text-emerald-400'}`}>{carfaxResult.odometerRollback ? 'ROLLBACK FLAG' : 'Consistent'}</div></div>}
+                    {carfaxResult.serviceGaps?.length > 0 && <div className="col-span-2 bg-[#0a0905] border border-amber-800/40 rounded px-2 py-1.5"><div className="text-amber-500 mb-0.5">Service Gaps</div><div className="text-amber-200 text-[11px]">{carfaxResult.serviceGaps.join(' · ')}</div></div>}
                   </div>
 
                   {/* Summary */}
@@ -779,10 +845,38 @@ const QuickImportSection = ({ form, setForm, isAnalyzing, onCarfaxResult, onRunA
   );
 };
 
-const CoreIdentitySection = ({ form, setForm }) => {
+const CoreIdentitySection = ({ form, setForm, onVinResult }: any) => {
   const [vinDecoding, setVinDecoding] = useState(false);
   const [vinError, setVinError] = useState('');
   const [vinResult, setVinResult] = useState<any>(null);
+  const [vinExtras, setVinExtras] = useState<any>(null);
+  const [carfaxData, setCarfaxData] = useState<any>(null);
+
+  const mergeVinSpecs = (specs: any) => {
+    if (!specs) return;
+    setForm((f: any) => {
+      const nx: any = { ...f };
+      const real = (v: any) => v !== undefined && v !== null && String(v).trim() !== '' &&
+        String(v).trim().toLowerCase() !== 'unknown' && String(v) !== '0';
+      const fill = (k: string, v: any) => { if (real(v) && !real(nx[k])) nx[k] = String(v); };
+      if (real(specs.year)) nx.year = String(specs.year);
+      if (real(specs.make)) nx.make = String(specs.make);
+      if (real(specs.model)) nx.model = String(specs.model);
+      fill('trim', specs.trim);
+      fill('bodyStyle', specs.bodyStyle);
+      fill('engine', specs.engine);
+      fill('drivetrain', specs.drivetrain);
+      fill('transmission', specs.transmission);
+      fill('fuelType', specs.fuelType);
+      fill('seats', specs.seats);
+      fill('exteriorColor', specs.exteriorColor);
+      fill('interiorColor', specs.interiorColor);
+      fill('engine', specs.engine);
+      if (real(specs.electrification) && !real(nx.fuelType)) nx.fuelType = String(specs.electrification);
+      return nx;
+    });
+    setVinExtras(specs);
+  };
 
   const handleVinDecode = async () => {
     const vin = form.vin?.trim();
@@ -802,16 +896,9 @@ const CoreIdentitySection = ({ form, setForm }) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'VIN decode failed');
       setVinResult(data);
-      // Auto-fill form fields from decode result
-      if (data.specs) {
-        setForm((f: any) => ({
-          ...f,
-          year: data.specs.year && data.specs.year !== 'Unknown' ? String(data.specs.year) : f.year,
-          make: data.specs.make && data.specs.make !== 'Unknown' ? data.specs.make : f.make,
-          model: data.specs.model && data.specs.model !== 'Unknown' ? data.specs.model : f.model,
-          trim: data.specs.trim || f.trim,
-        }));
-      }
+      onVinResult?.(data.specs, data);
+      // Auto-fill EVERY spec field from decode result
+      mergeVinSpecs(data.specs);
     } catch (e: any) {
       setVinError(e.message);
     } finally {
@@ -855,6 +942,14 @@ const CoreIdentitySection = ({ form, setForm }) => {
             {vinResult.specs?.year && vinResult.specs.year !== 'Unknown' && <span className="text-[10px] bg-emerald-900/30 border border-emerald-700/40 text-emerald-300 px-2 py-0.5 rounded">{vinResult.specs.year} {vinResult.specs.make} {vinResult.specs.model}</span>}
             {vinResult.verdict && <span className={`text-[10px] px-2 py-0.5 rounded border ${vinResult.verdict.score >= 75 ? 'bg-emerald-900/30 border-emerald-700/40 text-emerald-300' : vinResult.verdict.score >= 50 ? 'bg-amber-900/30 border-amber-700/40 text-amber-300' : 'bg-red-900/30 border-red-700/40 text-red-300'}`}>Score: {vinResult.verdict.score} — {vinResult.verdict.recommendation}</span>}
             {vinResult.safety?.recalls?.length > 0 && <span className="text-[10px] bg-red-900/30 border border-red-700/40 text-red-300 px-2 py-0.5 rounded">⚠ {vinResult.safety.recalls.length} recalls</span>}
+            {vinResult.safety?.ratings?.overall && <span className="text-[10px] bg-sky-900/30 border border-sky-700/40 text-sky-300 px-2 py-0.5 rounded">NCAP ★{vinResult.safety.ratings.overall}{vinResult.safety.ratings.frontal ? ` · front ${vinResult.safety.ratings.frontal}` : ''}{vinResult.safety.ratings.side ? ` · side ${vinResult.safety.ratings.side}` : ''}{vinResult.safety.ratings.rollover ? ` · roll ${vinResult.safety.ratings.rollover}` : ''}</span>}
+            {vinResult.safety?.complaints?.count > 0 && <span className="text-[10px] bg-amber-900/30 border border-amber-700/40 text-amber-300 px-2 py-0.5 rounded">{vinResult.safety.complaints.count} owner complaints</span>}
+            {vinExtras?.vehicleType && <span className="text-[10px] bg-gray-800/60 border border-gray-700 text-gray-300 px-2 py-0.5 rounded">{vinExtras.vehicleType}</span>}
+            {vinExtras?.electrification && <span className="text-[10px] bg-emerald-900/30 border border-emerald-700/40 text-emerald-300 px-2 py-0.5 rounded">{vinExtras.electrification}</span>}
+            {vinExtras?.doors && <span className="text-[10px] bg-gray-800/60 border border-gray-700 text-gray-300 px-2 py-0.5 rounded">{vinExtras.doors} doors</span>}
+            {vinExtras?.plantCity && <span className="text-[10px] bg-gray-800/60 border border-gray-700 text-gray-300 px-2 py-0.5 rounded">built {vinExtras.plantCity}{vinExtras.plantCountry ? `, ${vinExtras.plantCountry}` : ''}</span>}
+            {vinExtras?.brakeSystem && <span className="text-[10px] bg-gray-800/60 border border-gray-700 text-gray-300 px-2 py-0.5 rounded">{vinExtras.brakeSystem}</span>}
+            {vinExtras?.curtainAirbags && <span className="text-[10px] bg-gray-800/60 border border-gray-700 text-gray-300 px-2 py-0.5 rounded">airbags: {vinExtras.curtainAirbags}</span>}
           </div>
         )}
       </div>
@@ -1218,7 +1313,7 @@ const SellerIntelSection = ({ form, setForm }) => (
   </section>
 );
 
-const MainContent = ({ form, setForm, activeMode, setActiveMode, onClearForm, onRunAnalysis, isAnalyzing, setIsAnalyzing, photos, setPhotos }: any) => (
+const MainContent = ({ form, setForm, activeMode, setActiveMode, onClearForm, onRunAnalysis, isAnalyzing, setIsAnalyzing, photos, setPhotos, onCarfaxResult, onVinResult }: any) => (
   <main className="flex-[3] flex flex-col h-full bg-[#0a0905]">
     <header className="h-16 flex items-center justify-between px-8 border-b border-[#262420] flex-shrink-0 bg-[#0a0905]/80 backdrop-blur z-10">
       <div className="flex items-center gap-6">
@@ -1258,8 +1353,8 @@ const MainContent = ({ form, setForm, activeMode, setActiveMode, onClearForm, on
 
     <div className="flex-1 overflow-y-auto p-8" style={customStyles.scrollbarHide}>
       <div className="max-w-4xl mx-auto space-y-8 pb-12">
-        <QuickImportSection form={form} setForm={setForm} isAnalyzing={isAnalyzing} onRunAnalysis={onRunAnalysis} photos={photos} setPhotos={setPhotos} />
-        <CoreIdentitySection form={form} setForm={setForm} />
+        <QuickImportSection form={form} setForm={setForm} isAnalyzing={isAnalyzing} onCarfaxResult={onCarfaxResult} onRunAnalysis={onRunAnalysis} photos={photos} setPhotos={setPhotos} />
+        <CoreIdentitySection form={form} setForm={setForm} onVinResult={onVinResult} />
         <SpecificationsSection form={form} setForm={setForm} />
         <ListingContextSection form={form} setForm={setForm} />
         <ConditionSection form={form} setForm={setForm} photos={photos} setPhotos={setPhotos} />
@@ -1634,6 +1729,10 @@ const defaultMessages = [
 
 const App = () => {
   const [form, setForm] = useState(defaultForm);
+  // ── Everything funnels here: CARFAX payload, NHTSA decode, extended specs ──
+  const [carfaxData, setCarfaxData] = useState<any>(null);
+  const [vinData, setVinData] = useState<any>(null);
+  const [vinSpecsData, setVinSpecsData] = useState<any>(null);
   const [activeMode, setActiveMode] = useState('rideshare');
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -1881,7 +1980,13 @@ const App = () => {
 
         // ── Dynamic import to avoid SSR issues ──
         const { analyzeVehicle } = await import('@/lib/analyze');
-        const result = analyzeVehicle(vehicle);
+        // ── Everything funnels in: CARFAX payload + NHTSA decode + extended specs ──
+        const analysisContext = {
+          carfax: carfaxData || null,
+          nhtsa: vinData || null,
+          vinSpecs: vinSpecsData || null,
+        };
+        const result = analyzeVehicle(vehicle, vinData || undefined, analysisContext);
 
         // ── Map to UI format ──
         const score = result.verdictScore;
@@ -1948,7 +2053,7 @@ const App = () => {
         await fetch('/api/analysis', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ vehicle, result }),
+          body: JSON.stringify({ vehicle, result, sources: analysisContext }),
         });
         router.push('/analysis');
         return;
@@ -2140,7 +2245,7 @@ CLOSING
 "Based on the market research I've done, I can offer $___. I can close today if this works for you."
 
 ---
-Generated by V.E.R.A. Vehicle Analyzer
+Generated by V.E.R.A. — VERACAR
 `;
 
     const blob = new Blob([script], { type: 'text/plain' });
@@ -2250,7 +2355,7 @@ Generated by V.E.R.A. Vehicle Analyzer
   ${iss.length ? '<h2>Critical Issues</h2>' + iss.map((i: any) => '<div class="issue">' + (typeof i === 'string' ? i : (i.description || i.reason || JSON.stringify(i))) + '</div>').join('') : ''}
   ` : '<p style="color:#6b7280">No analysis data yet. Run AI Analysis first.</p>'}
   
-  <div class="footer">Generated by V.E.R.A. Vehicle Analyzer &bull; veracar.co</div>
+  <div class="footer">Generated by V.E.R.A. — VERACAR &bull; veracar.co</div>
 </div>
 </body></html>`;
 
@@ -2281,7 +2386,7 @@ Generated by V.E.R.A. Vehicle Analyzer
         setIsAnalyzing={setIsAnalyzing}
         photos={photos}
         setPhotos={setPhotos}
-      />
+       onCarfaxResult={setCarfaxData} onVinResult={(specs: any, full: any) => { setVinSpecsData(specs); setVinData(full); }} />
       <AIPanel 
         chatInput={chatInput} 
         setChatInput={setChatInput} 

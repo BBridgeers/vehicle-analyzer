@@ -1,10 +1,11 @@
 import { Redis } from '@upstash/redis';
+import { kv } from './kv';
 import { VisionManager } from './vision-engine';
 
 // Upstash Redis automatically uses KV_REST_API_URL and KV_REST_API_TOKEN from env
 let redis: Redis | null = null;
 try {
-    redis = Redis.fromEnv();
+    redis = kv as unknown as Redis; // local SQLite store (Upstash retired)
 } catch (e) {
     console.warn("Redis not configured, caching will be disabled.");
 }
@@ -77,7 +78,36 @@ export class AntigravityEngine {
             if (make.toLowerCase() === "fca" || make.toLowerCase() === "stellantis") make = "Chrysler/Jeep";
             if (make.toLowerCase() === "volkswagen group") make = "Volkswagen";
 
-            this.data.specs = { year, make, model, trim: specs.Trim || "" };
+            // Keep the COMPLETE decoded variable map — nothing discarded.
+            (this.data as any).specsRaw = specs;
+            const fuelPrimary = specs['Electrification Level'] && /PHEV|BEV|HEV/i.test(specs['Electrification Level'])
+                ? (specs['Electrification Level'] as string)
+                : (specs['Fuel Type - Primary'] || '');
+            this.data.specs = {
+                year, make, model, trim: specs.Trim || "",
+                bodyStyle: specs['Body Class'] || "",
+                engine: [specs['Displacement (L)'] ? specs['Displacement (L)'] + 'L' : '', specs['Engine Number of Cylinders'] ? specs['Engine Number of Cylinders'] + '-cyl' : '', specs['Engine Model']].filter(Boolean).join(' ') || specs['Engine Model'] || "",
+                drivetrain: specs['Drive Type'] || "",
+                transmission: [specs['Transmission Style'], specs['Transmission Speeds']].filter(Boolean).join(' ') || "",
+                fuelType: fuelPrimary,
+                seats: specs['Seats'] || "",
+                doors: specs['Doors'] || "",
+                exteriorColor: specs['Exterior Color'] || "",
+                interiorColor: specs['Interior Color'] || "",
+                plantCountry: specs['Plant Country'] || "",
+                plantCity: specs['Plant City'] || "",
+                vehicleType: specs['Vehicle Type'] || "",
+                electrification: specs['Electrification Level'] || "",
+                cylinders: specs['Engine Number of Cylinders'] || "",
+                displacementL: specs['Displacement (L)'] || "",
+                brakeSystem: specs['Brake System Type'] || "",
+                steeringLocation: specs['Steering Location'] || "",
+                seatBeltType: specs['Seat Belt Type'] || "",
+                curtainAirbags: specs['Curtain Air Bag Locations'] || "",
+                engineInfo: specs['Other Engine Info'] || "",
+                series: specs['Series'] || "",
+                gvwr: specs['Gross Vehicle Weight Rating From'] || "",
+            };
 
             try {
                 const recallRes = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicle?make=${make}&model=${model}&modelYear=${year}`);
@@ -101,6 +131,42 @@ export class AntigravityEngine {
                 this.data.safety.recalls = []; // Safe fallback
             }
 
+            // ── NHTSA owner complaints (free, public) ──
+            try {
+                const cRes = await fetch(`https://api.nhtsa.gov/complaints/complaintsByVehicle?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${encodeURIComponent(year)}`);
+                const cData = await cRes.json();
+                const list = cData.results || [];
+                const comps = Array.from(new Set(list.map((c: any) => c.components).filter(Boolean)));
+                (this.data.safety as any).complaints = {
+                    count: list.length,
+                    components: comps.slice(0, 10),
+                    latest: list.slice(0, 5).map((c: any) => ({ date: c.dateComplaint, components: c.components, summary: String(c.summary || '').slice(0, 300), crash: c.crash, fire: c.fire })),
+                };
+            } catch (e) {
+                (this.data.safety as any).complaints = { count: 0, components: [], latest: [] };
+            }
+
+            // ── NHTSA NCAP safety ratings (free, public) ──
+            try {
+                const sRes = await fetch(`https://api.nhtsa.gov/SafetyRatings/vehicle/${encodeURIComponent(year)}/${encodeURIComponent(make)}/${encodeURIComponent(model)}`);
+                const sData = await sRes.json();
+                const v = (sData.Results || [])[0];
+                if (v && v.VehicleId) {
+                    const rRes = await fetch(`https://api.nhtsa.gov/SafetyRatings/vehicleId/${v.VehicleId}`);
+                    const rData = await rRes.json();
+                    const r = (rData.Results || [])[0] || {};
+                    (this.data.safety as any).ratings = {
+                        source: 'NHTSA NCAP', overall: r.OverallRating || null,
+                        frontal: r.OverallFrontCrashRating || null, side: r.OverallSideCrashRating || null,
+                        rollover: r.RolloverRating || null, vehicleId: v.VehicleId, description: v.VehicleDescription || '',
+                    };
+                } else {
+                    (this.data.safety as any).ratings = null;
+                }
+            } catch (e) {
+                (this.data.safety as any).ratings = null;
+            }
+
         } catch (e) {
             console.error("Critical API Error:", e);
             // Failsafe state
@@ -111,26 +177,34 @@ export class AntigravityEngine {
     // --- STEP 2: MAINTENANCE SCRAPE (Surgical Scrape) ---
     async scrapeMaintenance() {
         let browser;
+        const SCRAPE_HOST = 'www.vehiclehistory.com';
         try {
-            // Use playwright-extra with puppeteer-extra-plugin-stealth
-            const { chromium: playwright } = require('playwright-extra');
-            const stealth = require('puppeteer-extra-plugin-stealth');
-            playwright.use(stealth());
+            // ── Guard 1: target must have DNS. vehiclehistory.com is a dead domain
+            // (NXDOMAIN globally) — bail instantly instead of blocking the VIN verdict.
+            const dns = require('dns');
+            await new Promise<void>((resolve, reject) => {
+                dns.lookup(SCRAPE_HOST, (err: any) => (err ? reject(err) : resolve()));
+            });
 
-            if (process.env.NODE_ENV === 'development' || process.platform === 'win32') {
-                browser = await playwright.launch({
-                    channel: 'chrome',
-                    headless: true
-                });
-            } else {
-                const chromiumArgs = require('@sparticuz/chromium');
-                browser = await playwright.launch({
-                    args: [...chromiumArgs.args, '--disable-blink-features=AutomationControlled'],
-                    defaultViewport: chromiumArgs.defaultViewport,
-                    executablePath: await chromiumArgs.executablePath(),
-                    headless: chromiumArgs.headless,
-                });
-            }
+            // ── NOTE: playwright-extra + puppeteer-extra-plugin-stealth is a MISMATCHED
+            // plugin family (those hooks belong to puppeteer, not playwright) and hangs
+            // launch() indefinitely. Plain playwright-core launches in ~33ms. Never
+            // reintroduce that pairing.
+            const { chromium } = require('playwright-core');
+            const chromiumArgs = require('@sparticuz/chromium');
+
+            const launchPromise = chromium.launch({
+                args: [...chromiumArgs.args, '--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled'],
+                defaultViewport: chromiumArgs.defaultViewport,
+                executablePath: await chromiumArgs.executablePath(),
+                headless: true,
+            });
+
+            // ── Guard 2: hard cap on launch so it can never hang an HTTP request.
+            browser = await Promise.race([
+                launchPromise,
+                new Promise<never>((_, rej) => setTimeout(() => rej(new Error('browser launch timeout (20s)')), 20000)),
+            ]);
 
             const page = await browser.newPage();
 
@@ -164,19 +238,22 @@ export class AntigravityEngine {
 
                 if (historyEvents.length > 0) {
                     this.data.history.maintenance = historyEvents;
+                    (this.data.history as any).maintenanceAvailable = true;
                 } else {
                     this.data.history.maintenance = [];
                 }
 
             } catch (scrapeError) {
                 // Catches the 30000ms timeout or a blocked page
-                this.data.history.maintenance = [{ error: "History unavailable - Timeout or Blocked" }];
+                this.data.history.maintenance = [{ error: "History source timed out or blocked." }];
+            (this.data.history as any).maintenanceAvailable = false;
             } finally {
                 await page.close();
             }
         } catch (launchError) {
             console.error("Browser launch error:", launchError);
-            this.data.history.maintenance = [{ error: "Service history scan bypassed (Server limits/timeout)" }];
+            this.data.history.maintenance = [{ error: "No free maintenance source available (vehiclehistory.com is offline). Service records come from the CARFAX report when present." }];
+            (this.data.history as any).maintenanceAvailable = false;
         } finally {
             if (browser) await browser.close();
         }
@@ -189,7 +266,7 @@ export class AntigravityEngine {
 
         if (recalls > 0) {
             score -= (recalls * 15);
-            this.data.verdict.alerts.push(`${recalls} Open Recalls`);
+            this.data.verdict.alerts.push(`${recalls} NHTSA recall campaign${recalls > 1 ? 's' : ''} on record — verify remedies performed`);
         }
 
         const maintCount = this.data.history.maintenance.length;
@@ -199,6 +276,10 @@ export class AntigravityEngine {
 
         this.data.verdict.score = Math.max(0, Math.min(100, score));
         this.data.verdict.recommendation = score > 75 ? "GREAT" : score > 50 ? "FAIR" : "CAUTION";
+        (this.data.verdict as any).basis = 'NHTSA baseline (VIN-only). Not a substitute for a full history report — CARFAX history overrides this when present.';
+        (this.data.verdict as any).recallNote = recalls > 0
+            ? 'NHTSA lists campaigns for this year/make/model; whether the remedy was performed on THIS vehicle requires the history report.'
+            : 'No recall campaigns on record for this year/make/model.';
 
         return this.data;
     }

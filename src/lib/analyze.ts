@@ -9,13 +9,14 @@ import { calculateOperationalCosts } from "./operational-costs";
 import { calculateInitialInvestment } from "./initial-investment";
 import { generateActionPlan } from "./action-plan";
 import { generateNegotiationStrategy } from "./negotiation";
+import { forecastMaintenance } from "./maintenance-forecast";
 
 /**
  * Run the COMPLETE analysis pipeline on a vehicle.
  *
  * Returns all report sections plus supporting data.
  */
-export function analyzeVehicle(vehicle: Vehicle, vinData?: VinAnalysis): AnalysisResult {
+export function analyzeVehicle(vehicle: Vehicle, vinData?: VinAnalysis, context?: { carfax?: any; nhtsa?: any; vinSpecs?: any }): AnalysisResult {
     // ── 1. Market values ──
     const marketValues = estimateMarketValue(
         vehicle.year,
@@ -52,6 +53,37 @@ export function analyzeVehicle(vehicle: Vehicle, vinData?: VinAnalysis): Analysi
     const earnings = calculateRideshareEarnings(rideClass);
 
     // ── 4. Insurance ──
+    // ── 2b. History (CARFAX) + NHTSA sourced issues ──
+    const cf = context?.carfax || null;
+    const nh = context?.nhtsa || null;
+    const addIssue = (severity: CriticalIssue['severity'], title: string, concern: string, action: string) =>
+        criticalIssues.push({ severity, title, concern, benign: 'Not a concern if verified.', malicious: 'Could indicate hidden damage or misrepresentation.', action });
+    if (cf) {
+        if (cf.odometerRollback) addIssue('critical', 'Odometer rollback flagged', 'Mileage readings are inconsistent through the history.', 'Verify true mileage and walk away if unresolved.');
+        if (cf.structuralDamage) addIssue('critical', 'Structural damage reported', 'The history report records structural damage.', 'Have a body shop verify frame/structural integrity before purchase.');
+        if (cf.floodDamage) addIssue('critical', 'Flood damage recorded', 'Flood damage is permanent and insidious to electronics.', 'Do not purchase without a full electrical inspection.');
+        if (cf.fireDamage) addIssue('critical', 'Fire damage recorded', 'Fire damage carries long-term reliability risk.', 'Avoid unless fully documented and independently inspected.');
+        if (cf.lemonHistory) addIssue('critical', 'Lemon/buyback history', 'Manufacturer-confirmed defect buyback.', 'Verify the defect was actually corrected; pricing should reflect it.');
+        if (cf.titleStatus && !/clean/i.test(String(cf.titleStatus))) addIssue('high', `Title status: ${cf.titleStatus}`, `Title is branded as ${cf.titleStatus}, not clean.`, 'Confirm state transfer/insurance rules and price in the discount.');
+        (cf.incidents || []).forEach((inc: any) => {
+            if (inc && String(inc.severity || '').match(/moderate|severe/i))
+                addIssue(inc.severity === 'severe' ? 'critical' : 'high', `Accident${inc.date ? ` ${inc.date}` : ''}`, inc.description || 'Accident recorded in history.', 'Get the repair invoice and have the affected area inspected.');
+        });
+        if ((cf.serviceGaps || []).length >= 2) addIssue('medium', `${cf.serviceGaps.length} service gaps in history`, cf.serviceGaps.slice(0, 2).join('; '), 'Budget a full baseline service immediately after purchase.');
+        if (cf.openRecalls > 0) addIssue('medium', `${cf.openRecalls} open recall(s)`, 'Manufacturer safety campaigns not yet remedied.', 'Franchised dealers perform recall remedies free of charge.');
+    }
+    if (nh?.safety?.recalls?.length) {
+        const n = nh.safety.recalls.length;
+        addIssue(n >= 3 ? 'high' : 'medium', `${n} NHTSA recall campaign(s) on record`,
+            'NHTSA lists campaigns for this year/make/model: ' + nh.safety.recalls.map((r: any) => r.affected_component).filter(Boolean).slice(0, 3).join(', '),
+            'Verify remedies were performed on THIS vehicle via the manufacturer or history report.');
+    }
+    if (nh?.safety?.complaints?.count >= 100) {
+        addIssue('medium', `${nh.safety.complaints.count} owner complaints on record`,
+            'Top components: ' + (nh.safety.complaints.components || []).slice(0, 3).join(', '),
+            'Read the complaint narratives before buying; they show the failure pattern.');
+    }
+
     const insurance = estimateInsurance(vehicle.year, vehicle.make, vehicle.price);
 
     // ── 5. Scenario-based financial analysis ──
@@ -216,6 +248,16 @@ export function analyzeVehicle(vehicle: Vehicle, vinData?: VinAnalysis): Analysi
         structuredVerdict,
         conditionAssessment,
         sellerVerification,
+        maintenanceForecast: forecastMaintenance(vehicle, {
+            serviceRecordCount: cf?.serviceRecordCount,
+            lastServiceDate: cf?.lastServiceDate,
+            lastServiceMileage: cf?.lastServiceMileage,
+            serviceGaps: cf?.serviceGaps,
+            odometerRollback: cf?.odometerRollback,
+            openRecalls: cf?.openRecalls,
+            complaintCount: nh?.safety?.complaints?.count,
+        }),
+        dataSources: { carfax: !!cf, nhtsa: !!nh, vin: !!vinData, vinSpecs: !!context?.vinSpecs },
         vinAnalysis: vinData,
         scoringBreakdown
     };

@@ -200,7 +200,7 @@ export default function ListingCapture({ onExtracted, onUrlUpdate, isLoading }: 
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
                                 <Loader2 className="w-10 h-10 text-[var(--color-accent-red)] animate-spin mb-3" />
                                 <p className="text-white font-semibold text-lg">Extracting listing data...</p>
-                                <p className="text-white/60 text-sm mt-1">Groq Vision is reading the screenshot...</p>
+                                <p className="text-white/60 text-sm mt-1">VERA Vision is reading the screenshot...</p>
                             </div>
                         )}
 

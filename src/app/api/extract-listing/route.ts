@@ -1,3 +1,4 @@
+import { llmFetch, TEXT_BASE, TEXT_MODEL, TEXT_KEY, VISION_BASE, VISION_MODEL, VISION_KEY } from '@/lib/llm-config';
 import { NextResponse } from 'next/server';
 import { rateLimit, getClientIp, EXTRACT_LIMIT } from '@/lib/rate-limit';
 import { MASTER_INSPECTOR_KNOWLEDGE } from '@/lib/master-inspector';
@@ -184,7 +185,7 @@ export async function POST(request: Request) {
         };
 
         // ── STRATEGY A: Groq Llama 4 Scout 17B (vision-capable, LPU-fast) ──
-        const groqKey = process.env.GROQ_API_KEY;
+        const groqKey = process.env.GROQ_API_KEY || 'local';
         let vehicle: any = null;
         let lastError = '';
 
@@ -192,14 +193,14 @@ export async function POST(request: Request) {
             try {
                 const base64Data = imageBuffer.toString('base64');
                 const mimeType = imageFile.type || 'image/png';
-                const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                const groqRes = await fetch(`${VISION_BASE}/chat/completions`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${groqKey}`,
+                        'Authorization': `Bearer ${VISION_KEY}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+                        model: VISION_MODEL,
                         messages: [{ role: 'user', content: buildImageContents(base64Data, mimeType) }],
                         temperature: 0.1,
                         max_tokens: 2048,
@@ -213,7 +214,7 @@ export async function POST(request: Request) {
                         const parsed = JSON.parse(sanitizeJson(content));
                         if (parsed && (parsed.make || parsed.year)) {
                             vehicle = parsed;
-                            console.log('[Extract Listing] ✅ Groq Llama 4 Scout:', vehicle.make, vehicle.model);
+                            console.log('[Extract Listing] ✅ VERA Vision:', vehicle.make, vehicle.model);
                         }
                     }
                 } else {

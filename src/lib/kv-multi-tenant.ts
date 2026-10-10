@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { kv } from './kv';
 
 /**
  * Multi-tenant KV wrapper with user-scoped keys.
@@ -65,6 +66,6 @@ export async function withUserContext<T>(
   fn: (userClient: Redis) => Promise<T>,
   baseClient?: Redis
 ): Promise<T> {
-  const client = baseClient || Redis.fromEnv();
+  const client = baseClient || (kv as unknown as Redis);
   return fn(createUserClient(userId, client));
 }

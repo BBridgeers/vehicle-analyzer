@@ -2,6 +2,8 @@ import { llmFetch, TEXT_BASE, TEXT_MODEL, TEXT_KEY, VISION_BASE, VISION_MODEL, V
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getClientIp, CHAT_LIMIT } from '@/lib/rate-limit';
 import { buildVeraContext } from '@/lib/vera-context';
+import { comparablesFor, searchComps } from '@/lib/vera-db';
+import { needsResearch, researchBlock } from '@/lib/vera-web';
 import { getCurrentUserId } from '@/lib/kv-user-wrapper';
 
 export const runtime = "nodejs";
@@ -28,10 +30,12 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { messages, systemPrompt, page } = body as {
+        const { messages, systemPrompt, page, pageTitle, pageText } = body as {
             messages: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }>;
             systemPrompt: string;
             page?: string;
+            pageTitle?: string;
+            pageText?: string;
         };
 
         if (!messages || messages.length === 0) {
@@ -47,21 +51,52 @@ export async function POST(request: NextRequest) {
             content: msg.parts.map(p => p.text).join('\n')
         }));
 
-        // ── VERA omniscience: pull the full app record for this user ──
+        // ── VERA omniscience: full DB record + live screen + optional web research ──
         let contextText = '';
+        const extras: string[] = [];
+        let veh: any = null;
         try {
             const userId = await getCurrentUserId(request);
             const ctx = await buildVeraContext(userId, page);
             contextText = ctx.text;
+            veh = ctx.vehicle || null;
             console.log(`[VERA Chat] context injected (${contextText.length} chars) — form:${ctx.has.form} analysis:${ctx.has.analysis} carfax:${ctx.has.carfax} nhtsa:${ctx.has.nhtsa} fleet:${ctx.has.fleet}`);
         } catch (e: any) {
             console.warn('[VERA Chat] context build failed:', e?.message);
         }
 
+        // ── In-time view of whatever screen the user is on ──
+        if (pageText) {
+            extras.push(`## CURRENT SCREEN (live snapshot, may include UI chrome)\nPage: ${page || '?'}${pageTitle ? ` — ${pageTitle}` : ''}\n${String(pageText).slice(0, 2500)}`);
+        }
+
+        // ── Local market database (the app's own comps datasets) ──
+        try {
+            if (veh?.make && veh?.model) {
+                const c = comparablesFor(veh.make, veh.model);
+                extras.push(`## LOCAL MARKET DATABASE\nDataset holds ${c.datasetSize} scraped listings; ${c.matched} comparable ${veh.make} ${veh.model} record(s)` +
+                    (c.priceRange ? ` with prices $${c.priceRange.low.toLocaleString()}–$${c.priceRange.high.toLocaleString()} (avg $${c.priceRange.avg.toLocaleString()})` : '') +
+                    (c.samples.length ? `\n` + c.samples.join('\n') : ''));
+            }
+        } catch { /* non-fatal */ }
+
+        // ── Live internet research when the question warrants it ──
+        const lastUser = [...messages].reverse().find((m: any) => m.role === 'user');
+        const lastText = lastUser?.parts?.map((p: any) => p.text).join(' ').slice(0, 400) || '';
+        if (needsResearch(lastText)) {
+            const q = [veh?.year, veh?.make, veh?.model, veh?.trim, lastText].filter(Boolean).join(' ');
+            try {
+                const rb = await researchBlock(q);
+                if (rb) { extras.push(rb); console.log('[VERA Chat] live web research injected'); }
+            } catch (e: any) {
+                console.warn('[VERA Chat] research failed:', e?.message);
+            }
+        }
+
         const persona = 'You are VERA — the blunt, expert used-car buying strategist inside the Veracar app. ' +
             'You are speaking with the operator (a professional buyer). Never claim a data point you were not given.';
 
-        const systemParts = [persona, contextText, systemPrompt].filter(Boolean);
+        const systemParts = [persona, contextText, ...extras, systemPrompt].filter(Boolean);
         if (systemParts.length) {
             groqMessages.unshift({ role: 'system', content: systemParts.join('\n\n') });
         }

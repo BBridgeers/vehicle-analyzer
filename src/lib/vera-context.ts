@@ -17,6 +17,7 @@ function money(v: any): string {
 export interface VeraContextResult {
     text: string;
     has: Record<string, boolean>;
+    vehicle?: any;
 }
 
 export async function buildVeraContext(userId: string, page?: string): Promise<VeraContextResult> {
@@ -150,5 +151,5 @@ export async function buildVeraContext(userId: string, page?: string): Promise<V
     L.push(`- Infer freely (e.g. which components need attention first from age/mileage/model patterns) but label inference as inference.`);
     L.push(`- Keep answers tight; use the numbers.`);
 
-    return { text: clip(L.join('\n'), 22000), has };
+    return { text: clip(L.join('\n'), 22000), has, vehicle: form || null };
 }

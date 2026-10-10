@@ -142,6 +142,17 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const abortRef = useRef<AbortController | null>(null);
 
+    // VERA follows the user: persist the thread and snapshot the screen on every turn
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('vera:chat');
+            if (raw) setMessages((prev) => (prev.length ? prev : JSON.parse(raw)));
+        } catch { /* ignore */ }
+    }, []);
+    useEffect(() => {
+        try { if (messages.length) localStorage.setItem('vera:chat', JSON.stringify(messages.slice(-40))); } catch { /* ignore */ }
+    }, [messages]);
+
     const vehicleId = vehicle ? makeVehicleId(vehicle) : null;
     // Context is injected server-side on every turn (see lib/vera-context.ts),
     // so VERA can assist even before an analysis exists.
@@ -238,7 +249,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: apiMessages, systemPrompt: augmentedPrompt, page: typeof window !== "undefined" ? window.location.pathname : "" }),
+                    body: JSON.stringify({ messages: apiMessages, systemPrompt: augmentedPrompt, page: typeof window !== "undefined" ? window.location.pathname : "", pageTitle: typeof document !== "undefined" ? document.title : "", pageText: typeof document !== "undefined" ? (document.body.innerText || "").slice(0, 2500) : "" }),
                     signal: abortRef.current.signal,
                 });
 
@@ -247,7 +258,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: apiMessages, systemPrompt, page: typeof window !== "undefined" ? window.location.pathname : "" }),
+                    body: JSON.stringify({ messages: apiMessages, systemPrompt, page: typeof window !== "undefined" ? window.location.pathname : "", pageTitle: typeof document !== "undefined" ? document.title : "", pageText: typeof document !== "undefined" ? (document.body.innerText || "").slice(0, 2500) : "" }),
                     signal: abortRef.current.signal,
                 });
 

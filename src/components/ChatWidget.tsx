@@ -497,6 +497,14 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
                                 </button>
                             )}
                             <button
+                                onClick={() => { setMessages([]); try { localStorage.removeItem('vera:chat'); } catch { /* ignore */ } }}
+                                className="p-1.5 rounded-md hover:bg-[var(--color-bg-glass-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                                title="Clear conversation"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                            
+                            <button
                                 onClick={() => setIsMinimized(!isMinimized)}
                                 className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-bg-glass-hover)] transition-all"
                                 title={isMinimized ? "Expand" : "Minimize"}

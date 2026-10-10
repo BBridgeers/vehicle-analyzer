@@ -1,6 +1,8 @@
 import { llmFetch, TEXT_BASE, TEXT_MODEL, TEXT_KEY, VISION_BASE, VISION_MODEL, VISION_KEY } from '@/lib/llm-config';
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getClientIp, CHAT_LIMIT } from '@/lib/rate-limit';
+import { buildVeraContext } from '@/lib/vera-context';
+import { getCurrentUserId } from '@/lib/kv-user-wrapper';
 
 export const runtime = "nodejs";
 
@@ -26,9 +28,10 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { messages, systemPrompt } = body as {
+        const { messages, systemPrompt, page } = body as {
             messages: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }>;
             systemPrompt: string;
+            page?: string;
         };
 
         if (!messages || messages.length === 0) {
@@ -44,23 +47,29 @@ export async function POST(request: NextRequest) {
             content: msg.parts.map(p => p.text).join('\n')
         }));
 
-        // Add system prompt if present
-        if (systemPrompt) {
-            groqMessages.unshift({ role: 'system', content: systemPrompt });
+        // ── VERA omniscience: pull the full app record for this user ──
+        let contextText = '';
+        try {
+            const userId = await getCurrentUserId(request);
+            const ctx = await buildVeraContext(userId, page);
+            contextText = ctx.text;
+            console.log(`[VERA Chat] context injected (${contextText.length} chars) — form:${ctx.has.form} analysis:${ctx.has.analysis} carfax:${ctx.has.carfax} nhtsa:${ctx.has.nhtsa} fleet:${ctx.has.fleet}`);
+        } catch (e: any) {
+            console.warn('[VERA Chat] context build failed:', e?.message);
         }
 
-        const response = await fetch(`${TEXT_BASE}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${TEXT_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: TEXT_MODEL,
-                messages: groqMessages,
-                temperature: 0.7,
-                stream: true,
-            }),
+        const persona = 'You are VERA — the blunt, expert used-car buying strategist inside the Veracar app. ' +
+            'You are speaking with the operator (a professional buyer). Never claim a data point you were not given.';
+
+        const systemParts = [persona, contextText, systemPrompt].filter(Boolean);
+        if (systemParts.length) {
+            groqMessages.unshift({ role: 'system', content: systemParts.join('\n\n') });
+        }
+
+        const response = await llmFetch({
+            messages: groqMessages,
+            temperature: 0.7,
+            stream: true,
         });
 
         if (!response.ok) {

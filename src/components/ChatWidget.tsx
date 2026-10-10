@@ -18,8 +18,8 @@ import {
 } from "@/lib/chat-context";
 
 interface ChatWidgetProps {
-    vehicle: Vehicle | null;
-    analysis: AnalysisResult | null;
+    vehicle?: Vehicle | null;
+    analysis?: AnalysisResult | null;
 }
 
 // ── Typing indicator ──
@@ -143,7 +143,9 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
     const abortRef = useRef<AbortController | null>(null);
 
     const vehicleId = vehicle ? makeVehicleId(vehicle) : null;
-    const hasContext = !!(vehicle && analysis);
+    // Context is injected server-side on every turn (see lib/vera-context.ts),
+    // so VERA can assist even before an analysis exists.
+    const hasContext = true;
 
     // ── Load chat from KV when vehicle changes ──
     useEffect(() => {
@@ -227,7 +229,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
         abortRef.current = new AbortController();
 
         try {
-            const systemPrompt = await buildSystemPrompt(vehicle!, analysis!);
+            const systemPrompt = (vehicle && analysis) ? await buildSystemPrompt(vehicle, analysis) : "";
             if (postPurchaseMode) {
                 // Inject post-purchase context into system prompt
                 const ppNote = "\n\nIMPORTANT: The user has PURCHASED this vehicle. Switch to POST-PURCHASE ownership mode. Focus on: immediate next steps, recall repairs, maintenance milestones, rideshare onboarding, first-week checklist. Do NOT warn them about whether to buy — they already own it.";
@@ -236,7 +238,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: apiMessages, systemPrompt: augmentedPrompt }),
+                    body: JSON.stringify({ messages: apiMessages, systemPrompt: augmentedPrompt, page: typeof window !== "undefined" ? window.location.pathname : "" }),
                     signal: abortRef.current.signal,
                 });
 
@@ -245,7 +247,7 @@ export default function ChatWidget({ vehicle, analysis }: ChatWidgetProps) {
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: apiMessages, systemPrompt }),
+                    body: JSON.stringify({ messages: apiMessages, systemPrompt, page: typeof window !== "undefined" ? window.location.pathname : "" }),
                     signal: abortRef.current.signal,
                 });
 

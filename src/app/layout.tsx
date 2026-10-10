@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ChatWidget from "@/components/ChatWidget";
 
 export const metadata: Metadata = {
     metadataBase: new URL("https://veracar.co"),
@@ -49,7 +50,7 @@ export default function RootLayout({
                     rel="stylesheet"
                 />
             </head>
-            <body className="min-h-screen antialiased">{children}</body>
+            <body className="min-h-screen antialiased">{children}<ChatWidget /></body>
         </html>
     );
 }

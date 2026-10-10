@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
         unoptimized: true,
     },
     serverExternalPackages: ['playwright-core', '@sparticuz/chromium', 'playwright-extra', 'puppeteer-extra-plugin-stealth', 'pdf-parse'],
-    // 60s timeout for CARFAX analysis (Vercel Pro)
-    maxDuration: 55,
+    // pin the workspace root so the parent dir's lockfile can't confuse tracing
+    outputFileTracingRoot: __dirname,
 };
 
 export default nextConfig;
